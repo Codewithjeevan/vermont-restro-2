@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+.item_detail p.item_name {
+    margin-bottom: 0rem !important;
+}
+
+.item_detail p.item_qty {
+    margin-bottom: 0rem !important;
+}
+
+* {
+    font-family: 'Public Sans', sans-serif;
+}

@@ -1,0 +1,8 @@
+- Please upload update_code.zip into your current installation
+- Simply unzip it with replace mode
+- Open update_sql.sql file and copy all it's contents
+- Go to your database and open SQL Editor
+- Paste all SQL here and run/click on Go
+- Update is done
+Note: if you got any error durring update then create a ticekt and share your cpanel or ftp access for our investigate.
+Thanks

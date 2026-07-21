@@ -1,0 +1,13 @@
+# Live credentials - contain real DB password / Stripe & PayPal secret keys
+application/config/database.php
+application/config/stripe.php
+application/config/paypal.php
+
+# Hosting/environment artifacts
+error_log
+.well-known/
+cgi-bin/
+
+# OS/editor cruft
+Thumbs.db
+.DS_Store

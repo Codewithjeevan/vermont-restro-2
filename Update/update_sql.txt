@@ -1,0 +1,82 @@
+-- before 7.2 release
+ALTER TABLE `tbl_areas` ADD IF NOT EXISTS `tbl_border_color` VARCHAR(20) NULL DEFAULT NULL AFTER `company_id`, ADD IF NOT EXISTS `tbl_bg_color` VARCHAR(20) NULL DEFAULT NULL AFTER `tbl_border_color`, ADD IF NOT EXISTS `tbl_text_color` VARCHAR(20) NULL DEFAULT NULL AFTER `tbl_bg_color`, ADD IF NOT EXISTS `ordered_border_color` VARCHAR(20) NULL DEFAULT NULL AFTER `tbl_text_color`, ADD IF NOT EXISTS `ordered_bg_color` VARCHAR(20) NULL DEFAULT NULL AFTER `ordered_border_color`, ADD IF NOT EXISTS `ordered_text_color` VARCHAR(20) NULL DEFAULT NULL AFTER `ordered_bg_color`, ADD IF NOT EXISTS `box_border_color` VARCHAR(20) NULL DEFAULT NULL AFTER `ordered_text_color`, ADD IF NOT EXISTS `box_bg_color` VARCHAR(20) NULL DEFAULT NULL AFTER `box_border_color`, ADD IF NOT EXISTS `box_text_color` VARCHAR(20) NULL DEFAULT NULL AFTER `box_bg_color`, ADD IF NOT EXISTS `table_design_content` TEXT NULL DEFAULT NULL AFTER `box_text_color`;
+ALTER TABLE `tbl_tables` ADD IF NOT EXISTS `table_type` INT NULL DEFAULT '1' AFTER `area`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `table_bg_color` VARCHAR(50) NULL DEFAULT '#7367f0' AFTER `saas_landing_page`;
+ALTER TABLE `tbl_sales` ADD IF NOT EXISTS `self_order_content` TEXT NULL DEFAULT NULL AFTER `token_number`;
+ALTER TABLE `tbl_kitchen_sales` ADD IF NOT EXISTS `combo_items` TEXT NULL DEFAULT NULL AFTER `pull_update_cashier`;
+ALTER TABLE `tbl_running_order_tables` ADD IF NOT EXISTS `company_id` INT NOT NULL DEFAULT '1' AFTER `persons`;
+ALTER TABLE `tbl_sales` ADD IF NOT EXISTS `refund_payment_id` INT NOT NULL DEFAULT '0' AFTER `self_order_content`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `active_login_button` INT NOT NULL DEFAULT '1' AFTER `table_bg_color`, ADD IF NOT EXISTS `login_type` INT NOT NULL DEFAULT '1' AFTER `active_login_button`;
+
+CREATE TABLE IF NOT EXISTS `tbl_counters` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(55) DEFAULT NULL,
+  `outlet_id` varchar(11) DEFAULT NULL,
+  `printer_id` varchar(11) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `added_date` varchar(55) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `company_id` int(11) DEFAULT 0,
+  `del_status` varchar(11) DEFAULT 'Live',
+   PRIMARY KEY (`id`)
+) ENGINE=InnoDB; 
+
+ALTER TABLE `tbl_register` ADD IF NOT EXISTS `counter_id` INT NOT NULL DEFAULT '0' AFTER `company_id`;
+-- after 7.2 release
+ALTER TABLE `tbl_printers` ADD IF NOT EXISTS `printing_choice` VARCHAR(100) NULL DEFAULT NULL AFTER `company_id`, ADD IF NOT EXISTS `ipvfour_address` VARCHAR(50) NULL DEFAULT NULL AFTER `printing_choice`, ADD IF NOT EXISTS `print_format` VARCHAR(100) NULL DEFAULT NULL AFTER `ipvfour_address`, ADD IF NOT EXISTS `inv_qr_code_enable_status` VARCHAR(50) NULL DEFAULT NULL AFTER `print_format`;
+ALTER TABLE `tbl_purchase` ADD IF NOT EXISTS `counter_id` INT NOT NULL DEFAULT '0' AFTER `del_status`;
+ALTER TABLE `tbl_customer_due_receives` ADD IF NOT EXISTS `counter_id` INT NOT NULL DEFAULT '0' AFTER `del_status`;
+ALTER TABLE `tbl_supplier_payments` ADD IF NOT EXISTS `counter_id` INT NOT NULL DEFAULT '0' AFTER `del_status`;
+ALTER TABLE `tbl_expenses` ADD IF NOT EXISTS `counter_id` INT NOT NULL DEFAULT '0' AFTER `del_status`;
+ALTER TABLE `tbl_sale_payments` ADD IF NOT EXISTS `counter_id` INT NOT NULL DEFAULT '0' AFTER `del_status`;
+ALTER TABLE `tbl_kitchen_sales` ADD IF NOT EXISTS `counter_id` INT NOT NULL DEFAULT '0' AFTER `del_status`;
+ALTER TABLE `tbl_printers` ADD IF NOT EXISTS `open_cash_drawer_when_printing_invoice` VARCHAR(20) NOT NULL DEFAULT 'No' AFTER `inv_qr_code_enable_status`;
+ALTER TABLE `tbl_printers` ADD IF NOT EXISTS `outlet_id` INT NOT NULL DEFAULT '0' AFTER `company_id`;
+ALTER TABLE `tbl_counters` ADD IF NOT EXISTS `invoice_printer_id` INT NOT NULL DEFAULT '0' AFTER `name`;
+ALTER TABLE `tbl_counters` ADD IF NOT EXISTS `bill_printer_id` INT NOT NULL DEFAULT '0' AFTER `invoice_printer_id`;
+INSERT IGNORE INTO `tbl_access` (`id`, `module_name`, `function_name`, `label_name`, `parent_id`, `main_module_id`, `del_status`) VALUES (NULL, 'Counters', '', 'Counters', '0', '3', 'Live'), (NULL, '', 'add', 'add', '353', NULL, 'Live'), (NULL, '', 'update', 'update', '353', NULL, 'Live'), (NULL, '', 'view', 'view', '353', NULL, 'Live'), (NULL, '', 'delete', 'delete', '353', NULL, 'Live');
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 40;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 41;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 42;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 43;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 44;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 45;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 46;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 47;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 48;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 348;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 349;
+ALTER TABLE `tbl_sales` ADD IF NOT EXISTS `counter_id` INT NOT NULL DEFAULT '0' AFTER `company_id`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `terms_and_condition` VARCHAR(11) NULL DEFAULT NULL AFTER `login_type`;
+ALTER TABLE `tbl_pricing_plans` ADD IF NOT EXISTS `free_trial_status` VARCHAR(11) NULL DEFAULT 'No' AFTER `trail_days`;
+ALTER TABLE `tbl_outlets` ADD IF NOT EXISTS `created_date` VARCHAR(20) NULL DEFAULT NULL AFTER `online_self_order_receiving_id`;
+ALTER TABLE `tbl_users` ADD IF NOT EXISTS `created_date` VARCHAR(20) NULL DEFAULT NULL AFTER `del_status`; 
+ALTER TABLE `tbl_food_menus` ADD IF NOT EXISTS `alternative_name` VARCHAR(100) NULL DEFAULT NULL AFTER `name`;
+-- after 7.3 release
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `main_banner_section` TEXT NULL DEFAULT NULL AFTER `login_type`, ADD IF NOT EXISTS `service_section` TEXT NULL DEFAULT NULL AFTER `main_banner_section`, ADD IF NOT EXISTS `explore_menu_section` INT NULL DEFAULT NULL AFTER `service_section`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `social_media` TEXT NULL DEFAULT NULL AFTER `explore_menu_section`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `google_map` TEXT NULL DEFAULT NULL AFTER `social_media`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `contact_us_des` TEXT NULL DEFAULT NULL AFTER `google_map`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `about_us` TEXT NULL DEFAULT NULL AFTER `contact_us_des`;
+ALTER TABLE `tbl_reservations` ADD IF NOT EXISTS `reservation_time` VARCHAR(55) NULL DEFAULT NULL AFTER `reservation_date`, ADD IF NOT EXISTS `notes` VARCHAR(255) NULL DEFAULT NULL AFTER `reservation_time`;
+ALTER TABLE `tbl_food_menu_categories` ADD IF NOT EXISTS `category_image` VARCHAR(255) NULL DEFAULT NULL AFTER `order_by`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `common_menu_page` TEXT NULL DEFAULT NULL AFTER `about_us`;
+ALTER TABLE `tbl_food_menus` ADD IF NOT EXISTS `show_online` VARCHAR(15) NULL DEFAULT NULL AFTER `is_variation`;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `administrator_email` VARCHAR(100) NULL DEFAULT NULL AFTER `common_menu_page`;
+INSERT IGNORE INTO `tbl_main_modules` (`id`, `name`, `del_status`) VALUES (NULL, 'sos_online_order', 'Live');
+INSERT IGNORE INTO `tbl_access` (`id`, `module_name`, `function_name`, `label_name`, `parent_id`, `main_module_id`, `del_status`) VALUES (NULL, 'sos_online_order_setting', '', 'sos_online_order_setting', '0', '11', 'Live'), (NULL, '', 'all_setting', 'all_setting', '358', NULL, 'Live');
+ALTER TABLE `tbl_companies` CHANGE `explore_menu_section` `explore_menu_section` TEXT NULL DEFAULT NULL;
+ALTER TABLE `tbl_companies` ADD IF NOT EXISTS `facebook_app_id` TEXT NULL DEFAULT NULL AFTER `common_menu_page`, ADD IF NOT EXISTS `facebook_app_secret` TEXT NULL DEFAULT NULL AFTER `facebook_app_id`, ADD IF NOT EXISTS `google_client_id` TEXT NULL DEFAULT NULL AFTER `facebook_app_secret`, ADD IF NOT EXISTS `google_client_secret_key` TEXT NULL DEFAULT NULL AFTER `google_client_id`;
+ALTER TABLE `tbl_customers` ADD IF NOT EXISTS `active_code` VARCHAR(250) NULL DEFAULT NULL AFTER `same_or_diff_state`;
+ALTER TABLE `tbl_outlets` ADD IF NOT EXISTS `online_order_module` INT NOT NULL DEFAULT '1' AFTER `created_date`;
+ALTER TABLE `tbl_sales` ADD IF NOT EXISTS `paid_date_time` VARCHAR(20) NULL DEFAULT NULL AFTER `self_order_content`;
+
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 40;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 41;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 42;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 43;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 44;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 45;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 46;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 47;
+DELETE FROM `tbl_access` WHERE `tbl_access`.`id` = 48;
