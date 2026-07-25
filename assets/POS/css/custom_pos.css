@@ -40,4 +40,27 @@
     border-color: #dc3545;
     text-decoration: none;
   }
- 
+
+.order_holder .single_order .comp_item_toggle{
+    cursor: pointer;
+    color: #a0a0a0;
+}
+.order_holder .single_order .comp_item_toggle.comp_active{
+    color: #28a745;
+}
+.order_holder .single_order.is-comp .second_column,
+.order_holder .single_order.is-comp .fifth_column{
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+.order_holder .single_order.is-comp .first_column::after{
+    content: "FREE";
+    margin-inline-start: 6px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #28a745;
+    border-radius: 3px;
+    vertical-align: middle;
+}

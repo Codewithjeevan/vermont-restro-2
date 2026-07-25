@@ -1305,6 +1305,7 @@ class Sale extends Cl_Controller {
                     }else{
                         $item_data['is_free_item'] = 0;
                     }
+                    $item_data['is_complementary'] = (isset($item->is_complementary) && $item->is_complementary==1)?1:0;
 
                     $item_data['qty'] = $item->qty;
                     $item_data['tmp_qty'] = $tmp_var;
@@ -1868,6 +1869,7 @@ class Sale extends Cl_Controller {
                      $item_data['menu_note'] = $exist_food_menu->menu_note;;
                      $item_data['menu_combo_items'] = $exist_food_menu->menu_combo_items;;
                      $item_data['is_free_item'] = $exist_food_menu->is_free_item;;
+                     $item_data['is_complementary'] = $exist_food_menu->is_complementary;
                      $item_data['discount_amount'] = $item->item_discount_amount;
                      $item_data['item_type'] = "Kitchen Item";
                      $item_data['cooking_status'] = ($item->item_cooking_status=="")?NULL:$item->item_cooking_status;
@@ -2117,6 +2119,7 @@ class Sale extends Cl_Controller {
                 $item_data['menu_price_with_discount'] = $item->menu_price_with_discount;
                 $item_data['menu_combo_items'] = isset($item->menu_combo_items) && $item->menu_combo_items && $item->menu_combo_items!="undefined"?$item->menu_combo_items:'';
                 $item_data['is_free_item'] = $item->is_free;
+                $item_data['is_complementary'] = (isset($item->is_complementary) && $item->is_complementary==1)?1:0;
                 $item_data['menu_unit_price'] = $item->menu_unit_price;
                 $item_data['menu_taxes'] = json_encode($item->item_vat);
                 $item_data['menu_discount_value'] = $item->menu_discount_value;

@@ -62,6 +62,10 @@
       let inv_bill_no = $("#inv_bill_no").val();
       let inv_token_number = $("#inv_token_number").val();
       let menu_not_permit_access = $("#menu_not_permit_access").val();
+      let can_give_complementary = Number($("#can_give_complementary").val());
+      let complementary_only_admin_manager = $("#complementary_only_admin_manager").val();
+      let mark_as_complementary_txt = $("#mark_as_complementary_lang").val();
+      let remove_complementary_txt = $("#remove_complementary_lang").val();
       let close_order_msg = $("#close_order_msg").val();
       let cancel_order_msg = $("#cancel_order_msg").val();
       let pre_or_post_payment = Number($("#pre_or_post_payment").val());
@@ -5541,11 +5545,17 @@
                           '">' +
                           item_total_price_without_discount +
                           "</span>";
+                      draw_table_for_order +=
+                          '<span class="item_is_complementary ir_display_none" id="item_is_complementary_table' +
+                          item_id +
+                          '">0</span>';
                       $("#is_variation_product").html(search_by_menu_id_getting_parent_id(item_id, window.items));
                       draw_table_for_order +=
                           '<div class="single_order_column first_column cart_item_counter  arabic_text_left fix" data-id="'+item_id+'"><i  data-parent_id="'+search_by_menu_id_getting_parent_id(item_id, window.items)+'"   class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
                           item_id +
-                          '"></i> <span class="arabic_text_left 1_cp_name_'+item_id+'"  id="item_name_table_' +
+                          '"></i> <i class="fas fa-gift comp_item_toggle txt_5" title="' + mark_as_complementary_txt + '" id="comp_item_toggle_' +
+                          item_id +
+                          '" data-id="' + item_id + '"></i> <span class="arabic_text_left 1_cp_name_'+item_id+'"  id="item_name_table_' +
                           item_id +
                           '">' +
                           item_name +
@@ -7415,13 +7425,19 @@
                     '">' +
                     item_total_price_without_discount +
                     "</span>";
+                draw_table_for_order +=
+                    '<span class="item_is_complementary ir_display_none" id="item_is_complementary_table' +
+                    item_id +
+                    '">0</span>';
                 $("#is_variation_product").html(search_by_menu_id_getting_parent_id(item_id, window.items));
-  
-  
+
+
                 draw_table_for_order +=
                     '<div class="single_order_column first_column cart_item_counter  arabic_text_left fix"  data-id="'+item_id+'"><i data-parent_id="'+search_by_menu_id_getting_parent_id(item_id, window.items)+'" data-modal_item_is_offer="'+modal_item_is_offer+'" class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
                     item_id +
-                    '"></i> <span class="arabic_text_left 1_cp_name_'+item_id+'"  id="item_name_table_' +
+                    '"></i> <i class="fas fa-gift comp_item_toggle txt_5" title="' + mark_as_complementary_txt + '" id="comp_item_toggle_' +
+                    item_id +
+                    '" data-id="' + item_id + '"></i> <span class="arabic_text_left 1_cp_name_'+item_id+'"  id="item_name_table_' +
                     item_id +
                     '">' +
                     item_name +
@@ -8427,6 +8443,8 @@
                               parseFloat(item_price_without_discount) -
                               parseFloat(item_price_with_discount)
                           ).toFixed(ir_precision);
+                          let item_is_complementary = $(this).find("#item_is_complementary_table" + item_id).html();
+                          item_is_complementary = (item_is_complementary=="1")?"1":"0";
                           let kitchen_details_1 = search_by_menu_id(item_id, window.items);
                           items_info +=
                               '{"food_menu_id":"' +
@@ -8436,7 +8454,7 @@
                               '", "menu_name":"' + item_name +
                               '", "kitchen_id":"' + kitchen_details_1[0].kitchen_id +
                               '", "kitchen_name":"' + kitchen_details_1[0].kitchen_name +
-                              '", "is_free":"0", "rounding_amount_hidden":"0", "item_vat":' +
+                              '", "is_free":"0", "is_complementary":"' + item_is_complementary + '", "rounding_amount_hidden":"0", "item_vat":' +
                               item_vat +
                               ",";
                           items_info +=
@@ -9000,13 +9018,15 @@
                               parseFloat(item_price_without_discount) -
                               parseFloat(item_price_with_discount)
                           ).toFixed(ir_precision);
-  
+                          let item_is_complementary = $(this).find("#item_is_complementary_table" + item_id).html();
+                          item_is_complementary = (item_is_complementary=="1")?"1":"0";
+
                           items_info +=
                               '{"food_menu_id":"' +
                               item_id +
                               '", "menu_name":"' + item_name +
                               '", "is_print":"' + 1 +
-                              '", "is_free":"0", "rounding_amount_hidden":"0", "item_vat":' +
+                              '", "is_free":"0", "is_complementary":"' + item_is_complementary + '", "rounding_amount_hidden":"0", "item_vat":' +
                               item_vat +
                               ",";
                           items_info +=
@@ -13183,8 +13203,9 @@
               i++;
             }
   
+            let this_item_is_comp = (this_item.is_complementary==1||this_item.is_complementary=="1")?1:0;
             draw_table_for_order +=
-              '<div class="single_order fix" id="order_for_item_' +
+              '<div class="single_order fix' + (this_item_is_comp?' is-comp':'') + '" id="order_for_item_' +
               this_item.food_menu_id +
               '">';
             draw_table_for_order += '<div class="first_portion">';
@@ -13207,9 +13228,15 @@
               this_item.menu_price_without_discount +
               "</span>";
             draw_table_for_order +=
+              '<span class="item_is_complementary ir_display_none" id="item_is_complementary_table' +
+              this_item.food_menu_id +
+              '">' + this_item_is_comp + '</span>';
+            draw_table_for_order +=
               '<div class="single_order_column first_column cart_item_counter"  data-id="'+item_id+'"><i class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
               this_item.food_menu_id +
-              '"></i> <span id="item_name_table_' +
+              '"></i> <i class="fas fa-gift comp_item_toggle txt_5' + (this_item_is_comp?' comp_active':'') + '" title="' + (this_item_is_comp?remove_complementary_txt:mark_as_complementary_txt) + '" id="comp_item_toggle_' +
+              this_item.food_menu_id +
+              '" data-id="' + this_item.food_menu_id + '"></i> <span id="item_name_table_' +
               this_item.food_menu_id +
               '">' +
               this_item.menu_name +
@@ -14848,9 +14875,10 @@
             : this_item.item_type;
   
         let is_free_update = Number(this_item.is_free);
+        let this_item_is_comp = (this_item.is_complementary==1||this_item.is_complementary=="1")?1:0;
         if(is_free_update!=1) {
             draw_table_for_order +=
-                '<div  data-cp_type="1"  data-id="' + this_item.food_menu_id + '" class="customer_panel single_order fix" id="order_for_item_' +
+                '<div  data-cp_type="1"  data-id="' + this_item.food_menu_id + '" class="customer_panel single_order fix' + (this_item_is_comp?' is-comp':'') + '" id="order_for_item_' +
                 this_item.food_menu_id +
                 '">';
             draw_table_for_order += '<div class="first_portion">';
@@ -14905,9 +14933,15 @@
                 this_item.menu_price_without_discount +
                 "</span>";
             draw_table_for_order +=
+                '<span class="item_is_complementary ir_display_none" id="item_is_complementary_table' +
+                this_item.food_menu_id +
+                '">' + this_item_is_comp + '</span>';
+            draw_table_for_order +=
                 '<div class="single_order_column first_column cart_item_counter" data-id="' + item_id + '"><i   class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
                 this_item.food_menu_id +
-                '"></i>  <span class="1_cp_name_' + this_item.food_menu_id + '" id="item_name_table_' +
+                '"></i> <i class="fas fa-gift comp_item_toggle txt_5' + (this_item_is_comp?' comp_active':'') + '" title="' + (this_item_is_comp?remove_complementary_txt:mark_as_complementary_txt) + '" id="comp_item_toggle_' +
+                this_item.food_menu_id +
+                '" data-id="' + this_item.food_menu_id + '"></i> <span class="1_cp_name_' + this_item.food_menu_id + '" id="item_name_table_' +
                 this_item.food_menu_id +
                 '">' +
                 this_item.menu_name +
@@ -15739,6 +15773,27 @@
         setTimeout(function () {
             do_addition_of_item_and_modifiers_price();
         }, 500);
+    });
+    $("body").on("click", ".comp_item_toggle", function () {
+        let id = $(this).attr("data-id");
+        if (Number($("#can_give_complementary").val()) != 1) {
+            toastr['error']($("#complementary_only_admin_manager").val(), '');
+            return false;
+        }
+        let marker = $("#item_is_complementary_table" + id);
+        let is_comp = Number(marker.html()) == 1;
+        if (!is_comp) {
+            marker.html("1");
+            $("#percentage_table_" + id).val("100%");
+            $(this).addClass("comp_active").attr("title", remove_complementary_txt);
+            $("#order_for_item_" + id).addClass("is-comp");
+        } else {
+            marker.html("0");
+            $("#percentage_table_" + id).val("");
+            $(this).removeClass("comp_active").attr("title", mark_as_complementary_txt);
+            $("#order_for_item_" + id).removeClass("is-comp");
+        }
+        do_addition_of_item_and_modifiers_price();
     });
     $("body").on("click", ".cart__single__item", function () {
       $(this).hide();
