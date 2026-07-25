@@ -1071,6 +1071,7 @@ $lang['PaymentMethodWiseBreakdown'] = 'تحليل حسب طريقة الدفع';
 $lang['Normal_Users'] = 'المستخدمون العاديون';
 $lang['Admin'] = 'مشرف';
 $lang['Manager'] = 'مدير';
+$lang['void_only_admin_manager'] = 'فقط المشرف أو المدير يمكنه تخفيض كمية صنف تم طلبه';
 $lang['Waiter'] = 'مسئول صاله';
 $lang['Others'] = 'آحرون';
 $lang['UsagePoints'] = 'نقاط الاستخدام';
@@ -1701,3 +1702,6 @@ $lang['print_server_instruction_title_3']='2. كيفية استخدام الطا
 $lang['print_server_instruction_title_4']='3. كيفية الطباعة المباشرة باستخدام طابعة USB؟'; 
 $lang['print_server_instruction_title_5']='4. كيفية الطباعة المباشرة باستخدام طابعة الشبكة؟'; 
 $lang['Chef']='الشيف'; 
+
+$lang['admin_password_required_to_clear']='يمكن فقط للمشرف أو المدير مسح الطلب. يرجى إدخال كلمة مرور المشرف للمتابعة.';
+$lang['incorrect_admin_password']='كلمة مرور غير صحيحة. حاول مرة أخرى.';

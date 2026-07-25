@@ -1399,21 +1399,29 @@
                                             need_print_popup++;
                                         }
                                       let this_item = order.items[key1];
-                                      
+
+                                      //--- KOT delta / VOID (server-authoritative) ---
+                                      //The backend sends only the items that changed on this re-order round, each with
+                                      //tmp_qty (units newly added/increased) and void_qty (units cancelled by a decrease).
+                                      let kot_print_mode = $("#kot_print").val();
+                                      let srv_void_qty = Number(this_item.void_qty) || 0;
+                                      let srv_add_qty = Number(this_item.tmp_qty);
+                                      let is_void_item = false;
                                       let updated_qty = this_item.qty;
-                                      let if_kot_print = check_old_kot(order.sale_no_p,this_item.food_menu_id,kot_print,this_item.qty);
-                                        
-                                      if(!if_kot_print){
-                                        let tmp_checker = Number($("#exist_item"+this_item.food_menu_id).text());
-                                        if(!tmp_checker){
-                                            if_kot_print = true;
-                                                updated_qty = this_item.qty;
-                                            }
-                                        }else{
-                                            let tmp_checker = Number($("#exist_item"+this_item.food_menu_id).text());
-                                            updated_qty = this_item.qty - tmp_checker;
-                            
-                                        }
+                                      if(kot_print_mode == 1){
+                                          //explicit full re-print -> show total quantity
+                                          updated_qty = Number(this_item.qty);
+                                      }else if(srv_void_qty > 0){
+                                          //quantity was reduced -> print a VOID line for the cancelled units
+                                          is_void_item = true;
+                                          updated_qty = srv_void_qty;
+                                      }else if(srv_add_qty > 0){
+                                          //newly added / increased units
+                                          updated_qty = srv_add_qty;
+                                      }else{
+                                          //nothing changed for this item -> do not print it on this KOT
+                                          continue;
+                                      }
                                       //construct div
                                       let total_modifier = 0;
                                       if(this_item.modifiers_id!='' && this_item.modifiers_id!=undefined ){
@@ -1432,12 +1440,12 @@
                                       let i = 1;
                                       total_item_counter+=Number(this_item.qty);
                                       invoice_print+=`<tr>`;
-                                      invoice_print+=`<td class="no-border border-bottom ir_wid_90"># <span class="sn_counter">`+sl+`</span>: `+this_item.menu_name+alternative_name;
+                                      invoice_print+=`<td class="no-border border-bottom ir_wid_90"># <span class="sn_counter">`+sl+`</span>: `+(is_void_item?`<b style="color:#d00;">VOID</b> `:``)+this_item.menu_name+alternative_name;
                                       if (this_item.menu_combo_items != "" && this_item.menu_combo_items!=undefined  && this_item.menu_combo_items!=null && this_item.menu_combo_items!="undefined") {
                                           invoice_print+= `<br><span  style="padding-left: 30px;">`+combo_txt+": "+this_item.menu_combo_items+`</span>`;
                                       }
-                                      if (this_item.item_note != "" && this_item.item_note!=undefined  && this_item.item_note!=null && this_item.item_note!="undefined") {
-                                          invoice_print+= `<br><span  style="padding-left: 30px;">`+note_txt+": "+this_item.item_note+`</span>`;
+                                      if (this_item.menu_note != "" && this_item.menu_note!=undefined  && this_item.menu_note!=null && this_item.menu_note!="undefined") {
+                                          invoice_print+= `<br><span  style="padding-left: 30px;">`+note_txt+": "+this_item.menu_note+`</span>`;
                                       }
                                       invoice_print+=`</td>`;
                                       invoice_print+=`<td class="no-border border-bottom text-right">`;
@@ -5673,48 +5681,93 @@
                 return false;
             }
         });
+      function clearPosCartConfirmed() {
+        $(".order_table_holder .order_holder").empty();
+        clearFooterCartCalculation();
+        $("#table_button").attr("disabled", false);
+        $(".single_table_div[data-table-checked=checked]").attr(
+          "data-table-checked",
+          "unchecked"
+        );
+        let cid = $("#default_customer_hidden").val();
+        let wid = $("#default_waiter_hidden").val();
+        $("#walk_in_customer").val(cid).trigger("change");
+        $("#walk_in_customer1").val(cid).trigger("change");
+        if (wid) {
+          if (waiter_app_status != "Yes") {
+            $("#select_waiter").val(wid).trigger("change");
+            $("#select_waiter1").val(wid).trigger("change");
+          }
+        } else {
+          if (waiter_app_status != "Yes") {
+            $("#select_waiter").val("").trigger("change");
+            $("#select_waiter1").val("").trigger("change");
+          }
+        }
+
+        //focus search field
+        focusSearch();
+        $("#place_edit_order").html(place_order);
+      }
       $(document).on("click", "#cancel_button", function (e) {
         //get total items in cart
         let total_items_in_cart = $(".order_holder .single_order").length;
         if (total_items_in_cart > 0) {
-          swal(
-            {
-              title: warning + "!",
-              text: cart_not_empty_want_to_clear,
-              confirmButtonColor: "#3c8dbc",
-              confirmButtonText: ok,
-              showCancelButton: true,
-            },
-            function () {
-              $(".order_table_holder .order_holder").empty();
-              clearFooterCartCalculation();
-              $("#table_button").attr("disabled", false);
-              $(".single_table_div[data-table-checked=checked]").attr(
-                "data-table-checked",
-                "unchecked"
-              );
-              let cid = $("#default_customer_hidden").val();
-              let wid = $("#default_waiter_hidden").val();
-              $("#walk_in_customer").val(cid).trigger("change");
-              $("#walk_in_customer1").val(cid).trigger("change");
-              if (wid) {
-                if (waiter_app_status != "Yes") {
-                  $("#select_waiter").val(wid).trigger("change");
-                  $("#select_waiter1").val(wid).trigger("change");
-                }
-              } else {
-                if (waiter_app_status != "Yes") {
-                  $("#select_waiter").val("").trigger("change");
-                  $("#select_waiter1").val("").trigger("change");
-                }
+          if (Number($("#can_clear_cart_without_pass").val()) == 1) {
+            swal(
+              {
+                title: warning + "!",
+                text: cart_not_empty_want_to_clear,
+                confirmButtonColor: "#3c8dbc",
+                confirmButtonText: ok,
+                showCancelButton: true,
+              },
+              function () {
+                clearPosCartConfirmed();
               }
-  
-                //focus search field
-                focusSearch();
-              $("#place_edit_order").html(place_order);
-            }
-          );
+            );
+          } else {
+            $("#admin_verify_password_input").val("").css("border", "1px solid #B5D6F6");
+            $(".admin_verify_password_error").hide();
+            $("#admin_password_verify_modal").addClass("active");
+            $(".pos__modal__overlay").fadeIn(200);
+          }
         }
+      });
+      $(document).on("click", "#submit_admin_verify_password", function (e) {
+        $(".admin_verify_password_error").hide();
+        let admin_verify_password_val = $("#admin_verify_password_input").val();
+        $("#admin_verify_password_input").css("border", "1px solid #B5D6F6");
+        if (admin_verify_password_val == "") {
+          $("#admin_verify_password_input").css("border", "1px solid red");
+          return false;
+        }
+        $.ajax({
+          url: base_url + "Sale/verify_admin_password_by_ajax",
+          method: "POST",
+          dataType: "json",
+          data: {
+            password: admin_verify_password_val,
+          },
+          success: function (response) {
+            if (response.status == true) {
+              $("#admin_password_verify_modal")
+                .removeClass("active")
+                .addClass("inActive");
+              setTimeout(function () {
+                $(".modal").removeClass("inActive");
+              }, 1000);
+              $(".pos__modal__overlay").fadeOut(300);
+              clearPosCartConfirmed();
+            } else {
+              $(".admin_verify_password_error").show();
+              $("#admin_verify_password_input").css("border", "1px solid red");
+            }
+          },
+          error: function () {
+            alert(a_error);
+          },
+        });
       });
     $(document).on("click", ".edit_item", function () {
           //add for vr01
@@ -7185,7 +7238,14 @@
   
                 //get item/menu quantity from modal
                 let item_quantity = $("#item_quantity_modal").val();
-  
+
+                //VOID guard: applying (via the item edit modal) a qty lower than what was
+                //already sent to the kitchen is Admin/Manager only
+                if (Number(row_number) > 0 && $("#p_qty_" + item_id).length && Number(item_quantity) < Number($("#p_qty_" + item_id).val()) && Number($("#can_void_order_item").val()) != 1) {
+                    toastr['error']($("#void_only_admin_manager").val(), '');
+                    return false;
+                }
+
                 //get vat amount for specific item/menu
                 let item_vat_amount_for_all_quantity = (
                     parseFloat(item_vat_amount_for_unit_item) * parseFloat(item_quantity)
@@ -7719,10 +7779,16 @@
           let cooking_status = single_order_element_object
             .find("#item_cooking_status_table" + item_id)
             .html();
-  
+
           if (cooking_status != "" && cooking_status !== undefined) {
               toastr['error']((progress_or_done_kitchen), '');
             return false;
+          }
+          //VOID guard: reducing below the qty already sent to the kitchen is Admin/Manager only
+          let placed_qty_el = $("#p_qty_" + item_id);
+          if (placed_qty_el.length && (Number(item_quantity) - 1) < Number(placed_qty_el.val()) && Number($("#can_void_order_item").val()) != 1) {
+              toastr['error']($("#void_only_admin_manager").val(), '');
+              return false;
           }
           //decrease item quantity if greater then 1 or remove full item from table
           if (item_quantity > 1) {
@@ -15625,6 +15691,11 @@
             toastr['error']((this_item_already_cooked_please_contact_with_admin), '');
             return false;
         } else {
+          //VOID guard: removing an item already sent to the kitchen is Admin/Manager only
+          if ($("#p_qty_" + id).length && Number($("#p_qty_" + id).val()) > 0 && Number($("#can_void_order_item").val()) != 1) {
+              toastr['error']($("#void_only_admin_manager").val(), '');
+              return false;
+          }
           let pos_7 = Number($("#pos_7").val());
           if(waiter_app_status=="Yes"){
               pos_7 = 1;

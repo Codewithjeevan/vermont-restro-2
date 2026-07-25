@@ -1107,7 +1107,7 @@ class Common_model extends CI_Model {
      * @param string
      */
     public function getAllKitchenItemsAuto($sales_id,$printer_id){
-        $this->db->select("tbl_kitchen_sales_details.menu_name,tbl_kitchen_sales_details.qty,tbl_kitchen_sales_details.food_menu_id,tbl_kitchen_sales_details.tmp_qty,tbl_kitchen_sales_details.menu_combo_items,tbl_kitchen_sales_details.menu_note,tbl_kitchen_sales_details.id as sales_details_id,tbl_kitchen_sales_details.is_print");
+        $this->db->select("tbl_kitchen_sales_details.menu_name,tbl_kitchen_sales_details.qty,tbl_kitchen_sales_details.food_menu_id,tbl_kitchen_sales_details.tmp_qty,tbl_kitchen_sales_details.void_qty,tbl_kitchen_sales_details.menu_combo_items,tbl_kitchen_sales_details.menu_note,tbl_kitchen_sales_details.id as sales_details_id,tbl_kitchen_sales_details.is_print");
         $this->db->from('tbl_kitchen_sales_details');
         $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_kitchen_sales_details.food_menu_id', 'left');
         $this->db->join('tbl_kitchen_categories', 'tbl_kitchen_categories.cat_id = tbl_food_menus.category_id', 'left');

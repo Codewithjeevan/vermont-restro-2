@@ -1603,6 +1603,30 @@ foreach ($notifications as $single_notification){
         </div>
     </div>
 </div>
+    <div id="admin_password_verify_modal" class="modal">
+    <!-- Modal content -->
+    <div class="modal-content">
+
+        <h1 id="modal_item_name"><?php echo lang('Admin'); ?>
+            <a href="javascript:void(0)" class="alertCloseIcon">
+                <i class="fal fa-times"></i>
+            </a>
+        </h1>
+        <div class="main-content-wrapper">
+            <p><?php echo lang('admin_password_required_to_clear'); ?></p>
+            <p class="admin_verify_password_error display_none ir_color_red"><?php echo lang('incorrect_admin_password'); ?></p>
+            <div>
+                <label for="admin_verify_password_input"><?php echo lang('password'); ?></label>
+                <input type="password" class="special_textbox" placeholder="<?php echo lang('password'); ?>"
+                       id="admin_verify_password_input" />
+            </div>
+        </div>
+        <div class="btn__box">
+            <button type="button" id="submit_admin_verify_password"><?php echo lang('submit'); ?></button>
+            <button type="button" class="cancel"><?php echo lang('cancel'); ?></button>
+        </div>
+    </div>
+</div>
     <div id="running_order_save_modal" class="modal">
     <!-- Modal content -->
     <div class="modal-content">

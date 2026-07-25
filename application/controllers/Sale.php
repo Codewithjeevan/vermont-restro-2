@@ -1088,6 +1088,29 @@ class Sale extends Cl_Controller {
         }
         echo json_encode($customer_return) ;
     }
+    /**
+     * verify that the entered password belongs to an Admin/Manager of this company,
+     * used to gate POS actions restricted to Admin/Manager (e.g. clearing the cart)
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function verify_admin_password_by_ajax(){
+        $entered_password = md5(trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('password')))));
+        $company_id = $this->session->userdata('company_id');
+        $this->db->select('id');
+        $this->db->from('tbl_users');
+        $this->db->where('company_id', $company_id);
+        $this->db->where('del_status', 'Live');
+        $this->db->where('password', $entered_password);
+        $this->db->group_start();
+        $this->db->where('role', 'Admin');
+        $this->db->or_where_in('designation', array('Admin','Super Admin','Manager'));
+        $this->db->group_end();
+        $check_user = $this->db->get()->row();
+        $verify_return['status'] = $check_user?true:false;
+        echo json_encode($verify_return);
+    }
      /**
      * get all customers for this user
      * @access public
@@ -1266,8 +1289,12 @@ class Sale extends Cl_Controller {
                     $tmp_var_111 = isset($item->p_qty) && $item->p_qty && $item->p_qty!='undefined'?$item->p_qty:0;
                     $tmp = $item->qty-$tmp_var_111;
                     $tmp_var = 0;
+                    $void_var = 0;
                     if($tmp>0){
                         $tmp_var = $tmp;
+                    }else if($tmp<0){
+                        //quantity decreased on this re-order round -> reduced units become VOID on the KOT
+                        $void_var = abs($tmp);
                     }
 
                     $item_data = array();
@@ -1281,6 +1308,7 @@ class Sale extends Cl_Controller {
 
                     $item_data['qty'] = $item->qty;
                     $item_data['tmp_qty'] = $tmp_var;
+                    $item_data['void_qty'] = $void_var;
                     $item_data['menu_price_without_discount'] = $item->menu_price_without_discount;
                     $item_data['menu_price_with_discount'] = $item->menu_price_with_discount;
                     $item_data['menu_unit_price'] = $item->menu_unit_price;
@@ -1302,7 +1330,9 @@ class Sale extends Cl_Controller {
                         $item_data['loyalty_point_earn'] = ($item->qty * getLoyaltyPointByFoodMenu($item->food_menu_id,''));
                     }
                     $item_data['del_status'] = 'Live';
-                    $item_data['cooking_status'] = 'New';
+                    //NOTE: cooking_status is intentionally NOT forced here anymore.
+                    //It is set to 'New' only for fresh inserts / genuinely changed items below,
+                    //so already-cooked (Done) items are not resurrected onto the kitchen panel on re-order.
 
                     $sales_details_id = '';
                     if($sale_id){
@@ -1312,7 +1342,14 @@ class Sale extends Cl_Controller {
                         if(isset($check_exist_item) && $check_exist_item){
                             $sales_details_id = $check_exist_item->id;
                             if($item->qty!=$check_exist_item->qty){
+                                //qty changed (added or reduced) -> this item is part of the new KOT batch
                                 $item_data['is_print'] = 1;
+                                $item_data['cooking_status'] = 'New';
+                                if($item->qty < $check_exist_item->qty){
+                                    //qty reduced (VOID) -> give the cancelled units back to ingredient stock.
+                                    //Delta is taken from the DB row (authoritative), not the frontend p_qty.
+                                    refillStockOnVoidQty($sale_no, $item->food_menu_id, ($check_exist_item->qty - $item->qty));
+                                }
                                 $updated_notifications = $this->Common_model->getOrderedKitchens($sale_id);
                                 foreach ($updated_notifications as $k=>$kitchen){
                                     $notification_message = 'Order:'.$sale_no.' has been modified. Modified item: '.$item->menu_name.", Modified item qty:".$item->qty;
@@ -1323,13 +1360,22 @@ class Sale extends Cl_Controller {
                                     $bar_kitchen_notification_data['kitchen_id'] = $kitchen->kitchen_id;
                                     $this->db->insert('tbl_notification_bar_kitchen_panel', $bar_kitchen_notification_data);
                                 }
+                            }else{
+                                //unchanged item on this re-order -> keep it OFF the new KOT batch and do NOT
+                                //resurrect its kitchen cooking status (a Done item must stay Done/hidden).
+                                $item_data['is_print'] = 2;
+                                unset($item_data['cooking_status']);
+                                unset($item_data['cooking_start_time']);
+                                unset($item_data['cooking_done_time']);
                             }
                             $this->Common_model->updateInformation($item_data, $sales_details_id, "tbl_kitchen_sales_details");
                         }else{
+                            $item_data['cooking_status'] = 'New';
                             $this->db->insert('tbl_kitchen_sales_details', $item_data);
                             $sales_details_id = $this->db->insert_id();
                         }
                     }else{
+                        $item_data['cooking_status'] = 'New';
                         $this->db->insert('tbl_kitchen_sales_details', $item_data);
                         $sales_details_id = $this->db->insert_id();
                     }
@@ -1469,7 +1515,12 @@ class Sale extends Cl_Controller {
                             $items = "\n";
                             $count = 1;
                             foreach ($sale_items as $item){
-                                if($item->tmp_qty):
+                                if(isset($item->void_qty) && $item->void_qty>0):
+                                    //quantity was reduced on this re-order round -> mark the cancelled units as VOID
+                                    $items.= printLine(("VOID #".$count." ".(getPlanData($item->menu_name))).": " .($item->void_qty), $value->characters_per_line)."\n";
+                                    $count++;
+                                    $count++;
+                                elseif($item->tmp_qty):
                                     $items.= printLine(("#".$count." ".(getPlanData($item->menu_name))).": " .($item->tmp_qty), $value->characters_per_line)."\n";
                                     $count++;
                                     if($item->menu_combo_items && $item->menu_combo_items!=null){
@@ -1492,6 +1543,14 @@ class Sale extends Cl_Controller {
                         }
                     }
                 }
+
+                    //KOT batch dispatched -> clear the print flag + void marker for this sale so the NEXT
+                    //re-order computes a fresh delta (only newly added/changed items print again, and an
+                    //already-shown VOID is not printed twice).
+                    $this->db->where('sales_id', $sale_id);
+                    $this->db->update('tbl_kitchen_sales_details', array('is_print' => 2, 'void_qty' => 0));
+                    $this->db->where('sales_id', $sale_id);
+                    $this->db->update('tbl_kitchen_sales_details_modifiers', array('is_print' => 2));
 
                     $company_id = $this->session->userdata('company_id');
                     $company = $this->Common_model->getDataById($company_id, "tbl_companies");

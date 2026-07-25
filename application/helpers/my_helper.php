@@ -3365,6 +3365,13 @@ function write_index() {
 }
 function checkAndRemoveAllRemovedItem($object_cart,$sale_id){
     $CI = & get_instance();
+    $kitchen_sale_no = null;
+    //clean up VOID markers left over from the PREVIOUS re-order round (they have already
+    //been printed on that round's KOT and are no longer needed).
+    $CI->db->where('sales_id', $sale_id);
+    $CI->db->where('del_status', 'Voided');
+    $CI->db->delete('tbl_kitchen_sales_details');
+
     $CI->db->select('*');
     $CI->db->from('tbl_kitchen_sales_details');
     $CI->db->where('sales_id', $sale_id);
@@ -3397,12 +3404,116 @@ function checkAndRemoveAllRemovedItem($object_cart,$sale_id){
             $selected_fm_id = $value->food_menu_id;
         }
         if (!in_array($selected_fm_id, $cart_ids)) {
-            //remove on update if remove any item from cart
-            $CI->db->delete('tbl_kitchen_sales_details', array('id' => $value->id));
+            //item was removed from the cart on this re-order round.
+            //Instead of hard-deleting, turn it into a one-round VOID marker so the KOT prints
+            //"VOID <item> x <qty>". It is hidden from the kitchen panel (cooking_status=Done +
+            //del_status=Voided), ignored by billing (Live-only), skipped by checkExistItem, and
+            //cleaned up at the top of the next re-order round.
+            $CI->db->where('id', $value->id);
+            $CI->db->update('tbl_kitchen_sales_details', array(
+                'void_qty'       => $value->qty,
+                'qty'            => 0,
+                'tmp_qty'        => 0,
+                'is_print'       => 1,
+                'cooking_status' => 'Done',
+                'del_status'     => 'Voided'
+            ));
             $CI->db->delete('tbl_kitchen_sales_details_modifiers', array('sales_details_id' => $value->id));
+
+            //give the removed units back to ingredient stock (no-op while consumption
+            //has not been recorded yet for this sale, e.g. a not-yet-settled dine-in order)
+            if($kitchen_sale_no===null){
+                $kitchen_sale_row = $CI->db->query("SELECT sale_no FROM tbl_kitchen_sales WHERE id=".(int)$sale_id)->row();
+                $kitchen_sale_no = isset($kitchen_sale_row->sale_no)?$kitchen_sale_row->sale_no:'';
+            }
+            if($kitchen_sale_no){
+                refillStockOnVoidQty($kitchen_sale_no, $value->food_menu_id, $value->qty);
+            }
         }
     }
 
+}
+/**
+ * Only Admin/Manager level users may reduce (void) the quantity of an item that
+ * has already been sent to the kitchen on a running order.
+ */
+function canVoidOrderedItem(){
+    $CI = & get_instance();
+    if($CI->session->userdata('role')=="Admin"){
+        return true;
+    }
+    return in_array($CI->session->userdata('designation'), array('Admin','Super Admin','Manager'));
+}
+/**
+ * When ordered quantity is reduced (VOID), put the cancelled units back into stock.
+ * Stock = purchases - tbl_sale_consumptions_of_menus(+modifiers), so refilling means
+ * reducing the consumption already recorded for this sale. Mirrors the consumption
+ * model of Sale::push_online (recipe / direct-stock / combo menus + modifiers).
+ * No-op when the sale has no consumption rows yet (running order not settled): in that
+ * case settlement itself records consumption from the already-reduced quantities.
+ */
+function refillStockOnVoidQty($sale_no, $food_menu_id, $void_units){
+    $CI = & get_instance();
+    $void_units = (float)$void_units;
+    $food_menu_id = (int)$food_menu_id;
+    if($void_units<=0 || !$food_menu_id){
+        return;
+    }
+    $billing_sale = getSaleDetailsBySaleNo($sale_no);
+    if(!$billing_sale){
+        return;
+    }
+    $sales_id = (int)$billing_sale->id;
+    $food_details = $CI->db->query("SELECT * FROM tbl_food_menus WHERE id=$food_menu_id")->row();
+    if(!$food_details){
+        return;
+    }
+    if(isset($food_details->product_type) && $food_details->product_type==1){
+        $food_menu_ingredients = $CI->db->query("SELECT * FROM tbl_food_menus_ingredients WHERE food_menu_id=$food_menu_id")->result();
+        foreach($food_menu_ingredients as $single_ingredient){
+            reduceConsumptionRowOnVoid($sales_id, $food_menu_id, $single_ingredient->ingredient_id, ($void_units*$single_ingredient->consumption), 'tbl_sale_consumptions_of_menus');
+        }
+    }else if(isset($food_details->product_type) && $food_details->product_type==3){
+        $direct_ingredients = $CI->db->query("SELECT * FROM tbl_ingredients WHERE food_id=$food_menu_id")->result();
+        foreach($direct_ingredients as $single_ingredient){
+            reduceConsumptionRowOnVoid($sales_id, $food_menu_id, $single_ingredient->id, $void_units, 'tbl_sale_consumptions_of_menus');
+        }
+    }else{
+        $combo_food_menus = $CI->db->query("SELECT * FROM tbl_combo_food_menus WHERE food_menu_id=$food_menu_id AND del_status='Live'")->result();
+        if(isset($combo_food_menus) && $combo_food_menus){
+            foreach($combo_food_menus as $single_combo_fm){
+                $food_menu_ingredients = $CI->db->query("SELECT * FROM tbl_food_menus_ingredients WHERE food_menu_id=$single_combo_fm->added_food_menu_id")->result();
+                foreach($food_menu_ingredients as $single_ingredient){
+                    reduceConsumptionRowOnVoid($sales_id, $food_menu_id, $single_ingredient->ingredient_id, (($void_units*$single_combo_fm->quantity)*$single_ingredient->consumption), 'tbl_sale_consumptions_of_menus');
+                }
+            }
+        }
+    }
+    //modifiers of this item consume per item unit as well
+    $modifier_rows = $CI->db->query("SELECT DISTINCT modifier_id FROM tbl_sales_details_modifiers WHERE sales_id=$sales_id AND food_menu_id=$food_menu_id")->result();
+    foreach($modifier_rows as $modifier_row){
+        $modifier_ingredients = $CI->db->query("SELECT * FROM tbl_modifier_ingredients WHERE modifier_id=".(int)$modifier_row->modifier_id)->result();
+        foreach($modifier_ingredients as $single_ingredient){
+            reduceConsumptionRowOnVoid($sales_id, $food_menu_id, $single_ingredient->ingredient_id, ($void_units*$single_ingredient->consumption), 'tbl_sale_consumptions_of_modifiers_of_menus');
+        }
+    }
+}
+function reduceConsumptionRowOnVoid($sales_id, $food_menu_id, $ingredient_id, $reduce_amount, $table){
+    $CI = & get_instance();
+    $reduce_amount = (float)$reduce_amount;
+    if($reduce_amount<=0){
+        return;
+    }
+    $row = $CI->db->query("SELECT id, consumption FROM $table WHERE sales_id=".(int)$sales_id." AND food_menu_id=".(int)$food_menu_id." AND ingredient_id=".(int)$ingredient_id." AND del_status='Live' ORDER BY id DESC LIMIT 1")->row();
+    if(!$row){
+        return;
+    }
+    $new_value = $row->consumption - $reduce_amount;
+    if($new_value<0){
+        $new_value = 0;
+    }
+    $CI->db->where('id', $row->id);
+    $CI->db->update($table, array('consumption' => $new_value));
 }
 function htmlspecialcharscustom($value) {
     return (isset($value) && $value?htmlspecialchars($value):'');

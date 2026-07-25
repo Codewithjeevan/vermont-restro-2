@@ -130,6 +130,8 @@ class Kitchen_model extends CI_Model {
         $this->db->where("sales_id", $sales_id);
         $this->db->where("tbl_kitchen_categories.kitchen_id", $kitchen_id);
         $this->db->where("tbl_kitchen_sales_details.cooking_status!=", "Done");
+        //hide items that were removed on a re-order (kept only as one-round VOID markers for the KOT)
+        $this->db->where("tbl_kitchen_sales_details.del_status!=", "Voided");
         $this->db->where("tbl_kitchen_categories.del_status", "Live");
         $this->db->order_by('tbl_kitchen_sales_details.id', 'ASC');
         $data =  $this->db->get()->result();
