@@ -2062,18 +2062,6 @@ class Sale extends Cl_Controller {
             $this->db->delete('tbl_sale_consumptions_of_modifiers_of_menus', array('sales_id' => $sale_id));
             $this->db->delete('tbl_sale_payments', array('sale_id' => $sale_id));
             $sales_id = $sale_id;
-
-
-            $paymentarray = array();
-            $paymentarray['payment_id'] = 1;
-            $paymentarray['payment_name'] = "Cash";
-            $paymentarray['amount'] = $order_details->total_payable;
-            $paymentarray['date_time'] = date('Y-m-d H:i:s');;
-            $paymentarray['sale_id'] = $sales_id;
-            $paymentarray['user_id'] = $this->session->userdata('user_id');
-            $paymentarray['outlet_id'] = $data['outlet_id'] ;
-            $paymentarray['counter_id'] = $this->session->userdata('counter_id');
-            $this->Common_model->insertInformation($paymentarray, "tbl_sale_payments");
         }else{
             $this->db->insert('tbl_sales', $data);
             $sales_id = $this->db->insert_id();
