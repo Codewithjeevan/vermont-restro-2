@@ -140,6 +140,7 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="added_running_order" value="<?php echo lang('added_running_order'); ?>">
 <input type="hidden" id="txt_err_pos_1" value="<?php echo lang('txt_err_pos_1'); ?>">
 <input type="hidden" id="txt_err_pos_2" value="<?php echo lang('txt_err_pos_2'); ?>">
+<input type="hidden" id="register_close_pending_orders_msg" value="<?php echo lang('register_close_pending_orders'); ?>">
 <input type="hidden" id="txt_err_pos_3" value="<?php echo lang('txt_err_pos_3'); ?>">
 <input type="hidden" id="txt_err_pos_4" value="<?php echo lang('txt_err_pos_4'); ?>">
 <input type="hidden" id="txt_err_pos_5" value="<?php echo lang('txt_err_pos_5'); ?>">

@@ -287,6 +287,7 @@ $lang['update_order']='Update Order';
 $lang['name_code_cat_veg_bev_bar']='Name or Code or Category or VEG or BEV or BAR';
 $lang['please_select_order_to_proceed']='Please select an order to proceed';
 $lang['register_close']='Register closed successfully';
+$lang['register_close_pending_orders']='Register cannot be closed. There are running/unsettled orders in this outlet. Please complete or settle all orders before closing the register.';
 $lang['you_only_pos_user']='You are only a POS User, you can not go to dashboard';
 $lang['code']='Code';
 $lang['category']='Category';

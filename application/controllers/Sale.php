@@ -3587,6 +3587,13 @@ We hope to see you again!";
     {
         $counter_id = $this->session->userdata('counter_id');
         $outlet_id = $this->session->userdata('outlet_id');
+
+        $unsettled_orders_count = $this->Sale_model->getUnsettledOrdersCountByOutletId($outlet_id);
+        if($unsettled_orders_count > 0){
+            echo json_encode(array('status' => 0, 'msg' => lang('register_close_pending_orders')));
+            return;
+        }
+
         $opening_date_time = $this->getOpeningDateTime();
 
 
@@ -3660,6 +3667,7 @@ We hope to see you again!";
         $this->db->where('opening_balance_date_time', $opening_date_time);
         $this->db->where('register_status', 1);
         $this->db->update('tbl_register', $changes);
+        echo json_encode(array('status' => 1));
     }
      /**
      * get new notification

@@ -15448,6 +15448,12 @@
                             csrf_name_: csrf_value_,
                         },
                         success: function (response) {
+                            response = JSON.parse(response);
+                            if(response.status == 0){
+                                let register_close_pending_orders_msg = $("#register_close_pending_orders_msg").val();
+                                toastr['error']((response.msg || register_close_pending_orders_msg), '');
+                                return;
+                            }
                             toastr['error']((register_close), '');
                             $("#close_register_button").hide();
                             window.location.href = base_url + "Register/openRegister";

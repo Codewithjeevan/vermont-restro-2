@@ -39,6 +39,7 @@
 <input type="hidden" id="a_error" value="<?php echo lang('error'); ?>">
 <input type="hidden" id="ok" value="<?php echo lang('ok'); ?>">
 <input type="hidden" id="txt_err_pos_2" value="<?php echo lang('txt_err_pos_2'); ?>">
+<input type="hidden" id="register_close_pending_orders_msg" value="<?php echo lang('register_close_pending_orders'); ?>">
 <input type="hidden" id="menu_not_permit_access" value="<?php echo lang('menu_not_permit_access'); ?>">
 <input type="hidden" id="pos_21" value="<?php echo getPOSChecker("73","pos_21"); ?>">
 <!--for datatable-->

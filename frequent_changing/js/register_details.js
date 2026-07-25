@@ -78,6 +78,15 @@ $(function () {
                             csrf_name_: csrf_value_,
                         },
                         success: function (response) {
+                            response = JSON.parse(response);
+                            if(response.status == 0){
+                                let register_close_pending_orders_msg = $("#register_close_pending_orders_msg").val();
+                                toastr.options = {
+                                    positionClass:'toast-bottom-right'
+                                };
+                                toastr['error']((response.msg || register_close_pending_orders_msg), '');
+                                return;
+                            }
                             $("#close_register_button").hide();
                             window.location.href = base_url + "Register/openRegister";
                         },

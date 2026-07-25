@@ -91,6 +91,16 @@ $('#register_close').on('click', function() {
                 csrf_name_: csrf_value_
             },
             success: function(response) {
+                response = JSON.parse(response);
+                if(response.status == 0){
+                    let register_close_pending_orders_msg = $("#register_close_pending_orders_msg").val();
+                    swal({
+                        title: 'Alert',
+                        text: response.msg || register_close_pending_orders_msg || 'Register cannot be closed. There are running/unsettled orders.',
+                        confirmButtonColor: '#b6d6f6'
+                    });
+                    return;
+                }
                 swal({
                     title: 'Alert',
                     text: 'Register closed successfully!!',

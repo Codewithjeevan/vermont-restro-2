@@ -491,6 +491,19 @@ class Sale_model extends CI_Model {
         }
     }
     /**
+     * get count of orders not yet fully settled (Running/Due), used to block register close
+     * @access public
+     * @return int
+     * @param int
+     */
+    public function getUnsettledOrdersCountByOutletId($outlet_id){
+      $this->db->from('tbl_sales');
+      $this->db->where("(order_status='1' OR order_status='2')");
+      $this->db->where("outlet_id", $outlet_id);
+      $this->db->where('del_status', 'Live');
+      return $this->db->count_all_results();
+    }
+    /**
      * get Sale By Sale Id
      * @access public
      * @return object
