@@ -5587,7 +5587,7 @@
                       draw_table_for_order +=
                           '<div class="single_order_column first_column cart_item_counter  arabic_text_left fix" data-id="'+item_id+'"><i  data-parent_id="'+search_by_menu_id_getting_parent_id(item_id, window.items)+'"   class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
                           item_id +
-                          '"></i> <i class="fas fa-gift comp_item_toggle txt_5" title="' + mark_as_complementary_txt + '" id="comp_item_toggle_' +
+                          '"></i> <i class="fas fa-hand-heart comp_item_toggle txt_5" data-tippy-content="' + mark_as_complementary_txt + '" id="comp_item_toggle_' +
                           item_id +
                           '" data-id="' + item_id + '"></i> <span class="arabic_text_left 1_cp_name_'+item_id+'"  id="item_name_table_' +
                           item_id +
@@ -7469,7 +7469,7 @@
                 draw_table_for_order +=
                     '<div class="single_order_column first_column cart_item_counter  arabic_text_left fix"  data-id="'+item_id+'"><i data-parent_id="'+search_by_menu_id_getting_parent_id(item_id, window.items)+'" data-modal_item_is_offer="'+modal_item_is_offer+'" class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
                     item_id +
-                    '"></i> <i class="fas fa-gift comp_item_toggle txt_5" title="' + mark_as_complementary_txt + '" id="comp_item_toggle_' +
+                    '"></i> <i class="fas fa-hand-heart comp_item_toggle txt_5" data-tippy-content="' + mark_as_complementary_txt + '" id="comp_item_toggle_' +
                     item_id +
                     '" data-id="' + item_id + '"></i> <span class="arabic_text_left 1_cp_name_'+item_id+'"  id="item_name_table_' +
                     item_id +
@@ -13268,7 +13268,7 @@
             draw_table_for_order +=
               '<div class="single_order_column first_column cart_item_counter"  data-id="'+item_id+'"><i class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
               this_item.food_menu_id +
-              '"></i> <i class="fas fa-gift comp_item_toggle txt_5' + (this_item_is_comp?' comp_active':'') + '" title="' + (this_item_is_comp?remove_complementary_txt:mark_as_complementary_txt) + '" id="comp_item_toggle_' +
+              '"></i> <i class="fas fa-hand-heart comp_item_toggle txt_5' + (this_item_is_comp?' comp_active':'') + '" data-tippy-content="' + (this_item_is_comp?remove_complementary_txt:mark_as_complementary_txt) + '" id="comp_item_toggle_' +
               this_item.food_menu_id +
               '" data-id="' + this_item.food_menu_id + '"></i> <span id="item_name_table_' +
               this_item.food_menu_id +
@@ -14973,7 +14973,7 @@
             draw_table_for_order +=
                 '<div class="single_order_column first_column cart_item_counter" data-id="' + item_id + '"><i   class="fas fa-pencil-alt edit_item txt_5" id="edit_item_' +
                 this_item.food_menu_id +
-                '"></i> <i class="fas fa-gift comp_item_toggle txt_5' + (this_item_is_comp?' comp_active':'') + '" title="' + (this_item_is_comp?remove_complementary_txt:mark_as_complementary_txt) + '" id="comp_item_toggle_' +
+                '"></i> <i class="fas fa-hand-heart comp_item_toggle txt_5' + (this_item_is_comp?' comp_active':'') + '" data-tippy-content="' + (this_item_is_comp?remove_complementary_txt:mark_as_complementary_txt) + '" id="comp_item_toggle_' +
                 this_item.food_menu_id +
                 '" data-id="' + this_item.food_menu_id + '"></i> <span class="1_cp_name_' + this_item.food_menu_id + '" id="item_name_table_' +
                 this_item.food_menu_id +
@@ -15823,6 +15823,23 @@
             do_addition_of_item_and_modifiers_price();
         }, 500);
     });
+    /**
+     * Cart rows are redrawn constantly, so the complementary icon cannot get a
+     * tippy instance up front - tippy.delegate binds once on body and builds one
+     * on first hover instead. Keep the label in sync when the state flips: the
+     * attribute alone is not enough once an instance exists, it caches its props.
+     */
+    tippy.delegate("body", {
+        target: ".comp_item_toggle",
+        theme: "light",
+        animation: "scale",
+    });
+    function setCompTooltip(el, text) {
+        el.attr("data-tippy-content", text);
+        if (el[0] && el[0]._tippy) {
+            el[0]._tippy.setContent(text);
+        }
+    }
     $("body").on("click", ".comp_item_toggle", function () {
         let id = $(this).attr("data-id");
         if (Number($("#can_give_complementary").val()) != 1) {
@@ -15834,12 +15851,14 @@
         if (!is_comp) {
             marker.html("1");
             $("#percentage_table_" + id).val("100%");
-            $(this).addClass("comp_active").attr("title", remove_complementary_txt);
+            $(this).addClass("comp_active");
+            setCompTooltip($(this), remove_complementary_txt);
             $("#order_for_item_" + id).addClass("is-comp");
         } else {
             marker.html("0");
             $("#percentage_table_" + id).val("");
-            $(this).removeClass("comp_active").attr("title", mark_as_complementary_txt);
+            $(this).removeClass("comp_active");
+            setCompTooltip($(this), mark_as_complementary_txt);
             $("#order_for_item_" + id).removeClass("is-comp");
         }
         do_addition_of_item_and_modifiers_price();
