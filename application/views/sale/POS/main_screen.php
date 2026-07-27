@@ -2605,6 +2605,7 @@ foreach ($notifications as $single_notification){
             </div>
         </div>
         <footer class="pos__modal__footer">
+            <div class="register_close_warning"></div>
             <div class="right_box">
                 <button type="button"  id="register_close"><?php echo lang('close_register'); ?></button>
                 <button type="button" class="modal_hide_register"><?php echo lang('cancel'); ?></button>

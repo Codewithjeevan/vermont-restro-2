@@ -31,6 +31,7 @@
             </div>
             <!-- /.box-body -->
             <p>&nbsp;</p>
+            <div class="register_close_warning"></div>
             <button type="button" class="btn bg-blue-btn" id="register_close_details"><?php echo lang('close_register'); ?></button>
         </div>
     </div>

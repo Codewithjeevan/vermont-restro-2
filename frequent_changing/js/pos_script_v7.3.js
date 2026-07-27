@@ -1757,9 +1757,43 @@
           displayOrderList();
       };
   
+      /**
+       * The terminal's own clock cannot be trusted to match the server's. PHP runs
+       * on the company timezone (tbl_companies.zone_name) and stamps the register
+       * open/close times with it, while `new Date()` here returns whatever the
+       * machine is set to. When the two differ, every timestamp the POS writes
+       * (orders, payments, KOT) is compared against register boundaries in the
+       * wrong clock domain - a sale rung up minutes BEFORE a register was opened
+       * still reads as "after" it and leaks into the new register's report.
+       *
+       * So measure the gap once against the server time rendered into the page and
+       * carry it on every date we produce. Baseline is captured at script load, not
+       * at first use, or a long idle would be counted as clock drift. Still works
+       * offline: the offset is a fixed number, no request needed.
+       */
+      const pos_client_load_time = Date.now();
+      let pos_server_time_offset = null;
+      function getServerTimeOffset() {
+          if (pos_server_time_offset === null) {
+              pos_server_time_offset = 0;
+              let server_date_time = $("#server_date_time").val();
+              if (server_date_time) {
+                  //"2026-07-27 20:34:05" -> "2026/07/27 20:34:05" so every browser
+                  //reads it as a local wall clock instead of treating it as UTC
+                  let parsed = new Date(server_date_time.replace(/-/g, "/"));
+                  if (!isNaN(parsed.getTime())) {
+                      pos_server_time_offset = parsed.getTime() - pos_client_load_time;
+                  }
+              }
+          }
+          return pos_server_time_offset;
+      }
+      function serverNow() {
+          return new Date(Date.now() + getServerTimeOffset());
+      }
       function getDateTime() {
           //for date and time
-          let today = new Date();
+          let today = serverNow();
           let dd = today.getDate();
           if(att_type==1){let ddd= Number($(".mrgin_3").text()).tofixed(ir_precision);$(".mrgin_3").text(ddd)}
           let mm = today.getMonth() + 1; //January is 0!
@@ -1770,7 +1804,7 @@
           if (mm < 10) {
               mm = "0" + mm;
           }
-          let time_a = new Date().toLocaleTimeString();
+          let time_a = today.toLocaleTimeString();
           let today_date = yyyy + "-" + mm + "-" + dd;
           let date_time = today_date + " " + time_a;
           return [date_time,time_a];
@@ -15428,6 +15462,13 @@
     $.datable();
   
     $(document).on("click", "#register_close", function (e) {
+        //register_details.js disables this button while running/unsettled orders
+        //remain; keep the block even if the click still reaches us
+        if($(this).hasClass("register_close_disabled")){
+            let blocked_msg = $(".register_close_warning").text() || $("#register_close_pending_orders_msg").val();
+            toastr['error']((blocked_msg), '');
+            return;
+        }
         let pos_21 = Number($("#pos_21").val());
         if(pos_21){
             let csrf_name_ = $("#csrf_name_").val();
@@ -15451,6 +15492,8 @@
                             response = JSON.parse(response);
                             if(response.status == 0){
                                 let register_close_pending_orders_msg = $("#register_close_pending_orders_msg").val();
+                                $("#register_close").prop("disabled", true).addClass("register_close_disabled");
+                                $(".register_close_warning").text(response.msg || register_close_pending_orders_msg).show();
                                 toastr['error']((response.msg || register_close_pending_orders_msg), '');
                                 return;
                             }

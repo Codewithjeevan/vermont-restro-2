@@ -276,6 +276,10 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="online_customer_name" value="<?php echo escape_output($this->session->userdata('online_customer_name')); ?>">
 <input type="hidden" id="orders_table_text_hide" value="<?php echo escape_output(getTableName($this->session->userdata('self_order_table_id'))); ?>">
 <input type="hidden" id="default_date" value="<?php echo date("Y-m-d"); ?>">
+<!--server wall clock in the company timezone; the POS aligns its own clock to this
+    so the timestamps it stamps on orders/payments can be compared against the
+    register open/close times PHP writes-->
+<input type="hidden" id="server_date_time" value="<?php echo date("Y-m-d H:i:s"); ?>">
 <input type="hidden" id="delivery_partner" value="<?php echo sizeof($deliveryPartners); ?>">
 <?php
 $sms_send_auto = $this->session->userdata('sms_send_auto');

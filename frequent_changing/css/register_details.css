@@ -26,3 +26,30 @@
 .dt-buttons{
     float: right !important;
 }
+/* register close guard: warning banner + disabled state for the close button */
+.register_close_warning{
+    display: none;
+    width: 100%;
+    margin: 0 0 10px 0;
+    padding: 8px 12px;
+    border: 1px solid #f0b8b8;
+    border-left: 4px solid #d9534f;
+    border-radius: 3px;
+    background: #fdf2f2;
+    color: #a12622;
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: left;
+}
+/* the POS modal footer is a grid; let the warning span the whole row */
+.cus_pos_modal .pos__modal__footer .register_close_warning{
+    grid-column: 1 / -1;
+    -ms-grid-column-span: 2;
+}
+button.register_close_disabled,
+button.register_close_disabled:hover,
+button.register_close_disabled:focus{
+    opacity: .55;
+    cursor: not-allowed !important;
+    filter: grayscale(60%);
+}

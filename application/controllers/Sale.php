@@ -3379,7 +3379,7 @@ We hope to see you again!";
                     </tr>
                     <tr>
                             <th>'.lang('Time_Range').'</th>
-                            <th>'.(date("Y-m-d h:m:s A",strtotime($opening_date_time))).' to '.(date("Y-m-d h:i:s A")).'</th>
+                            <th>'.(date("Y-m-d h:i:s A",strtotime($opening_date_time))).' to '.(date("Y-m-d h:i:s A")).'</th>
                             <th></th>
                             <th></th>
                         </tr>
@@ -3515,12 +3515,33 @@ We hope to see you again!";
                     </table>';
 
 
+        $unsettled_orders = $this->Sale_model->getUnsettledOrdersByOutletId($this->session->userdata('outlet_id'), $opening_date_time);
+
         $register_detail = array(
-            'opening_date_time' => date('Y-m-d h:m A', strtotime($opening_date_time)),
+            'opening_date_time' => date('Y-m-d h:i A', strtotime($opening_date_time)),
             'closing_date_time' => $this->getClosingDateTime(),
             'html_content_for_div' => $html_content,
+            'unsettled_orders_count' => count($unsettled_orders),
+            'unsettled_orders_msg' => $this->getUnsettledOrdersMessage($unsettled_orders),
         );
         return $register_detail;
+    }
+     /**
+     * build the "register cannot be closed" warning, naming the blocking orders
+     * @access public
+     * @return string
+     * @param array
+     */
+    public function getUnsettledOrdersMessage($unsettled_orders = array()){
+        if(!$unsettled_orders){
+            return '';
+        }
+        $shown = array_slice($unsettled_orders, 0, 5);
+        $msg = lang('register_close_pending_orders').' ('.count($unsettled_orders).'): '.implode(', ', $shown);
+        if(count($unsettled_orders) > count($shown)){
+            $msg .= ' ...';
+        }
+        return $msg;
     }
      /**
      * get Balance
@@ -3576,9 +3597,15 @@ We hope to see you again!";
         $counter_id = $this->session->userdata('counter_id');
         $outlet_id = $this->session->userdata('outlet_id');
 
-        $unsettled_orders_count = $this->Sale_model->getUnsettledOrdersCountByOutletId($outlet_id);
-        if($unsettled_orders_count > 0){
-            echo json_encode(array('status' => 0, 'msg' => lang('register_close_pending_orders')));
+        $unsettled_orders = $this->Sale_model->getUnsettledOrdersByOutletId($outlet_id, $this->getOpeningDateTime());
+        if(count($unsettled_orders) > 0){
+            $unsettled_orders_msg = $this->getUnsettledOrdersMessage($unsettled_orders);
+            echo json_encode(array(
+                'status' => 0,
+                'msg' => $unsettled_orders_msg,
+                'unsettled_orders_count' => count($unsettled_orders),
+                'unsettled_orders_msg' => $unsettled_orders_msg,
+            ));
             return;
         }
 

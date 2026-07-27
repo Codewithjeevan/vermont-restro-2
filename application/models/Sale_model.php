@@ -491,17 +491,55 @@ class Sale_model extends CI_Model {
         }
     }
     /**
-     * get count of orders not yet fully settled (Running/Due), used to block register close
+     * get orders not yet fully settled (Running/Due) for an outlet.
+     * A running order lives in tbl_kitchen_sales until it is invoiced; only then
+     * does a tbl_sales row appear. Both tables must be checked: tbl_kitchen_sales
+     * for open KOT/running orders and tbl_sales for invoiced-but-unpaid (Due) ones.
+     * Scheduled future orders (future_sale_status='2') are not settleable yet, so
+     * they are excluded - same rule the POS running order panel uses.
+     *
+     * Scoped to the current register session ($opening_date_time). Abandoned
+     * orders from earlier shifts linger in tbl_kitchen_sales forever - they are
+     * gone from the cashier's running order panel (that list is rebuilt from the
+     * browser's IndexedDB) so there is no way to settle them from the POS. Left
+     * unscoped they would block every future register close permanently.
      * @access public
-     * @return int
+     * @return array
      * @param int
+     * @param string
      */
-    public function getUnsettledOrdersCountByOutletId($outlet_id){
-      $this->db->from('tbl_sales');
+    public function getUnsettledOrdersByOutletId($outlet_id, $opening_date_time = ''){
+      $orders = array();
+
+      $this->db->select('sale_no');
+      $this->db->from('tbl_kitchen_sales');
       $this->db->where("(order_status='1' OR order_status='2')");
+      $this->db->where("(future_sale_status='1' OR future_sale_status='3')");
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where('del_status', 'Live');
-      return $this->db->count_all_results();
+      if($opening_date_time){
+          $this->db->where('date_time >=', $opening_date_time);
+      }
+      $kitchen_orders = $this->db->get()->result();
+      foreach($kitchen_orders as $order){
+          $orders[$order->sale_no] = $order->sale_no;
+      }
+
+      $this->db->select('sale_no');
+      $this->db->from('tbl_sales');
+      $this->db->where("(order_status='1' OR order_status='2')");
+      $this->db->where("(future_sale_status='1' OR future_sale_status='3')");
+      $this->db->where("outlet_id", $outlet_id);
+      $this->db->where('del_status', 'Live');
+      if($opening_date_time){
+          $this->db->where('date_time >=', $opening_date_time);
+      }
+      $sales_orders = $this->db->get()->result();
+      foreach($sales_orders as $order){
+          $orders[$order->sale_no] = $order->sale_no;
+      }
+
+      return array_values($orders);
     }
     /**
      * get Sale By Sale Id
@@ -961,6 +999,23 @@ class Sale_model extends CI_Model {
       return $this->db->get()->row();
     }
     /**
+     * upper bound for the register/shift sum queries below.
+     *
+     * Sales and payments are stamped with the POS terminal's OWN clock - that is
+     * deliberate, it keeps the real time on orders taken offline and synced later.
+     * So a row can legitimately carry a timestamp ahead of the server's: PHP runs
+     * on the company timezone (tbl_companies.zone_name) while the terminal and
+     * MySQL may sit in another. A plain "date_time <= now" then silently drops
+     * those rows and the register report under-reports real takings. Allow a day
+     * of skew so a timezone gap can never hide a transaction.
+     * @access private
+     * @return string
+     */
+    private function registerRangeEnd()
+    {
+      return date('Y-m-d H:i:s', strtotime('+1 day'));
+    }
+    /**
      * get Summation Of Customer Due Receive
      * @access public
      * @return object
@@ -975,7 +1030,7 @@ class Sale_model extends CI_Model {
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("date>=", $date);
-      $this->db->where("date<=", date('Y-m-d H:i:s'));
+      $this->db->where("date<=", $this->registerRangeEnd());
       $this->db->where('del_status', 'Live');
       return $this->db->get()->row();
     }
@@ -1012,7 +1067,7 @@ class Sale_model extends CI_Model {
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("date_time>=", $date);
-      $this->db->where("date_time<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time<=", $this->registerRangeEnd());
       $this->db->where('del_status', 'Live');
       return $this->db->get()->row();
     }
@@ -1031,7 +1086,7 @@ class Sale_model extends CI_Model {
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("date_time>=", $date);
-      $this->db->where("date_time<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time<=", $this->registerRangeEnd());
       $this->db->where('del_status', 'Live');
       return $this->db->get()->row();
     }
@@ -1050,7 +1105,7 @@ class Sale_model extends CI_Model {
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("date_time>=", $date);
-      $this->db->where("date_time<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time<=", $this->registerRangeEnd());
       $this->db->where('del_status', 'Live');
       return $this->db->get()->row();
     }
@@ -1069,7 +1124,7 @@ class Sale_model extends CI_Model {
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("date_time>=", $date);
-      $this->db->where("date_time<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time<=", $this->registerRangeEnd());
       $this->db->where("payment_method_id", 3);
       $this->db->where('del_status', 'Live');
       return $this->db->get()->row();
@@ -1093,7 +1148,7 @@ class Sale_model extends CI_Model {
         $this->db->where("tbl_sales.user_id", $user_id);
         $this->db->where("tbl_sales.outlet_id", $outlet_id);
         $this->db->where("tbl_sales.date_time>=", $date);
-        $this->db->where("tbl_sales.date_time<=", date('Y-m-d H:i:s'));
+        $this->db->where("tbl_sales.date_time<=", $this->registerRangeEnd());
         $this->db->where('del_status', 'Live');
         return $this->db->get()->result();
     }
@@ -1109,7 +1164,7 @@ class Sale_model extends CI_Model {
         $this->db->where("tbl_sales.outlet_id", $outlet_id);
         $this->db->where("tbl_sale_payments.payment_id", $payment_id);
         $this->db->where("tbl_sales.date_time>=", $date);
-        $this->db->where("tbl_sales.date_time<=", date('Y-m-d H:i:s'));
+        $this->db->where("tbl_sales.date_time<=", $this->registerRangeEnd());
         $this->db->where('del_status', 'Live');
         return $this->db->get()->result();
     }
@@ -1123,7 +1178,7 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time>=", $date);
-      $this->db->where("added_date_time<=", date('Y-m-d H:i:s'));
+      $this->db->where("added_date_time<=", $this->registerRangeEnd());
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
@@ -1138,7 +1193,7 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date>=", $date);
-      $this->db->where("date<=", date('Y-m-d H:i:s'));
+      $this->db->where("date<=", $this->registerRangeEnd());
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
@@ -1153,7 +1208,7 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time	>=", $date);
-      $this->db->where("added_date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("added_date_time	<=", $this->registerRangeEnd());
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
@@ -1168,7 +1223,7 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("added_date_time	>=", $date);
-      $this->db->where("added_date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("added_date_time	<=", $this->registerRangeEnd());
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
@@ -1183,7 +1238,7 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
-      $this->db->where("date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time	<=", $this->registerRangeEnd());
       $this->db->where("currency_type", null);
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
@@ -1198,7 +1253,7 @@ class Sale_model extends CI_Model {
       $this->db->where("counter_id", $counter_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("date_time >=", $date);
-      $this->db->where("date_time <=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time <=", $this->registerRangeEnd());
       $this->db->where("refund_payment_id", $payment_id);
       $this->db->where("del_status", "Live");
       $data =  $this->db->get()->row();
@@ -1214,7 +1269,7 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
-      $this->db->where("date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time	<=", $this->registerRangeEnd());
       $this->db->where("currency_type", 1);
       $this->db->where('del_status', 'Live');
       $data =  $this->db->get()->row();
@@ -1230,7 +1285,7 @@ class Sale_model extends CI_Model {
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("payment_id", $payment_id);
       $this->db->where("date_time	>=", $date);
-      $this->db->where("date_time	<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time	<=", $this->registerRangeEnd());
       $this->db->where("currency_type", 1);
       $this->db->where('del_status', 'Live');
       $this->db->group_by('multi_currency');
@@ -1246,7 +1301,7 @@ class Sale_model extends CI_Model {
         $this->db->where("tbl_sales.user_id", $user_id);
         $this->db->where("tbl_sales.outlet_id", $outlet_id);
         $this->db->where("tbl_sales.date_time>=", $date);
-        $this->db->where("tbl_sales.date_time<=", date('Y-m-d H:i:s'));
+        $this->db->where("tbl_sales.date_time<=", $this->registerRangeEnd());
         $this->db->where('del_status', 'Live');
         return $this->db->get()->result();
     }
@@ -1265,7 +1320,7 @@ class Sale_model extends CI_Model {
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("date_time>=", $date);
-      $this->db->where("date_time<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time<=", $this->registerRangeEnd());
       $this->db->where("payment_method_id", 5);
       $this->db->where('del_status', 'Live');
       return $this->db->get()->row();
@@ -1285,7 +1340,7 @@ class Sale_model extends CI_Model {
       $this->db->where("user_id", $user_id);
       $this->db->where("outlet_id", $outlet_id);
       $this->db->where("date_time>=", $date);
-      $this->db->where("date_time<=", date('Y-m-d H:i:s'));
+      $this->db->where("date_time<=", $this->registerRangeEnd());
       $this->db->where("payment_method_id", 4);
       $this->db->where('del_status', 'Live');
       return $this->db->get()->row();
