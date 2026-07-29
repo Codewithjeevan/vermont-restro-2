@@ -34,59 +34,63 @@ class Common_model extends CI_Model {
      */
 
     public function isOpenRegister($user_id, $outlet_id){
-        $this->db->select('*');
-        $this->db->from('tbl_register');
-        $this->db->where("user_id", $user_id);
-        $this->db->where("outlet_id", $outlet_id);
-        $this->db->where("register_status", 1);
-        $this->db->order_by('id', 'DESC');
-        $open_register = $this->db->get()->row();
-
-        if(!$open_register){
+        //a register belongs to the outlet counter and not to the user who opened it,
+        //so pick up the one another user of this company already left open
+        attachOpenRegisterSession();
+        $counter_id = $this->session->userdata('counter_id');
+        if(!$counter_id){
             return 0;
         }
-
-        //session (counter_id/printer info) can be lost after a long gap or a fresh
-        //login without the register ever being manually closed; restore it here so
-        //the user isn't wrongly sent back to "open register" on an already-open one.
-        if($this->session->userdata('counter_id') != $open_register->counter_id){
-            $print_arr = array('counter_id' => $open_register->counter_id);
-            $counter_details = $this->getPrinterIdByCounterId($open_register->counter_id);
-            if($counter_details){
-                $print_arr['counter_name'] = $counter_details->name;
-                $print_arr['printer_id'] = $counter_details->invoice_printer_id;
-                $printer_info = $this->getPrinterInfoById($counter_details->invoice_printer_id);
-                if($printer_info){
-                    $print_arr['path'] = $printer_info->path;
-                    $print_arr['title'] = $printer_info->title;
-                    $print_arr['type'] = $printer_info->type;
-                    $print_arr['characters_per_line'] = $printer_info->characters_per_line;
-                    $print_arr['printer_ip_address'] = $printer_info->printer_ip_address;
-                    $print_arr['printer_port'] = $printer_info->printer_port;
-                    $print_arr['printing_choice'] = $printer_info->printing_choice;
-                    $print_arr['ipvfour_address'] = $printer_info->ipvfour_address;
-                    $print_arr['print_format'] = $printer_info->print_format;
-                    $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
-                }
-                $print_arr['bill_printer_id'] = $counter_details->bill_printer_id;
-                $printer_info_bill = $this->getPrinterInfoById($counter_details->bill_printer_id);
-                if($printer_info_bill){
-                    $print_arr['path_bill'] = $printer_info_bill->path;
-                    $print_arr['title_bill'] = $printer_info_bill->title;
-                    $print_arr['type_bill'] = $printer_info_bill->type;
-                    $print_arr['characters_per_line_bill'] = $printer_info_bill->characters_per_line;
-                    $print_arr['printer_ip_address_bill'] = $printer_info_bill->printer_ip_address;
-                    $print_arr['printer_port_bill'] = $printer_info_bill->printer_port;
-                    $print_arr['printing_choice_bill'] = $printer_info_bill->printing_choice;
-                    $print_arr['ipvfour_address_bill'] = $printer_info_bill->ipvfour_address;
-                    $print_arr['print_format_bill'] = $printer_info_bill->print_format;
-                    $print_arr['inv_qr_code_enable_status_bill'] = $printer_info_bill->inv_qr_code_enable_status;
+        return $this->isOpenRegisterOnCounter($counter_id, $outlet_id);
+    }
+    /**
+     * is Open Register On Counter
+     * @access public
+     * @return int
+     * @param int
+     * @param int
+     * @param int
+     */
+    public function isOpenRegisterOnCounter($counter_id, $outlet_id, $company_id = ""){
+        $this->db->select('id');
+        $this->db->from('tbl_register');
+        $this->db->where("counter_id", $counter_id);
+        $this->db->where("outlet_id", $outlet_id);
+        if($company_id){
+            $this->db->where("company_id", $company_id);
+        }
+        $this->db->where("register_status", 1);
+        $this->db->order_by('id', 'DESC');
+        return $this->db->get()->num_rows();
+    }
+    /**
+     * get Open Register By Outlet
+     * @access public
+     * @return object
+     * @param int
+     * @param int
+     * @param int
+     */
+    public function getOpenRegisterByOutlet($outlet_id, $company_id, $user_id = ""){
+        $this->db->select('id,counter_id,user_id');
+        $this->db->from('tbl_register');
+        $this->db->where("outlet_id", $outlet_id);
+        $this->db->where("company_id", $company_id);
+        $this->db->where("register_status", 1);
+        $this->db->order_by('id', 'DESC');
+        $registers = $this->db->get()->result();
+        if(!$registers){
+            return NULL;
+        }
+        //the register this user opened himself wins, otherwise the latest one of the outlet
+        if($user_id){
+            foreach ($registers as $register){
+                if($register->user_id == $user_id){
+                    return $register;
                 }
             }
-            $this->session->set_userdata($print_arr);
         }
-
-        return 1;
+        return $registers[0];
     }
     /**
      * get Purchase Amount By User And Outlet Id

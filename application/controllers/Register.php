@@ -124,43 +124,17 @@ class Register extends Cl_Controller {
                 }
                 $register_info['opening_details'] = json_encode($arr);
 
-                   $this->Common_model->insertInformation($register_info, "tbl_register");
+                   //someone of this company may have opened this counter already, join that
+                   //register instead of leaving a second open row behind on the same counter
+                   $already_open = $this->Common_model->isOpenRegisterOnCounter($register_info['counter_id'], $register_info['outlet_id'], $register_info['company_id']);
+                   if($already_open){
+                       $this->session->set_flashdata('exception', lang('register_already_open_msg'));
+                   }else{
+                       $this->Common_model->insertInformation($register_info, "tbl_register");
+                   }
                    // Printer Session Data Set
-                   $counter_details = $this->Common_model->getPrinterIdByCounterId($register_info['counter_id']);
-                   $printer_info = $this->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
-                   $print_arr = [];
-                   $print_arr['counter_id'] = $register_info['counter_id'];
-                   $print_arr['counter_name'] = $counter_details->name;
-                   $print_arr['printer_id'] = $counter_details->invoice_printer_id;
-                   if($printer_info):
-                        $print_arr['path'] = $printer_info->path;
-                        $print_arr['title'] = $printer_info->title;
-                        $print_arr['type'] = $printer_info->type;
-                        $print_arr['characters_per_line'] = $printer_info->characters_per_line;
-                        $print_arr['printer_ip_address'] = $printer_info->printer_ip_address;
-                        $print_arr['printer_port'] = $printer_info->printer_port;
-                        $print_arr['printing_choice'] = $printer_info->printing_choice;
-                        $print_arr['ipvfour_address'] = $printer_info->ipvfour_address;
-                        $print_arr['print_format'] = $printer_info->print_format;
-                        $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
-                   endif;
-                   //bill
-                   $printer_info_bill = $this->Common_model->getPrinterInfoById($counter_details->bill_printer_id);
-                   $print_arr['bill_printer_id'] = $counter_details->bill_printer_id;
-                   if($printer_info_bill):
-                        $print_arr['path_bill'] = $printer_info_bill->path;
-                        $print_arr['title_bill'] = $printer_info_bill->title;
-                        $print_arr['type_bill'] = $printer_info_bill->type;
-                        $print_arr['characters_per_line_bill'] = $printer_info_bill->characters_per_line;
-                        $print_arr['printer_ip_address_bill'] = $printer_info_bill->printer_ip_address;
-                        $print_arr['printer_port_bill'] = $printer_info_bill->printer_port;
-                        $print_arr['printing_choice_bill'] = $printer_info_bill->printing_choice;
-                        $print_arr['ipvfour_address_bill'] = $printer_info_bill->ipvfour_address;
-                        $print_arr['print_format_bill'] = $printer_info_bill->print_format;
-                        $print_arr['inv_qr_code_enable_status_bill'] = $printer_info_bill->inv_qr_code_enable_status;
-                   endif;
-                   $this->session->set_userdata($print_arr);
-                   
+                   setCounterPrinterSession($register_info['counter_id']);
+
                 if (!$this->session->has_userdata('clicked_controller')) {
                     if ($this->session->userdata('role') == 'Admin') {
                         redirect('Dashboard/dashboard');

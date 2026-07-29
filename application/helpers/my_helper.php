@@ -3743,6 +3743,22 @@ function logOutCall() {
     $CI->session->unset_userdata('ipvfour_address');
     $CI->session->unset_userdata('print_format');
     $CI->session->unset_userdata('inv_qr_code_enable_status');
+    //Counter and bill printer information, left behind it would follow the next
+    //user who logs in from this browser into a counter that is not his
+    $CI->session->unset_userdata('counter_id');
+    $CI->session->unset_userdata('counter_name');
+    $CI->session->unset_userdata('printer_id');
+    $CI->session->unset_userdata('bill_printer_id');
+    $CI->session->unset_userdata('path_bill');
+    $CI->session->unset_userdata('title_bill');
+    $CI->session->unset_userdata('type_bill');
+    $CI->session->unset_userdata('characters_per_line_bill');
+    $CI->session->unset_userdata('printer_ip_address_bill');
+    $CI->session->unset_userdata('printer_port_bill');
+    $CI->session->unset_userdata('printing_choice_bill');
+    $CI->session->unset_userdata('ipvfour_address_bill');
+    $CI->session->unset_userdata('print_format_bill');
+    $CI->session->unset_userdata('inv_qr_code_enable_status_bill');
 }
 
 /**
@@ -3905,5 +3921,83 @@ if (!function_exists('getOutletInfoById')) {
         $CI->db->where("del_status", 'Live');
         $result =  $CI->db->get()->row();
         return $result;
+    }
+}
+/**
+ * setCounterPrinterSession
+ * put a counter and its invoice/bill printer configuration into the session
+ * @param int
+ * @return void
+ */
+if (!function_exists('setCounterPrinterSession')) {
+    function setCounterPrinterSession($counter_id) {
+        $CI = & get_instance();
+        $CI->load->model('Common_model');
+        $counter_details = $CI->Common_model->getPrinterIdByCounterId($counter_id);
+        if(!$counter_details){
+            return;
+        }
+        $print_arr = array();
+        $print_arr['counter_id'] = $counter_id;
+        $print_arr['counter_name'] = $counter_details->name;
+        $print_arr['printer_id'] = $counter_details->invoice_printer_id;
+        $printer_info = $CI->Common_model->getPrinterInfoById($counter_details->invoice_printer_id);
+        if($printer_info):
+            $print_arr['path'] = $printer_info->path;
+            $print_arr['title'] = $printer_info->title;
+            $print_arr['type'] = $printer_info->type;
+            $print_arr['characters_per_line'] = $printer_info->characters_per_line;
+            $print_arr['printer_ip_address'] = $printer_info->printer_ip_address;
+            $print_arr['printer_port'] = $printer_info->printer_port;
+            $print_arr['printing_choice'] = $printer_info->printing_choice;
+            $print_arr['ipvfour_address'] = $printer_info->ipvfour_address;
+            $print_arr['print_format'] = $printer_info->print_format;
+            $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
+        endif;
+        //bill
+        $print_arr['bill_printer_id'] = $counter_details->bill_printer_id;
+        $printer_info_bill = $CI->Common_model->getPrinterInfoById($counter_details->bill_printer_id);
+        if($printer_info_bill):
+            $print_arr['path_bill'] = $printer_info_bill->path;
+            $print_arr['title_bill'] = $printer_info_bill->title;
+            $print_arr['type_bill'] = $printer_info_bill->type;
+            $print_arr['characters_per_line_bill'] = $printer_info_bill->characters_per_line;
+            $print_arr['printer_ip_address_bill'] = $printer_info_bill->printer_ip_address;
+            $print_arr['printer_port_bill'] = $printer_info_bill->printer_port;
+            $print_arr['printing_choice_bill'] = $printer_info_bill->printing_choice;
+            $print_arr['ipvfour_address_bill'] = $printer_info_bill->ipvfour_address;
+            $print_arr['print_format_bill'] = $printer_info_bill->print_format;
+            $print_arr['inv_qr_code_enable_status_bill'] = $printer_info_bill->inv_qr_code_enable_status;
+        endif;
+        $CI->session->set_userdata($print_arr);
+    }
+}
+/**
+ * attachOpenRegisterSession
+ * a register belongs to the outlet counter, not to the user who opened it, so any
+ * other user of the same company entering that outlet joins the register that is
+ * already open instead of being asked to open a second one
+ * @return bool
+ */
+if (!function_exists('attachOpenRegisterSession')) {
+    function attachOpenRegisterSession() {
+        $CI = & get_instance();
+        $outlet_id = $CI->session->userdata('outlet_id');
+        $company_id = $CI->session->userdata('company_id');
+        if(!$outlet_id || !$company_id){
+            return FALSE;
+        }
+        $CI->load->model('Common_model');
+        //the counter already held in this session still has its register open
+        $counter_id = $CI->session->userdata('counter_id');
+        if($counter_id && $CI->Common_model->isOpenRegisterOnCounter($counter_id, $outlet_id, $company_id)){
+            return TRUE;
+        }
+        $register = $CI->Common_model->getOpenRegisterByOutlet($outlet_id, $company_id, $CI->session->userdata('user_id'));
+        if(!$register){
+            return FALSE;
+        }
+        setCounterPrinterSession($register->counter_id);
+        return TRUE;
     }
 }

@@ -42,6 +42,7 @@
                                 <th class="ir_w_1"> <?php echo lang('sn'); ?></th>
                                 <th class="ir_w_11"><?php echo lang('ref_no'); ?></th>
                                 <th class="ir_w_9"><?php echo lang('date'); ?></th>
+                                <th class="ir_w_18"><?php echo lang('employee'); ?></th>
                                 <th class="ir_w_10"><?php echo lang('in_time'); ?></th>
                                 <th class="ir_w_10"><?php echo lang('out_time'); ?></th>
                                 <th class="ir_w_14"><?php echo lang('time_count'); ?></th>
@@ -59,6 +60,7 @@
                                         <td><?php echo escape_output($value->reference_no) ?></td>
                                         <td><?php echo escape_output(date($this->session->userdata('date_format'), strtotime($value->date))); ?>
                                         </td>
+                                        <td><?php echo escape_output(employeeName($value->employee_id)); ?></td>
                                         <td><?php echo escape_output($value->in_time) ?></td>
                                         <td>
                                             <?php

@@ -11,3 +11,6 @@ cgi-bin/
 # OS/editor cruft
 Thumbs.db
 .DS_Store
+
+# POS runtime cart snapshots (per-user, regenerated at runtime)
+assets/cart_data_*.json

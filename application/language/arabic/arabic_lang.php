@@ -1710,3 +1710,5 @@ $lang['Chef']='الشيف';
 
 $lang['admin_password_required_to_clear']='يمكن فقط للمشرف أو المدير مسح الطلب. يرجى إدخال كلمة مرور المشرف للمتابعة.';
 $lang['incorrect_admin_password']='كلمة مرور غير صحيحة. حاول مرة أخرى.';
+
+$lang['register_already_open_msg']='سجل هذا الكاونتر مفتوح بالفعل، وقد تم ربطك به.';
