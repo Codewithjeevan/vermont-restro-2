@@ -1305,6 +1305,7 @@ class Sale extends Cl_Controller {
                     }else{
                         $item_data['is_free_item'] = 0;
                     }
+                    $item_data['is_complementary'] = (isset($item->is_complementary) && $item->is_complementary==1)?1:0;
 
                     $item_data['qty'] = $item->qty;
                     $item_data['tmp_qty'] = $tmp_var;
@@ -1868,6 +1869,7 @@ class Sale extends Cl_Controller {
                      $item_data['menu_note'] = $exist_food_menu->menu_note;;
                      $item_data['menu_combo_items'] = $exist_food_menu->menu_combo_items;;
                      $item_data['is_free_item'] = $exist_food_menu->is_free_item;;
+                     $item_data['is_complementary'] = $exist_food_menu->is_complementary;
                      $item_data['discount_amount'] = $item->item_discount_amount;
                      $item_data['item_type'] = "Kitchen Item";
                      $item_data['cooking_status'] = ($item->item_cooking_status=="")?NULL:$item->item_cooking_status;
@@ -2060,18 +2062,6 @@ class Sale extends Cl_Controller {
             $this->db->delete('tbl_sale_consumptions_of_modifiers_of_menus', array('sales_id' => $sale_id));
             $this->db->delete('tbl_sale_payments', array('sale_id' => $sale_id));
             $sales_id = $sale_id;
-
-
-            $paymentarray = array();
-            $paymentarray['payment_id'] = 1;
-            $paymentarray['payment_name'] = "Cash";
-            $paymentarray['amount'] = $order_details->total_payable;
-            $paymentarray['date_time'] = date('Y-m-d H:i:s');;
-            $paymentarray['sale_id'] = $sales_id;
-            $paymentarray['user_id'] = $this->session->userdata('user_id');
-            $paymentarray['outlet_id'] = $data['outlet_id'] ;
-            $paymentarray['counter_id'] = $this->session->userdata('counter_id');
-            $this->Common_model->insertInformation($paymentarray, "tbl_sale_payments");
         }else{
             $this->db->insert('tbl_sales', $data);
             $sales_id = $this->db->insert_id();
@@ -2117,6 +2107,7 @@ class Sale extends Cl_Controller {
                 $item_data['menu_price_with_discount'] = $item->menu_price_with_discount;
                 $item_data['menu_combo_items'] = isset($item->menu_combo_items) && $item->menu_combo_items && $item->menu_combo_items!="undefined"?$item->menu_combo_items:'';
                 $item_data['is_free_item'] = $item->is_free;
+                $item_data['is_complementary'] = (isset($item->is_complementary) && $item->is_complementary==1)?1:0;
                 $item_data['menu_unit_price'] = $item->menu_unit_price;
                 $item_data['menu_taxes'] = json_encode($item->item_vat);
                 $item_data['menu_discount_value'] = $item->menu_discount_value;
@@ -3388,7 +3379,7 @@ We hope to see you again!";
                     </tr>
                     <tr>
                             <th>'.lang('Time_Range').'</th>
-                            <th>'.(date("Y-m-d h:m:s A",strtotime($opening_date_time))).' to '.(date("Y-m-d h:i:s A")).'</th>
+                            <th>'.(date("Y-m-d h:i:s A",strtotime($opening_date_time))).' to '.(date("Y-m-d h:i:s A")).'</th>
                             <th></th>
                             <th></th>
                         </tr>
@@ -3524,12 +3515,33 @@ We hope to see you again!";
                     </table>';
 
 
+        $unsettled_orders = $this->Sale_model->getUnsettledOrdersByOutletId($this->session->userdata('outlet_id'), $opening_date_time);
+
         $register_detail = array(
-            'opening_date_time' => date('Y-m-d h:m A', strtotime($opening_date_time)),
+            'opening_date_time' => date('Y-m-d h:i A', strtotime($opening_date_time)),
             'closing_date_time' => $this->getClosingDateTime(),
             'html_content_for_div' => $html_content,
+            'unsettled_orders_count' => count($unsettled_orders),
+            'unsettled_orders_msg' => $this->getUnsettledOrdersMessage($unsettled_orders),
         );
         return $register_detail;
+    }
+     /**
+     * build the "register cannot be closed" warning, naming the blocking orders
+     * @access public
+     * @return string
+     * @param array
+     */
+    public function getUnsettledOrdersMessage($unsettled_orders = array()){
+        if(!$unsettled_orders){
+            return '';
+        }
+        $shown = array_slice($unsettled_orders, 0, 5);
+        $msg = lang('register_close_pending_orders').' ('.count($unsettled_orders).'): '.implode(', ', $shown);
+        if(count($unsettled_orders) > count($shown)){
+            $msg .= ' ...';
+        }
+        return $msg;
     }
      /**
      * get Balance
@@ -3584,6 +3596,19 @@ We hope to see you again!";
     {
         $counter_id = $this->session->userdata('counter_id');
         $outlet_id = $this->session->userdata('outlet_id');
+
+        $unsettled_orders = $this->Sale_model->getUnsettledOrdersByOutletId($outlet_id, $this->getOpeningDateTime());
+        if(count($unsettled_orders) > 0){
+            $unsettled_orders_msg = $this->getUnsettledOrdersMessage($unsettled_orders);
+            echo json_encode(array(
+                'status' => 0,
+                'msg' => $unsettled_orders_msg,
+                'unsettled_orders_count' => count($unsettled_orders),
+                'unsettled_orders_msg' => $unsettled_orders_msg,
+            ));
+            return;
+        }
+
         $opening_date_time = $this->getOpeningDateTime();
 
 
@@ -3657,6 +3682,7 @@ We hope to see you again!";
         $this->db->where('opening_balance_date_time', $opening_date_time);
         $this->db->where('register_status', 1);
         $this->db->update('tbl_register', $changes);
+        echo json_encode(array('status' => 1));
     }
      /**
      * get new notification

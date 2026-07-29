@@ -140,6 +140,7 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="added_running_order" value="<?php echo lang('added_running_order'); ?>">
 <input type="hidden" id="txt_err_pos_1" value="<?php echo lang('txt_err_pos_1'); ?>">
 <input type="hidden" id="txt_err_pos_2" value="<?php echo lang('txt_err_pos_2'); ?>">
+<input type="hidden" id="register_close_pending_orders_msg" value="<?php echo lang('register_close_pending_orders'); ?>">
 <input type="hidden" id="txt_err_pos_3" value="<?php echo lang('txt_err_pos_3'); ?>">
 <input type="hidden" id="txt_err_pos_4" value="<?php echo lang('txt_err_pos_4'); ?>">
 <input type="hidden" id="txt_err_pos_5" value="<?php echo lang('txt_err_pos_5'); ?>">
@@ -275,6 +276,10 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="online_customer_name" value="<?php echo escape_output($this->session->userdata('online_customer_name')); ?>">
 <input type="hidden" id="orders_table_text_hide" value="<?php echo escape_output(getTableName($this->session->userdata('self_order_table_id'))); ?>">
 <input type="hidden" id="default_date" value="<?php echo date("Y-m-d"); ?>">
+<!--server wall clock in the company timezone; the POS aligns its own clock to this
+    so the timestamps it stamps on orders/payments can be compared against the
+    register open/close times PHP writes-->
+<input type="hidden" id="server_date_time" value="<?php echo date("Y-m-d H:i:s"); ?>">
 <input type="hidden" id="delivery_partner" value="<?php echo sizeof($deliveryPartners); ?>">
 <?php
 $sms_send_auto = $this->session->userdata('sms_send_auto');
@@ -319,6 +324,10 @@ $sms_send_auto = $this->session->userdata('sms_send_auto');
 <input type="hidden" id="can_void_order_item" value="<?php echo canVoidOrderedItem()?1:0; ?>">
 <input type="hidden" id="void_only_admin_manager" value="<?php echo lang('void_only_admin_manager'); ?>">
 <input type="hidden" id="can_clear_cart_without_pass" value="<?php echo canVoidOrderedItem()?1:0; ?>">
+<input type="hidden" id="can_give_complementary" value="<?php echo canGiveComplementaryItem()?1:0; ?>">
+<input type="hidden" id="complementary_only_admin_manager" value="<?php echo lang('complementary_only_admin_manager'); ?>">
+<input type="hidden" id="mark_as_complementary_lang" value="<?php echo lang('mark_as_complementary'); ?>">
+<input type="hidden" id="remove_complementary_lang" value="<?php echo lang('remove_complementary'); ?>">
 <input type="hidden" id="alert_running_order" value="<?php echo lang('alert_running_order'); ?>">
 <input type="hidden" id="alert_running_order1" value="<?php echo lang('alert_running_order1'); ?>">
 <input type="hidden" id="customer_address_msg" value="<?php echo lang('customer_address_msg'); ?>">

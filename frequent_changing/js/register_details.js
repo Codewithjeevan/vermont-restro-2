@@ -1,6 +1,47 @@
 $(function () {
     "use strict";
     let base_url = $("#base_url_customer").val();
+    /**
+     * A register may only be closed once every running/unsettled order is gone.
+     * The server tells us how many are left; reflect that on the close button so
+     * the cashier sees the block before clicking instead of after.
+     */
+    function applyRegisterCloseGuard(response) {
+        let count = Number((response && response.unsettled_orders_count) || 0);
+        let msg = (response && response.unsettled_orders_msg) || $("#register_close_pending_orders_msg").val();
+        let close_buttons = $("#register_close, #register_close_details");
+        let warning = $(".register_close_warning");
+        if (count > 0) {
+            close_buttons.prop("disabled", true).addClass("register_close_disabled").attr("title", msg);
+            warning.text(msg).show();
+        } else {
+            close_buttons.prop("disabled", false).removeClass("register_close_disabled").removeAttr("title");
+            warning.text("").hide();
+        }
+        return count;
+    }
+    function isRegisterCloseBlocked() {
+        return $("#register_close, #register_close_details").hasClass("register_close_disabled");
+    }
+    //this file runs both inside the POS (toastr available) and on the admin
+    //Register Details page (only sweetalert is loaded there)
+    function showRegisterCloseBlockedMessage() {
+        let msg = $(".register_close_warning").text() || $("#register_close_pending_orders_msg").val();
+        if (typeof toastr !== "undefined") {
+            toastr.options = {
+                positionClass: 'toast-bottom-right'
+            };
+            toastr['error']((msg), '');
+        } else if (typeof swal !== "undefined") {
+            swal({
+                title: $("#warning").val() || 'Alert',
+                text: msg,
+                confirmButtonColor: '#3c8dbc'
+            });
+        } else {
+            alert(msg);
+        }
+    }
     function show_details_for_details_page() {
         let csrf_value_ = $("#csrf_value_").val();
         $.ajax({
@@ -13,6 +54,7 @@ $(function () {
                 response = JSON.parse(response);
 
                 $(".html_content").html(response.html_content_for_div);
+                applyRegisterCloseGuard(response);
 
                 $(`#datatable`).DataTable({
                     'autoWidth'   : false,
@@ -53,6 +95,10 @@ $(function () {
     show_details_for_details_page();
 
     $(document).on("click", "#register_close_details", function (e) {
+        if (isRegisterCloseBlocked()) {
+            showRegisterCloseBlockedMessage();
+            return;
+        }
         let menu_not_permit_access = $("#menu_not_permit_access").val();
         let pos_21 = Number($("#pos_21").val());
         let txt_err_pos_2 = $("#txt_err_pos_2").val();
@@ -78,6 +124,12 @@ $(function () {
                             csrf_name_: csrf_value_,
                         },
                         success: function (response) {
+                            response = JSON.parse(response);
+                            if(response.status == 0){
+                                applyRegisterCloseGuard(response);
+                                showRegisterCloseBlockedMessage();
+                                return;
+                            }
                             $("#close_register_button").hide();
                             window.location.href = base_url + "Register/openRegister";
                         },
@@ -137,6 +189,7 @@ $(function () {
                     $(".pos__modal__overlay").fadeIn(200);
                     $("#opening_register_time").html(response.opening_date_time);
                     $(".html_content").html(response.html_content_for_div);
+                    applyRegisterCloseGuard(response);
 
                     $(`#datatable`).DataTable({
                         'autoWidth'   : false,

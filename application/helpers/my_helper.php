@@ -3445,6 +3445,16 @@ function canVoidOrderedItem(){
     return in_array($CI->session->userdata('designation'), array('Admin','Super Admin','Manager'));
 }
 /**
+ * Only Admin/Manager level users may mark a POS cart item as Complementary (free).
+ */
+function canGiveComplementaryItem(){
+    $CI = & get_instance();
+    if($CI->session->userdata('role')=="Admin"){
+        return true;
+    }
+    return in_array($CI->session->userdata('designation'), array('Admin','Super Admin','Manager'));
+}
+/**
  * When ordered quantity is reduced (VOID), put the cancelled units back into stock.
  * Stock = purchases - tbl_sale_consumptions_of_menus(+modifiers), so refilling means
  * reducing the consumption already recorded for this sale. Mirrors the consumption
