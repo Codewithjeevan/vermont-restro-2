@@ -272,6 +272,11 @@ class Outlet extends Cl_Controller {
         $language_manifesto = $this->session->userdata('language_manifesto');
         $outlet_details = $this->Common_model->getDataById($outlet_id, 'tbl_outlets');
 
+        if (!$outlet_details) {
+            $this->session->set_flashdata('exception_1', lang('menu_not_permit_access'));
+            redirect('Outlet/outlets');
+        }
+
         $outlet_session = array();
         $outlet_session['outlet_id'] = $outlet_details->id;
         $outlet_session['outlet_name'] = $outlet_details->outlet_name;
@@ -288,11 +293,17 @@ class Outlet extends Cl_Controller {
         endif;
         $this->session->set_userdata($outlet_session);
 
+        //join the register another user of this company already opened on this outlet
+        attachOpenRegisterSession();
+
         if (!$this->session->has_userdata('clicked_controller')) {
             if ($this->session->userdata('role') == 'Admin') {
                 redirect('Dashboard/dashboard');
-            } else if($this->session->userdata('role') == 'Chef') {
+            } else if($this->session->userdata('role') == 'Chef' || $this->session->userdata('designation') == 'Chef') {
                 redirect('Kitchen/kitchens');
+            } else {
+                //every other role landed on a blank page here because nothing was sent back
+                redirect('Authentication/userProfile');
             }
         } else {
             $clicked_controller = $this->session->userdata('clicked_controller');
