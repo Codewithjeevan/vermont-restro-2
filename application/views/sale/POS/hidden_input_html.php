@@ -355,5 +355,6 @@ $sms_send_auto = $this->session->userdata('sms_send_auto');
     <div style="display:none" class="edit_content_object"><?php echo $sale_details->self_order_content??''?></div>
     <?php } ?>
 <input type="hidden" id="no_item_error" value="<?php echo lang('no_item_error'); ?>">
+<input type="hidden" id="invoice_no_reserve_error" value="<?php echo lang('invoice_no_reserve_error'); ?>">
 <input type="hidden" id="please_select_your_kitchen_for_print" value="<?php echo lang('please_select_your_kitchen_for_print'); ?>">
 <input type="hidden" id="inv_paid_ticket" value="<?php echo lang('paid_ticket'); ?>">

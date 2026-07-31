@@ -461,6 +461,49 @@ function returnSaleNo($id) {
     $last_row =   $CI->db->get()->row();
     return $last_row?$last_row->sale_no:'';
 }
+/**
+ * Hand out the next $count invoice numbers of a company.
+ * Format is INV-<company_id>-<n>; n starts at 1 and never resets.
+ *
+ * The POS reserves these up front (see reserveSaleNumbers() in pos_script) because the
+ * sale_no is the key that ties the kitchen sale, the bill and the order tables together
+ * and has to exist before anything is written - also while the terminal is offline.
+ * Every terminal of a company draws from this one counter, so the numbers must be handed
+ * out atomically: UPDATE ... LAST_INSERT_ID(last_no + n) takes an InnoDB row lock, which
+ * makes read-and-increment a single indivisible step. Two counters billing at the very
+ * same moment therefore get two different ranges instead of the same number twice.
+ *
+ * Returns an array of numbers (oldest first), or an empty array when nothing could be
+ * reserved - callers must treat that as "no invoice number available" and stop.
+ *
+ * @access public
+ * @return array
+ * @param int, int
+ */
+function reserveCompanySaleNumbers($company_id, $count = 1) {
+    $CI = & get_instance();
+    $company_id = (int)$company_id;
+    $count = (int)$count;
+    if($company_id<=0 || $count<=0){
+        return array();
+    }
+    //make sure the company has a counter row; a brand new company starts at 0 -> first number is 1
+    $CI->db->query("INSERT IGNORE INTO tbl_sale_no_counters (company_id, last_no) VALUES ($company_id, 0)");
+    $CI->db->query("UPDATE tbl_sale_no_counters SET last_no = LAST_INSERT_ID(last_no + $count) WHERE company_id = $company_id");
+    if($CI->db->affected_rows()<1){
+        //no row was touched, so LAST_INSERT_ID() below would return a stale value
+        return array();
+    }
+    $last_reserved = (int)$CI->db->query("SELECT LAST_INSERT_ID() AS last_no")->row('last_no');
+    if($last_reserved<$count){
+        return array();
+    }
+    $numbers = array();
+    for($n = $last_reserved - $count + 1; $n <= $last_reserved; $n++){
+        $numbers[] = 'INV-'.$company_id.'-'.$n;
+    }
+    return $numbers;
+}
 function getSaleDetailsByCode($code) {
     $CI = & get_instance();
     $CI->db->select('*');

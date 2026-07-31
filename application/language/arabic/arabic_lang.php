@@ -1699,6 +1699,7 @@ $lang['social_login_setting']='إعداد تسجيل الدخول الاجتما
 $lang['online_order_login_password']='كلمة مرور تسجيل الدخول للطلب عبر الإنترنت';
 $lang['unchanged']='احتفظ بها فارغة لعدم تغييرها'; 
 $lang['no_item_error']='لا يوجد عنصر محدث للطباعة KOT.';
+$lang['invoice_no_reserve_error']='تعذر الحصول على رقم فاتورة من الخادم. يرجى التحقق من الاتصال والمحاولة مرة أخرى.';
 $lang['please_select_your_kitchen_for_print']='يرجى تحديد مطبخك للطباعة';
 $lang['paid_ticket']='Paid ticket'; 
 $lang['print_server_instruction_title_1']='كيف تقوم بتكوين الطابعة؟'; 

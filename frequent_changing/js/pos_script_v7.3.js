@@ -1844,39 +1844,89 @@
           }
           return result;
       }
+      /*  Invoice numbering - INV-<company_id>-<n>
+          The number comes from one counter per company on the server (see
+          reserveCompanySaleNumbers() in my_helper.php), because every counter/terminal of
+          the company shares the same sequence and a purely local counter would hand out
+          the same number twice. A bill needs its number before anything is written to
+          IndexedDB or the KOT is printed, so this terminal keeps a small buffer of already
+          reserved numbers - that also keeps the POS billing while the server is
+          unreachable. Numbers left in the buffer of a terminal that is retired simply stay
+          unused, which is the price of being able to bill offline. */
+      const SALE_NO_POOL_SIZE = 20; //numbers kept reserved on this terminal
+      const SALE_NO_POOL_MIN = 10;  //top the buffer back up once it drops to this
+      let sale_no_topping_up = false;
+
+      function saleNoPoolKey() {
+          return "sale_no_pool_" + ($("#company_id_indexdb").val() || "0");
+      }
+      function readSaleNoPool() {
+          try {
+              let pool = JSON.parse(localStorage[saleNoPoolKey()] || "[]");
+              return Array.isArray(pool) ? pool : [];
+          } catch (e) {
+              return [];
+          }
+      }
+      function writeSaleNoPool(pool) {
+          localStorage[saleNoPoolKey()] = JSON.stringify(pool);
+      }
+      function reserveSaleNumbers(count, is_blocking) {
+          if (count < 1) {
+              return;
+          }
+          $.ajax({
+              url: base_url + "Sale/reserve_sale_numbers",
+              method: "POST",
+              dataType: "json",
+              async: !is_blocking,
+              data: {
+                  count: count,
+                  csrf_irestoraplus: csrf_value_,
+              },
+              success: function (response) {
+                  if (response && response.sale_numbers && response.sale_numbers.length) {
+                      //re-read here: an order may have consumed a number while this was in flight
+                      writeSaleNoPool(readSaleNoPool().concat(response.sale_numbers));
+                  }
+              },
+              error: function () {},
+              complete: function () {
+                  sale_no_topping_up = false;
+              },
+          });
+      }
+      function topUpSaleNoPool() {
+          if (sale_no_topping_up) {
+              return;
+          }
+          let pool = readSaleNoPool();
+          if (pool.length > SALE_NO_POOL_MIN) {
+              return;
+          }
+          sale_no_topping_up = true;
+          reserveSaleNumbers(SALE_NO_POOL_SIZE - pool.length, false);
+      }
       function generateSaleNo() {
-          //for date and time
-          let today = new Date();
-          let dd = today.getDate();
-          let mm = today.getMonth() + 1; //January is 0!
-          let yyyy = today.getFullYear();
-          let twoDigitYear = yyyy. toString(). substr(-2);
-          if (dd < 10) {
-              dd = "0" + dd;
+          let pool = readSaleNoPool();
+          if (!pool.length) {
+              //buffer is empty - the number is needed right now, so ask the server and wait
+              sale_no_topping_up = true;
+              reserveSaleNumbers(SALE_NO_POOL_SIZE, true);
+              pool = readSaleNoPool();
           }
-          if (mm < 10) {
-              mm = "0" + mm;
+          if (!pool.length) {
+              //no number could be reserved; making one up locally would duplicate an
+              //invoice number, so the order has to be stopped instead
+              toastr['error']($("#invoice_no_reserve_error").val(), '');
+              return '';
           }
-          let time_a = new Date();
-          let t_h = time_a.getHours();
-          let t_m = time_a.getMinutes();
-          let t_s = time_a.getSeconds();
-  
-          if (t_h < 10) {
-              t_h = "0" + t_h;
-          }
-          if (t_m < 10) {
-              t_m = "0" + t_m;
-          }
-          if (t_s < 10) {
-              t_s = "0" + t_s;
-          }
-          let username_short = $("#username_short").val();
-          let invoice_counter_value = Number(localStorage['invoice_counter_value'])+1;
-          localStorage['invoice_counter_value'] = invoice_counter_value;
-          let sale_no = username_short+twoDigitYear+mm+dd+"-"+getPadTwo(invoice_counter_value);
+          let sale_no = pool.shift();
+          writeSaleNoPool(pool);
+          topUpSaleNoPool();
           return sale_no;
       }
+      topUpSaleNoPool();
       function getRandomCode(length) {
           let result           = '';
           //this is random character pattern
@@ -8272,8 +8322,12 @@
                       random_code = random_code_hidden;
                   }else{
                       sale_no_new = generateSaleNo();
+                      if(!sale_no_new){
+                          //no invoice number could be reserved - generateSaleNo() already said why
+                          return false;
+                      }
                       random_code = getRandomCode(15);
-  
+
                   }
                   let open_invoice_date_hidden = $("#open_invoice_date_hidden").val();
                   let edit_sale_date = $("#edit_sale_date").val();
@@ -8845,10 +8899,14 @@
                       random_code = random_code_hidden;
                   }else{
                       sale_no_new = generateSaleNo();
+                      if(!sale_no_new){
+                          //no invoice number could be reserved - generateSaleNo() already said why
+                          return false;
+                      }
                       random_code = getRandomCode(15);
                   }
-  
-  
+
+
                   let order_status = 1;
                   let open_invoice_date_hidden = $("#open_invoice_date_hidden").val();
                   let rounding_amount_hidden = $("#rounding_amount_hidden").val();

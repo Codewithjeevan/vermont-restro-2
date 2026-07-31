@@ -1123,6 +1123,26 @@ class Sale extends Cl_Controller {
               WHERE company_id=$company_id AND del_status='Live'")->result();
         echo json_encode($data1);
     }
+    /**
+     * Reserve invoice numbers (INV-<company_id>-<n>) for this terminal.
+     * The POS keeps a small buffer of them so a bill can be numbered instantly and
+     * even while the terminal is offline - see reserveSaleNumbers() in pos_script.
+     * @access public
+     * @return json
+     * @param no
+     */
+    public function reserve_sale_numbers(){
+        $count = (int)$this->input->post('count');
+        if($count<1){
+            $count = 1;
+        }
+        //cap it so a stray request cannot burn a big hole in the company's sequence
+        if($count>50){
+            $count = 50;
+        }
+        $numbers = reserveCompanySaleNumbers($this->session->userdata('company_id'), $count);
+        echo json_encode(array('sale_numbers' => $numbers));
+    }
      /**
      * add sale by ajax
      * @access public
