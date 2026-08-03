@@ -328,6 +328,14 @@ $sms_send_auto = $this->session->userdata('sms_send_auto');
 <input type="hidden" id="complementary_only_admin_manager" value="<?php echo lang('complementary_only_admin_manager'); ?>">
 <input type="hidden" id="mark_as_complementary_lang" value="<?php echo lang('mark_as_complementary'); ?>">
 <input type="hidden" id="remove_complementary_lang" value="<?php echo lang('remove_complementary'); ?>">
+<input type="hidden" id="can_give_staff_meal" value="<?php echo canGiveStaffMeal()?1:0; ?>">
+<input type="hidden" id="staff_meal_percentage_value" value="<?php echo escape_output(getStaffMealPercentage()); ?>">
+<input type="hidden" id="staff_meal_only_admin_manager" value="<?php echo lang('staff_meal_only_admin_manager'); ?>">
+<input type="hidden" id="staff_meal_not_configured" value="<?php echo lang('staff_meal_not_configured'); ?>">
+<input type="hidden" id="staff_meal_applied_msg" value="<?php echo lang('staff_meal_applied'); ?>">
+<!--set to 1 only while a Staff Meal settlement is in progress, cleared as soon as the sale is closed-->
+<input type="hidden" id="is_staff_meal_sale" value="">
+<input type="hidden" id="staff_meal_discount_hidden" value="">
 <input type="hidden" id="alert_running_order" value="<?php echo lang('alert_running_order'); ?>">
 <input type="hidden" id="alert_running_order1" value="<?php echo lang('alert_running_order1'); ?>">
 <input type="hidden" id="customer_address_msg" value="<?php echo lang('customer_address_msg'); ?>">

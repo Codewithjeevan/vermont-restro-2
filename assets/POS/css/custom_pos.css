@@ -53,6 +53,126 @@
     text-decoration: line-through;
     opacity: 0.7;
 }
+/* Staff Meal confirmation popup */
+#staff_meal_confirm_modal{
+    max-width: 420px !important;
+}
+#staff_meal_confirm_modal .modal-content #modal_item_name{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3540;
+    border-bottom: 1px solid #eceff3;
+}
+#staff_meal_confirm_modal .main-content-wrapper{
+    padding: 14px 16px 4px 16px;
+}
+#staff_meal_confirm_modal .staff_meal_note{
+    margin: 0 0 14px 0;
+    padding: 9px 11px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #4d5a68;
+    background-color: #f1f7fd;
+    border-inline-start: 3px solid #2f80ed;
+    border-radius: 4px;
+}
+#staff_meal_confirm_modal .staff_meal_note i{
+    color: #2f80ed;
+    margin-inline-end: 4px;
+}
+#staff_meal_confirm_modal .staff_meal_summary{
+    border: 1px solid #e6e9ed;
+    border-radius: 6px;
+    overflow: hidden;
+}
+#staff_meal_confirm_modal .staff_meal_row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 13px;
+    border-bottom: 1px solid #f0f2f5;
+}
+#staff_meal_confirm_modal .staff_meal_row:last-child{
+    border-bottom: 0;
+}
+#staff_meal_confirm_modal .staff_meal_label{
+    font-size: 14px;
+    color: #6b7684;
+}
+#staff_meal_confirm_modal .staff_meal_value{
+    font-size: 15px;
+    font-weight: 600;
+    color: #2d3540;
+    white-space: nowrap;
+}
+#staff_meal_confirm_modal .staff_meal_badge{
+    display: inline-block;
+    margin-inline-start: 5px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #28a745;
+    border-radius: 10px;
+    vertical-align: middle;
+}
+#staff_meal_confirm_modal .staff_meal_minus{
+    color: #dc3545;
+}
+#staff_meal_confirm_modal .staff_meal_minus::before{
+    content: "- ";
+}
+#staff_meal_confirm_modal .staff_meal_total_row{
+    background-color: #eaf7ee;
+    border-top: 1px solid #cdead6;
+}
+#staff_meal_confirm_modal .staff_meal_total_row .staff_meal_label{
+    font-size: 14px;
+    font-weight: bold;
+    color: #1e7e34;
+}
+#staff_meal_confirm_modal .staff_meal_total_row .staff_meal_value{
+    font-size: 19px;
+    font-weight: bold;
+    color: #1e7e34;
+}
+#staff_meal_confirm_modal .staff_meal_btn_box{
+    display: flex;
+    gap: 10px;
+    padding: 14px 16px 16px 16px;
+}
+#staff_meal_confirm_modal .staff_meal_btn_box button{
+    flex: 1;
+    height: 42px;
+    font-size: 15px;
+    font-weight: 600;
+    border: 0;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+#staff_meal_confirm_modal .staff_meal_btn_box #submit_staff_meal{
+    color: #fff;
+    background-color: #28a745;
+}
+#staff_meal_confirm_modal .staff_meal_btn_box #submit_staff_meal:hover{
+    background-color: #1e7e34;
+}
+#staff_meal_confirm_modal .staff_meal_btn_box #submit_staff_meal i{
+    margin-inline-end: 5px;
+}
+#staff_meal_confirm_modal .staff_meal_btn_box .cancel{
+    color: #4d5a68;
+    background-color: #eceff3;
+}
+#staff_meal_confirm_modal .staff_meal_btn_box .cancel:hover{
+    background-color: #dfe4ea;
+}
 .order_holder .single_order.is-comp .first_column::after{
     content: "FREE";
     margin-inline-start: 6px;

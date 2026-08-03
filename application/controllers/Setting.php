@@ -125,6 +125,15 @@ class Setting extends Cl_Controller {
 
                 $outlet_info['service_amount'] = htmlspecialcharscustom($this->input->post('service_amount'));
                 $outlet_info['delivery_amount'] = htmlspecialcharscustom($this->input->post('delivery_amount'));
+                //staff meal discount percentage, clamped to 0-100 (0 hides the POS Staff Meal button)
+                $staff_meal_percentage = (float)$this->input->post('staff_meal_percentage');
+                if($staff_meal_percentage<0){
+                    $staff_meal_percentage = 0;
+                }
+                if($staff_meal_percentage>100){
+                    $staff_meal_percentage = 100;
+                }
+                $outlet_info['staff_meal_percentage'] = $staff_meal_percentage;
                 $outlet_info['decimals_separator'] = htmlspecialcharscustom($this->input->post('decimals_separator'));
                 $outlet_info['thousands_separator'] = htmlspecialcharscustom($this->input->post('thousands_separator'));
                 $outlet_info['default_order_type_delivery_p'] = htmlspecialcharscustom($this->input->post('default_order_type_delivery_p'));

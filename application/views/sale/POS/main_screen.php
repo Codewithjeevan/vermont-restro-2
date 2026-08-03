@@ -936,6 +936,10 @@ foreach ($notifications as $single_notification){
                                 $display_btn_2 = '';
                              endif; ?>
 
+                            <?php if(getStaffMealPercentage()>0): ?>
+                            <button class="operation_button fix no-need-for-waiter" id="staff_meal_order"><i
+                                        class="fas fa-utensils"></i> <?php echo lang('staff_meal'); ?></button>
+                            <?php endif; ?>
                             <button class="operation_button <?php echo escape_output($display_btn_1)?>" id="modify_order"><i
                                         class="fas fa-edit"></i><?php echo lang('modify_order_'); ?></button>
                             <button class="operation_button no-need-for-waiter fix <?php echo escape_output($display_btn_2)?>" id="close_order_button"><i
@@ -1623,6 +1627,45 @@ foreach ($notifications as $single_notification){
         </div>
         <div class="btn__box">
             <button type="button" id="submit_admin_verify_password"><?php echo lang('submit'); ?></button>
+            <button type="button" class="cancel"><?php echo lang('cancel'); ?></button>
+        </div>
+    </div>
+</div>
+    <!-- Staff Meal confirmation, opened from the left side Staff Meal button -->
+    <div id="staff_meal_confirm_modal" class="modal">
+    <!-- Modal content -->
+    <div class="modal-content">
+
+        <h1 id="modal_item_name"><?php echo lang('staff_meal'); ?>
+            <a href="javascript:void(0)" class="alertCloseIcon">
+                <i class="fal fa-times"></i>
+            </a>
+        </h1>
+        <div class="main-content-wrapper">
+            <p class="staff_meal_note"><i class="fas fa-info-circle"></i> <?php echo lang('staff_meal_confirm_msg'); ?></p>
+            <div class="staff_meal_summary">
+                <div class="staff_meal_row">
+                    <span class="staff_meal_label"><?php echo lang('order_no'); ?></span>
+                    <span class="staff_meal_value" id="staff_meal_order_no">-</span>
+                </div>
+                <div class="staff_meal_row">
+                    <span class="staff_meal_label"><?php echo lang('total_payable'); ?></span>
+                    <span class="staff_meal_value" id="staff_meal_total_payable"><?php echo getAmtP(0)?></span>
+                </div>
+                <div class="staff_meal_row">
+                    <span class="staff_meal_label"><?php echo lang('staff_meal_discount'); ?>
+                        <span class="staff_meal_badge"><span id="staff_meal_percentage_text">0</span>%</span>
+                    </span>
+                    <span class="staff_meal_value staff_meal_minus" id="staff_meal_discount_amount"><?php echo getAmtP(0)?></span>
+                </div>
+                <div class="staff_meal_row staff_meal_total_row">
+                    <span class="staff_meal_label"><?php echo lang('payable_after_discount'); ?></span>
+                    <span class="staff_meal_value" id="staff_meal_payable_after"><?php echo getAmtP(0)?></span>
+                </div>
+            </div>
+        </div>
+        <div class="btn__box staff_meal_btn_box">
+            <button type="button" id="submit_staff_meal"><i class="fas fa-utensils"></i> <?php echo lang('submit'); ?></button>
             <button type="button" class="cancel"><?php echo lang('cancel'); ?></button>
         </div>
     </div>

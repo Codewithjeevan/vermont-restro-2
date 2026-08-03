@@ -2044,6 +2044,8 @@ class Sale extends Cl_Controller {
         $data['given_amount'] = trim_checker($order_details->hidden_given_amount);
         $data['change_amount'] = trim_checker($order_details->hidden_change_amount);
         $data['token_number'] = trim_checker($order_details->token_number);
+        //staff meal bill: percentage discount already applied on the client, this only tags it
+        $data['is_staff_meal'] = (isset($order_details->is_staff_meal) && $order_details->is_staff_meal==1 && canGiveStaffMeal())?1:0;
         $data['random_code'] = trim_checker(isset($order_details->random_code) && $order_details->random_code?$order_details->random_code:'');
         $data['user_id'] = $this->session->userdata('user_id');;
         $data['waiter_id'] = trim_checker($order_details->waiter_id);
@@ -3097,12 +3099,14 @@ We hope to see you again!";
         }
 
         $sub_total_discount_finalize = $this->input->post('sub_total_discount_finalize');
+        //staff meal: the money is the finalize discount above, this only tags the bill
+        $is_staff_meal = ($this->input->post('is_staff_meal')==1 && canGiveStaffMeal())?1:0;
         $total_payable = 0;
         $sub_total_discount_amount = 0;
         $total_discount_amount = 0;
 
         $sale_details = $this->Common_model->getDataById($sale_id, "tbl_sales");
-        if((int)$sub_total_discount_finalize){
+        if((float)$sub_total_discount_finalize){
             $sub_total_discount_type = "fixed";
             $total_payable = $sale_details->total_payable - $sub_total_discount_finalize;
             $sub_total_discount_amount = $sale_details->sub_total_discount_amount + $sub_total_discount_finalize;
@@ -3123,6 +3127,9 @@ We hope to see you again!";
             }
         }else{
             $order_status = array('paid_amount' => $paid_amount,'total_payable' => $total_payable,'sub_total_discount_amount' => $sub_total_discount_amount,'total_discount_amount' => $total_discount_amount,'sub_total_discount_type' => $sub_total_discount_type,'given_amount' => $given_amount_input,'change_amount' => $change_amount_input,'due_amount' => $due_amount,'order_status' => 2,'payment_method_id'=>$payment_method_type);
+        }
+        if($is_staff_meal){
+            $order_status['is_staff_meal'] = 1;
         }
         $this->db->where('id', $sale_id);
         $this->db->update('tbl_sales', $order_status);
@@ -4027,9 +4034,14 @@ We hope to see you again!";
                                         </li>';
 
 
+                //tag staff meal bills so they are recognisable in the sale list
+                $staff_meal_tag = '';
+                if(isset($value->is_staff_meal) && $value->is_staff_meal){
+                    $staff_meal_tag = ' <span style="background:#28a745;color:#ffffff;padding:1px 7px;border-radius:10px;font-size:11px;white-space:nowrap;">'.lang('staff_meal').'</span>';
+                }
                 $sub_array =  array();
                 $sub_array[] = escape_output($i--);
-                $sub_array[] = escape_output($value->sale_no);
+                $sub_array[] = escape_output($value->sale_no).$staff_meal_tag;
                 $sub_array[] = escape_output($order_type);
                 $sub_array[] = escape_output(date($this->session->userdata['date_format'], strtotime($value->sale_date)))." ".escape_output($value->order_time);
                 $sub_array[] = escape_output($value->customer_name).''.escape_output($value->customer_phone?' ('.$value->customer_phone.')':'');

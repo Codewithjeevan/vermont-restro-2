@@ -3498,6 +3498,30 @@ function canGiveComplementaryItem(){
     return in_array($CI->session->userdata('designation'), array('Admin','Super Admin','Manager'));
 }
 /**
+ * Only Admin/Manager level users may settle a running order as a Staff Meal.
+ */
+function canGiveStaffMeal(){
+    $CI = & get_instance();
+    if($CI->session->userdata('role')=="Admin"){
+        return true;
+    }
+    return in_array($CI->session->userdata('designation'), array('Admin','Super Admin','Manager'));
+}
+/**
+ * Staff Meal discount percentage configured in Settings (0 = feature disabled).
+ */
+function getStaffMealPercentage(){
+    $company_info = getCompanyInfo();
+    $percentage = isset($company_info->staff_meal_percentage)?(float)$company_info->staff_meal_percentage:0;
+    if($percentage<0){
+        $percentage = 0;
+    }
+    if($percentage>100){
+        $percentage = 100;
+    }
+    return $percentage;
+}
+/**
  * When ordered quantity is reduced (VOID), put the cancelled units back into stock.
  * Stock = purchases - tbl_sale_consumptions_of_menus(+modifiers), so refilling means
  * reducing the consumption already recorded for this sale. Mirrors the consumption

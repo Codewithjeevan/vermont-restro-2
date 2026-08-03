@@ -576,6 +576,22 @@ if ($this->session->flashdata('exception')) {
                                     </div>
                                 <?php } ?>
                             </div>
+                            <div class="mb-3 col-sm-12 col-md-4 col-lg-3">
+                                <div class="form-group">
+                                    <label><?php echo lang('staff_meal_percentage'); ?> <div class="tooltip_custom">
+                                            <i data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo lang('staff_meal_percentage_tooltip'); ?>" data-feather="help-circle"></i>
+                                        </div></label>
+                                    <input tabindex="13" autocomplete="off" type="text" id="staff_meal_percentage"
+                                           name="staff_meal_percentage" class="form-control"
+                                           placeholder="0"
+                                           value="<?php echo escape_output(isset($outlet_information->staff_meal_percentage)?$outlet_information->staff_meal_percentage:0); ?>">
+                                </div>
+                                <?php if (form_error('staff_meal_percentage')) { ?>
+                                    <div class="callout callout-danger my-2">
+                                        <?php echo form_error('staff_meal_percentage'); ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
 
 
                             <div class="mb-3 col-sm-12 col-md-4 col-lg-3">

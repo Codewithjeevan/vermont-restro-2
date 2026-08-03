@@ -12893,24 +12893,30 @@
       paid_amount,
       due_amount,sub_total_discount_finalize
     ) {
-   
+      //read the staff meal flag before anything resets the modal, it travels with the sale
+      let is_staff_meal = Number($("#is_staff_meal_sale").val()) ? 1 : 0;
+      $("#is_staff_meal_sale").val('');
+
       if (invoice_create_type == 1) {
         //if type is 1 then update order status to invoiced order, and update payment method type
         update_order_status_to_invoiced(
           sale_id,
           payment_method_type,
           paid_amount,
-          due_amount,sub_total_discount_finalize
+          due_amount,sub_total_discount_finalize,is_staff_meal
         );
       } else if (invoice_create_type == 2) {
         //then change order status to close, close time update, payment method type update,
-        close_order(sale_id, payment_method_type, paid_amount, due_amount,sub_total_discount_finalize);
+        close_order(sale_id, payment_method_type, paid_amount, due_amount,sub_total_discount_finalize,is_staff_meal);
       }
         setTimeout(function () {
             $("#order_" + sale_id).remove();
             $('#refresh_order').click();
             displayOrderList();
-            print_invoice(sale_id,1);
+            if (!is_staff_meal) {
+                //a staff meal is settled silently, no customer invoice to print
+                print_invoice(sale_id,1);
+            }
         }, 400);
     }
     function get_all_hold_sales() {
@@ -12976,7 +12982,7 @@
       sale_id,
       payment_method_type,
       paid_amount,
-      due_amount,sub_total_discount_finalize
+      due_amount,sub_total_discount_finalize,is_staff_meal
     ) {
       let given_amount_input = $("#given_amount_input").val();
       let change_amount_input = $("#change_amount_input").val();
@@ -13028,6 +13034,7 @@
           multi_currency: multi_currency,
           multi_currency_amount: multi_currency_amount,
           sub_total_discount_finalize: sub_total_discount_finalize,
+          is_staff_meal: is_staff_meal ? 1 : 0,
           csrf_irestoraplus: csrf_value_,
         },
         success: function (response) {
@@ -13041,7 +13048,7 @@
       });
     }
   
-    function close_order(sale_id, payment_method_type, paid_amount, due_amount,sub_total_discount_finalize) {
+    function close_order(sale_id, payment_method_type, paid_amount, due_amount,sub_total_discount_finalize,is_staff_meal) {
       let given_amount_input = $("#given_amount_input").val();
       let change_amount_input = $("#change_amount_input").val();
   
@@ -13110,6 +13117,7 @@
             order_object.sub_total_discount_amount = sub_total_discount_amount;
             order_object.total_discount_amount = total_discount_amount;
             order_object.token_number = token_number;
+            order_object.is_staff_meal = is_staff_meal ? 1 : 0;
             order_object.paid_date_time = getDateTime()[0];
             order_object.send_sms_status = getSmsSeedStatus();
   
@@ -14525,6 +14533,7 @@
       $("#total_payable_last_10").html(Number(0).toFixed(ir_precision));
     }
     function reset_finalize_modal() {
+      $("#is_staff_meal_sale").val("");
       $("#finalize_total_payable").html(Number(0).toFixed(ir_precision));
       $("#given_amount_input").val("");
       $("#change_amount_input").val("");
@@ -18725,6 +18734,7 @@
               $("#print_type").val(1);
               $("#is_split_bill").val('');
               $("#sub_total_discount_finalize").val('');
+              $("#is_staff_meal_sale").val('');
               if (
                   $(".holder .order_details > .single_order[data-selected=selected]")
                       .length > 0
@@ -19030,6 +19040,7 @@
               $(".custom_ul_split").empty();
           }else{
               $("#is_split_bill").val('');
+              $("#is_staff_meal_sale").val('');
               body_el.find('.invoice_box').toggleClass('active');
   
               $("#print_type").val(1);
@@ -19105,6 +19116,89 @@
       });
   
   
+      /**
+       * Staff Meal
+       * Settles the selected running order with the discount percentage the
+       * client configured in Settings. It rides the existing finalize-discount
+       * pipeline (#sub_total_discount_finalize), so no new price math: only the
+       * amount is pre-filled, the sale is tagged is_staff_meal and the invoice
+       * print at the end is skipped.
+       */
+      function apply_staff_meal_on_payment_modal(discount_amount, tries) {
+          tries = tries || 0;
+          if ($("#order_payment_modal").hasClass("active")) {
+              $("#is_staff_meal_sale").val(1);
+              $("#sub_total_discount_finalize").val(discount_amount);
+              set_finalize_discount();
+              cal_finalize_modal('');
+              toastr['success']($("#staff_meal_applied_msg").val(), '');
+              return;
+          }
+          if (tries < 30) {
+              setTimeout(function () {
+                  apply_staff_meal_on_payment_modal(discount_amount, tries + 1);
+              }, 100);
+          } else {
+              //payment modal never opened (no invoice permission / order gone)
+              $("#is_staff_meal_sale").val('');
+              toastr['error']((a_error), '');
+          }
+      }
+      $(document).on("click", "#staff_meal_order", function (e) {
+          if ($(".holder .order_details > .single_order[data-selected=selected]").length == 0) {
+              toastr['error']((please_select_open_order), '');
+              return false;
+          }
+          if (!Number($("#can_give_staff_meal").val())) {
+              toastr['error']($("#staff_meal_only_admin_manager").val(), '');
+              return false;
+          }
+          let staff_meal_percentage = Number($("#staff_meal_percentage_value").val());
+          if (!staff_meal_percentage) {
+              toastr['error']($("#staff_meal_not_configured").val(), '');
+              return false;
+          }
+          let sale_id = $(".holder .order_details .single_order[data-selected=selected]").attr("id").substr(6);
+          let res = get_all_information_from_indexeddb(sale_id).then(function (data) {
+              let response = jQuery.parseJSON(data);
+              if (response === null) {
+                  toastr['error']((please_select_open_order), '');
+                  return;
+              }
+              let total_payable = Number(response.total_payable);
+              let discount_amount = Number(((total_payable * staff_meal_percentage) / 100).toFixed(ir_precision));
+
+              $("#staff_meal_order_no").html(response.sale_no ? response.sale_no : '-');
+              $("#staff_meal_total_payable").html(getAmount(total_payable));
+              $("#staff_meal_percentage_text").html(staff_meal_percentage);
+              $("#staff_meal_discount_amount").html(getAmount(discount_amount));
+              $("#staff_meal_payable_after").html(getAmount(total_payable - discount_amount));
+              $("#staff_meal_discount_hidden").val(discount_amount);
+
+              $("#staff_meal_confirm_modal").removeClass("inActive").addClass("active");
+              $(".pos__modal__overlay").fadeIn(200);
+          });
+      });
+      $(document).on("click", "#submit_staff_meal", function (e) {
+          let discount_amount = Number($("#staff_meal_discount_hidden").val());
+          //keep the overlay up, the payment modal is opening right after this one
+          $("#staff_meal_confirm_modal").removeClass("active").addClass("inActive");
+          setTimeout(function () {
+              $(".modal").removeClass("inActive");
+          }, 1000);
+          if ($(".holder .order_details > .single_order[data-selected=selected]").length == 0) {
+              toastr['error']((please_select_open_order), '');
+              return false;
+          }
+          let order_type = Number($(".holder .order_details .single_order[data-selected=selected]").attr("order_type"));
+          $("#create_invoice_and_close").click();
+          if (order_type == 1) {
+              //dine in first opens the split/single choice, staff meal always pays single
+              $(".invoice_box .invoice_btn_class[data-type='1']").first().click();
+          }
+          apply_staff_meal_on_payment_modal(discount_amount, 0);
+      });
+
       body_el.on("click", "#open_finalize_discount", function () {
           $("#sub_total_discount_finalize").focus();
           $("#finalize_discount_modal").addClass("active");
