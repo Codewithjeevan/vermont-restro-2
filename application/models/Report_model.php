@@ -1698,8 +1698,8 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
      * @param string
      * @param int
      */
-    public function detailedSaleReport($startMonth = '', $endMonth = '', $user_id = '',$outlet_id='',$waiter_id='') {
-        if ($startMonth || $endMonth || $user_id):
+    public function detailedSaleReport($startMonth = '', $endMonth = '', $user_id = '',$outlet_id='',$waiter_id='',$staff_meal='') {
+        if ($startMonth || $endMonth || $user_id || $staff_meal !== ''):
             $this->db->select('tbl_sales.*,tbl_users.full_name,tbl_payment_methods.name');
             $this->db->from('tbl_sales');
             $this->db->join('tbl_users', 'tbl_users.id = tbl_sales.user_id', 'left');
@@ -1721,6 +1721,14 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
             }
             if ($waiter_id != '') {
                 $this->db->where('tbl_sales.waiter_id', $waiter_id);
+            }
+            /*staff meal filter, column only exists after the staff meal migration is run*/
+            if ($staff_meal !== '' && $this->db->field_exists('is_staff_meal', 'tbl_sales')) {
+                if ($staff_meal == 1) {
+                    $this->db->where('tbl_sales.is_staff_meal', 1);
+                } else {
+                    $this->db->where('(tbl_sales.is_staff_meal IS NULL OR tbl_sales.is_staff_meal != 1)', NULL, FALSE);
+                }
             }
             $this->db->where('order_status', '3');
             $this->db->where('tbl_sales.outlet_id', $outlet_id);

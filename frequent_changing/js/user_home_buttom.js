@@ -30,6 +30,14 @@ $(".check_main_menu").each(function() {
         $(this).remove();
     }
 });
+/*the access check above strips the <li> items out of the row action dropdowns, but the
+  3-dot button itself has no data-access so it survives as a dead control that opens an
+  empty menu. drop the whole button group once nothing is left inside it.*/
+$(".actionDropDownBtn").each(function() {
+    if(!($(this).find(".dropdown-menu").find("li, a").length)){
+        $(this).remove();
+    }
+});
 // material icon init
 feather.replace();
 $(".select_multiple").select2({

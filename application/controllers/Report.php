@@ -948,11 +948,16 @@ class Report extends Cl_Controller {
             $end_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('endDate')));
             $user_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('user_id')));
             $waiter_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('waiter_id')));
+            /*read raw, htmlspecialcharscustom() would turn the falsy "0" into "" and kill the exclude option.
+              only 1 (staff meal only) and 0 (exclude staff meal) are valid, anything else means no filter*/
+            $staff_meal = $this->input->post('staff_meal');
+            $staff_meal = ($staff_meal === '1' || $staff_meal === '0') ? $staff_meal : '';
             $data['user_id'] = $user_id;
             $data['waiter_id'] = $waiter_id;
+            $data['staff_meal'] = $staff_meal;
             $data['start_date'] = $start_date;
             $data['end_date'] = $end_date;
-            $data['detailedSaleReport'] = $this->Report_model->detailedSaleReport($start_date, $end_date, $user_id,$outlet_id,$waiter_id);
+            $data['detailedSaleReport'] = $this->Report_model->detailedSaleReport($start_date, $end_date, $user_id,$outlet_id,$waiter_id,$staff_meal);
         }
         $data['paymentMethods'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_payment_methods");
         $data['users'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_users');
