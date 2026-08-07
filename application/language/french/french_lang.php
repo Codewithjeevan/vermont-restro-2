@@ -1725,3 +1725,20 @@ $lang['admin_password_required_to_clear']="Seul l'administrateur ou le directeur
 $lang['incorrect_admin_password']='Mot de passe incorrect. Veuillez réessayer.';
 
 $lang['register_already_open_msg']="La caisse de ce comptoir est deja ouverte, vous y avez ete connecte.";
+
+$lang['item_wise_cost_report']="Rapport de coût par article";
+$lang['customer_activity_report']="Rapport d'activité client";
+$lang['qty_of_sale']='Qté vendue';
+$lang['cost_total_amount']='Montant total du coût';
+$lang['sale_total_amount']='Prix de vente total';
+$lang['total_visits']='Total des visites';
+$lang['total_qty_purchased']='Qté totale achetée';
+$lang['unique_items']='Articles distincts';
+$lang['most_purchased_item']="Article le plus acheté";
+$lang['total_purchase_amount']="Montant total des achats";
+$lang['avg_order_value']='Valeur moyenne de commande';
+$lang['first_visit']='Première visite';
+$lang['last_visit']='Dernière visite';
+$lang['purchased_items']='Articles achetés';
+$lang['times_ordered']='Nombre de commandes';
+$lang['last_ordered']='Dernière commande';

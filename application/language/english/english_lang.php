@@ -1793,3 +1793,20 @@ $lang['admin_password_required_to_clear']='Only Admin or Manager can clear the o
 $lang['incorrect_admin_password']='Incorrect password. Please try again.';
 
 $lang['register_already_open_msg']='This counter register is already open, you have been connected to it.';
+
+$lang['item_wise_cost_report']='Item Wise Cost Report';
+$lang['customer_activity_report']='Customer Activity Report';
+$lang['qty_of_sale']='Qty of Sale';
+$lang['cost_total_amount']='Cost Total Amount';
+$lang['sale_total_amount']='Total Sale Price';
+$lang['total_visits']='Total Visits';
+$lang['total_qty_purchased']='Total Qty Purchased';
+$lang['unique_items']='Unique Items';
+$lang['most_purchased_item']='Most Purchased Item';
+$lang['total_purchase_amount']='Total Purchase Amount';
+$lang['avg_order_value']='Avg. Order Value';
+$lang['first_visit']='First Visit';
+$lang['last_visit']='Last Visit';
+$lang['purchased_items']='Purchased Items';
+$lang['times_ordered']='Times Ordered';
+$lang['last_ordered']='Last Ordered';

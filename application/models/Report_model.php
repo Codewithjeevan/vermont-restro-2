@@ -2445,6 +2445,131 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
         $result = $query_result->result();
         return $result;
     }
+    /**
+     * item wise cost report
+     * one row per sold food menu: qty sold, unit cost and cost x qty.
+     * unit cost is tbl_food_menus.total_cost - the recipe/purchase cost kept on the
+     * menu itself (same source productAnalysisReport uses), so it is the cost as of
+     * today, not the cost at the moment of the sale.
+     * @access public
+     * @return object
+     * @param string
+     * @param string
+     * @param string
+     * @param string
+     * @param string
+     */
+    public function itemWiseCostReport($startDate = '', $endDate = '', $outlet_id = '', $category_id = '', $product_type = '') {
+        $this->db->select('tbl_sales_details.food_menu_id,tbl_sales_details.menu_name,tbl_food_menus.code,tbl_food_menus.total_cost as unit_cost,tbl_food_menus.sale_price as unit_sale_price,tbl_food_menu_categories.category_name,sum(tbl_sales_details.qty) as total_qty,sum(tbl_sales_details.menu_price_with_discount) as total_sale');
+        $this->db->from('tbl_sales_details');
+        $this->db->join('tbl_sales', 'tbl_sales.id = tbl_sales_details.sales_id', 'left');
+        $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_sales_details.food_menu_id', 'left');
+        $this->db->join('tbl_food_menu_categories', 'tbl_food_menu_categories.id = tbl_food_menus.category_id', 'left');
+
+        if ($startDate != '' && $endDate != '') {
+            $this->db->where('tbl_sales.sale_date>=', $startDate);
+            $this->db->where('tbl_sales.sale_date <=', $endDate);
+        }
+        if ($startDate != '' && $endDate == '') {
+            $this->db->where('tbl_sales.sale_date', $startDate);
+        }
+        if ($startDate == '' && $endDate != '') {
+            $this->db->where('tbl_sales.sale_date', $endDate);
+        }
+        if ($category_id != '') {
+            $this->db->where('tbl_food_menus.category_id', $category_id);
+        }
+        if ($product_type != '') {
+            $this->db->where('tbl_food_menus.product_type', $product_type);
+        }
+        $this->db->where('tbl_sales_details.outlet_id', $outlet_id);
+        $this->db->where('tbl_sales_details.del_status', 'Live');
+        $this->db->where('tbl_sales.del_status', 'Live');
+        $this->db->where('tbl_sales.order_status', '3');
+        $this->db->group_by('tbl_sales_details.food_menu_id');
+        $this->db->order_by('total_qty', 'DESC');
+        $query_result = $this->db->get();
+        $result = $query_result->result();
+        return $result;
+    }
+    /**
+     * customer activity report
+     * one row per customer: how many bills, how much money, first/last visit.
+     * item level detail comes from customerActivityItems().
+     * @access public
+     * @return object
+     * @param string
+     * @param string
+     * @param string
+     * @param string
+     */
+    public function customerActivityReport($startDate = '', $endDate = '', $outlet_id = '', $customer_id = '') {
+        $this->db->select('tbl_sales.customer_id,tbl_customers.name as customer_name,tbl_customers.phone,tbl_customers.email,count(tbl_sales.id) as total_visits,sum(tbl_sales.total_payable) as total_purchase,sum(tbl_sales.paid_amount) as total_paid,sum(tbl_sales.due_amount) as total_due,sum(tbl_sales.total_discount_amount) as total_discount,count(distinct tbl_sales.sale_date) as total_days,min(tbl_sales.sale_date) as first_visit,max(tbl_sales.sale_date) as last_visit');
+        $this->db->from('tbl_sales');
+        $this->db->join('tbl_customers', 'tbl_customers.id = tbl_sales.customer_id', 'left');
+
+        if ($startDate != '' && $endDate != '') {
+            $this->db->where('tbl_sales.sale_date>=', $startDate);
+            $this->db->where('tbl_sales.sale_date <=', $endDate);
+        }
+        if ($startDate != '' && $endDate == '') {
+            $this->db->where('tbl_sales.sale_date', $startDate);
+        }
+        if ($startDate == '' && $endDate != '') {
+            $this->db->where('tbl_sales.sale_date', $endDate);
+        }
+        if ($customer_id != '') {
+            $this->db->where('tbl_sales.customer_id', $customer_id);
+        }
+        $this->db->where('tbl_sales.outlet_id', $outlet_id);
+        $this->db->where('tbl_sales.del_status', 'Live');
+        $this->db->where('tbl_sales.order_status', '3');
+        $this->db->group_by('tbl_sales.customer_id');
+        $this->db->order_by('total_purchase', 'DESC');
+        $query_result = $this->db->get();
+        $result = $query_result->result();
+        return $result;
+    }
+    /**
+     * what each customer bought, one row per customer + food menu.
+     * ordered qty desc so the first row of a customer is the item they buy most.
+     * @access public
+     * @return object
+     * @param string
+     * @param string
+     * @param string
+     * @param string
+     */
+    public function customerActivityItems($startDate = '', $endDate = '', $outlet_id = '', $customer_id = '') {
+        $this->db->select('tbl_sales.customer_id,tbl_sales_details.food_menu_id,tbl_sales_details.menu_name,tbl_food_menu_categories.category_name,sum(tbl_sales_details.qty) as total_qty,sum(tbl_sales_details.menu_price_with_discount) as total_amount,count(distinct tbl_sales.id) as order_count,max(tbl_sales.sale_date) as last_ordered');
+        $this->db->from('tbl_sales_details');
+        $this->db->join('tbl_sales', 'tbl_sales.id = tbl_sales_details.sales_id', 'left');
+        $this->db->join('tbl_food_menus', 'tbl_food_menus.id = tbl_sales_details.food_menu_id', 'left');
+        $this->db->join('tbl_food_menu_categories', 'tbl_food_menu_categories.id = tbl_food_menus.category_id', 'left');
+
+        if ($startDate != '' && $endDate != '') {
+            $this->db->where('tbl_sales.sale_date>=', $startDate);
+            $this->db->where('tbl_sales.sale_date <=', $endDate);
+        }
+        if ($startDate != '' && $endDate == '') {
+            $this->db->where('tbl_sales.sale_date', $startDate);
+        }
+        if ($startDate == '' && $endDate != '') {
+            $this->db->where('tbl_sales.sale_date', $endDate);
+        }
+        if ($customer_id != '') {
+            $this->db->where('tbl_sales.customer_id', $customer_id);
+        }
+        $this->db->where('tbl_sales_details.outlet_id', $outlet_id);
+        $this->db->where('tbl_sales_details.del_status', 'Live');
+        $this->db->where('tbl_sales.del_status', 'Live');
+        $this->db->where('tbl_sales.order_status', '3');
+        $this->db->group_by(array('tbl_sales.customer_id', 'tbl_sales_details.food_menu_id'));
+        $this->db->order_by('total_qty', 'DESC');
+        $query_result = $this->db->get();
+        $result = $query_result->result();
+        return $result;
+    }
 
 }
 

@@ -1726,3 +1726,20 @@ $lang['admin_password_required_to_clear']='Solo el administrador o el gerente pu
 $lang['incorrect_admin_password']='Contraseña incorrecta. Inténtelo de nuevo.';
 
 $lang['register_already_open_msg']='La caja de este mostrador ya esta abierta, ha sido conectado a ella.';
+
+$lang['item_wise_cost_report']='Informe de costo por artículo';
+$lang['customer_activity_report']='Informe de actividad del cliente';
+$lang['qty_of_sale']='Cant. vendida';
+$lang['cost_total_amount']='Importe total del costo';
+$lang['sale_total_amount']='Precio de venta total';
+$lang['total_visits']='Visitas totales';
+$lang['total_qty_purchased']='Cant. total comprada';
+$lang['unique_items']='Artículos distintos';
+$lang['most_purchased_item']='Artículo más comprado';
+$lang['total_purchase_amount']='Importe total de compra';
+$lang['avg_order_value']='Valor medio del pedido';
+$lang['first_visit']='Primera visita';
+$lang['last_visit']='Última visita';
+$lang['purchased_items']='Artículos comprados';
+$lang['times_ordered']='Veces pedido';
+$lang['last_ordered']='Último pedido';
