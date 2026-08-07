@@ -119,6 +119,12 @@ class Report extends Cl_Controller {
             }elseif($segment_2=="productionReport"){
                 $controller = "337";
                 $function = "view";
+            }elseif($segment_2=="itemWiseCostReport"){
+                $controller = "358";
+                $function = "view";
+            }elseif($segment_2=="customerActivityReport"){
+                $controller = "360";
+                $function = "view";
             }else{
                 $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
                 redirect('Authentication/userProfile');
@@ -948,11 +954,16 @@ class Report extends Cl_Controller {
             $end_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('endDate')));
             $user_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('user_id')));
             $waiter_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('waiter_id')));
+            /*read raw, htmlspecialcharscustom() would turn the falsy "0" into "" and kill the exclude option.
+              only 1 (staff meal only) and 0 (exclude staff meal) are valid, anything else means no filter*/
+            $staff_meal = $this->input->post('staff_meal');
+            $staff_meal = ($staff_meal === '1' || $staff_meal === '0') ? $staff_meal : '';
             $data['user_id'] = $user_id;
             $data['waiter_id'] = $waiter_id;
+            $data['staff_meal'] = $staff_meal;
             $data['start_date'] = $start_date;
             $data['end_date'] = $end_date;
-            $data['detailedSaleReport'] = $this->Report_model->detailedSaleReport($start_date, $end_date, $user_id,$outlet_id,$waiter_id);
+            $data['detailedSaleReport'] = $this->Report_model->detailedSaleReport($start_date, $end_date, $user_id,$outlet_id,$waiter_id,$staff_meal);
         }
         $data['paymentMethods'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_payment_methods");
         $data['users'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_users');
@@ -1317,6 +1328,88 @@ class Report extends Cl_Controller {
         $outlet_id = $this->session->userdata('outlet_id');
         $data['kitchens'] = $this->Common_model->getAllByOutletId($outlet_id, "tbl_kitchens");
         $data['main_content'] = $this->load->view('report/productionReport', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+      /**
+     * item wise cost report
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function itemWiseCostReport() {
+        $data = array();
+        $company_id = $this->session->userdata('company_id');
+        if (htmlspecialcharscustom($this->input->post('submit'))) {
+            $outlet_id  = isset($_POST['outlet_id']) && $_POST['outlet_id']?$_POST['outlet_id']:'';
+            if(!$outlet_id){
+                $outlet_id = $this->session->userdata('outlet_id');
+            }
+            $start_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('startDate')));
+            $end_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('endDate')));
+            $category_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('category_id')));
+            $product_type =htmlspecialcharscustom($this->input->post($this->security->xss_clean('product_type')));
+            $data['outlet_id'] = $outlet_id;
+            $data['start_date'] = $start_date;
+            $data['end_date'] = $end_date;
+            $data['category_id'] = $category_id;
+            $data['product_type'] = $product_type;
+            $data['itemWiseCostReport'] = $this->Report_model->itemWiseCostReport($start_date, $end_date, $outlet_id, $category_id, $product_type);
+        }
+        $data['categories'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_food_menu_categories");
+        $data['main_content'] = $this->load->view('report/itemWiseCostReport', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+      /**
+     * customer activity report
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function customerActivityReport() {
+        $data = array();
+        $company_id = $this->session->userdata('company_id');
+        if (htmlspecialcharscustom($this->input->post('submit'))) {
+            $outlet_id  = isset($_POST['outlet_id']) && $_POST['outlet_id']?$_POST['outlet_id']:'';
+            if(!$outlet_id){
+                $outlet_id = $this->session->userdata('outlet_id');
+            }
+            $start_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('startDate')));
+            $end_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('endDate')));
+            $customer_id =htmlspecialcharscustom($this->input->post($this->security->xss_clean('customer_id')));
+            $data['outlet_id'] = $outlet_id;
+            $data['start_date'] = $start_date;
+            $data['end_date'] = $end_date;
+            $data['customer_id'] = $customer_id;
+
+            $activity = $this->Report_model->customerActivityReport($start_date, $end_date, $outlet_id, $customer_id);
+            $items = $this->Report_model->customerActivityItems($start_date, $end_date, $outlet_id, $customer_id);
+
+            /*bucket the item rows per customer. they already come back qty desc, so the
+              first row of a bucket is that customer's most ordered item.*/
+            $items_by_customer = array();
+            foreach ($items as $item) {
+                $items_by_customer[$item->customer_id][] = $item;
+            }
+            foreach ($activity as $key => $value) {
+                $rows = isset($items_by_customer[$value->customer_id]) ? $items_by_customer[$value->customer_id] : array();
+                $total_qty = 0;
+                foreach ($rows as $row) {
+                    $total_qty += $row->total_qty;
+                }
+                $activity[$key]->total_qty = $total_qty;
+                $activity[$key]->unique_items = sizeof($rows);
+                $activity[$key]->favourite_item = $rows ? $rows[0]->menu_name : '';
+                $activity[$key]->favourite_item_qty = $rows ? $rows[0]->total_qty : 0;
+                $activity[$key]->avg_order_value = $value->total_visits ? ($value->total_purchase / $value->total_visits) : 0;
+            }
+            $data['customerActivityReport'] = $activity;
+            /*item breakdown table is only meaningful for one customer at a time*/
+            if ($customer_id) {
+                $data['customerItems'] = isset($items_by_customer[$customer_id]) ? $items_by_customer[$customer_id] : array();
+            }
+        }
+        $data['customers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_customers");
+        $data['main_content'] = $this->load->view('report/customerActivityReport', $data, TRUE);
         $this->load->view('userHome', $data);
     }
 

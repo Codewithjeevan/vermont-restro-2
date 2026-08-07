@@ -33,6 +33,16 @@
                 echo lang('waiter').": ".lang('all');
             endif;
             ?></h4>
+        <h4 class="txt-color-grey ir_txtCenter_mt0"><?php
+            $selected_staff_meal = isset($staff_meal) ? (string)$staff_meal : '';
+            if ($selected_staff_meal === '1'):
+                echo lang('staff_meal').": " . lang('staff_meal_only');
+            elseif ($selected_staff_meal === '0'):
+                echo lang('staff_meal').": " . lang('exclude_staff_meal');
+            else:
+                echo lang('staff_meal').": ".lang('all');
+            endif;
+            ?></h4>
 
     </div>
 
@@ -82,6 +92,17 @@
                                 <?php
                             endif;
                         } ?>
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-12 mb-3 col-md-4 col-lg-2">
+                <div class="form-group">
+                    <select tabindex="2" class="form-control select2 ir_w_100" id="staff_meal" name="staff_meal">
+                        <option value=""><?php echo lang('staff_meal'); ?>: <?php echo lang('all'); ?></option>
+                        <option value="1" <?php echo $selected_staff_meal === '1' ? 'selected="selected"' : ''; ?>>
+                            <?php echo lang('staff_meal_only'); ?></option>
+                        <option value="0" <?php echo $selected_staff_meal === '0' ? 'selected="selected"' : ''; ?>>
+                            <?php echo lang('exclude_staff_meal'); ?></option>
                     </select>
                 </div>
             </div>

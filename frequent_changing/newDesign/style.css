@@ -2267,6 +2267,9 @@ a.right__sidebar__toggle svg {
   color: #6e6b7b;
   z-index: 1;
   transition: all 0.3s;
+  /* sLengthMenu injects this chevron over the select's own arrow (z-index:1).
+     Without this it swallows the click and the Entries dropdown does not open. */
+  pointer-events: none;
 }
 .dataTables_wrapper .top-right-item {
   display: flex;
