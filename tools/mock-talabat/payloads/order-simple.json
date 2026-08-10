@@ -1,0 +1,58 @@
+{
+  "eventType": "order.created",
+  "token": "TLB-SIMPLE-1",
+  "code": "8829301",
+  "shortCode": "n7fa",
+  "createdAt": "2026-08-10T11:04:22Z",
+  "expeditionType": "delivery",
+  "preOrder": false,
+  "platformRestaurant": { "id": "TLB-DXB-0042" },
+  "localInfo": { "countryCode": "AE", "currencySymbol": "AED" },
+  "customer": {
+    "firstName": "Talabat",
+    "lastName": "Customer",
+    "mobilePhone": "+9715XXXXXXX",
+    "email": ""
+  },
+  "delivery": {
+    "address": {
+      "street": "Sheikh Zayed Road",
+      "number": "Tower 2, Flat 1104",
+      "city": "Dubai",
+      "latitude": null,
+      "longitude": null
+    },
+    "expectedDeliveryTime": "2026-08-10T11:44:00Z"
+  },
+  "payment": { "status": "paid", "type": "online" },
+  "comments": { "customerComment": "Ring the bell twice" },
+  "price": {
+    "subTotal": "69.30",
+    "vatTotal": "3.30",
+    "grandTotal": "71.30",
+    "riderTip": "0.00",
+    "serviceFee": "0.00",
+    "deliveryFees": [{ "name": "delivery", "value": "5.00" }],
+    "discounts": [{ "name": "promo", "amount": "3.00" }]
+  },
+  "products": [
+    {
+      "remoteCode": "SKU-130",
+      "name": "Chicken Biryani",
+      "quantity": "2",
+      "unitPrice": "28.35",
+      "paidPrice": "56.70",
+      "comment": "extra spicy",
+      "selectedToppings": []
+    },
+    {
+      "remoteCode": "SKU-138",
+      "name": "Bhajiya",
+      "quantity": "1",
+      "unitPrice": "12.60",
+      "paidPrice": "12.60",
+      "comment": "",
+      "selectedToppings": []
+    }
+  ]
+}

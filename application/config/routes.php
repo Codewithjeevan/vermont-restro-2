@@ -104,6 +104,13 @@ $route['contact-us'] = 'Frontend/contactUs';
 $route['online-order-page'] = 'Frontend/menuPage';
 $route['send-tommorrow-expired-product'] = 'Frontend/sendEmailToAdministrator';
 $route['menu-details/(:any)/(:any)'] = 'Frontend/menuItemDetails/$1/$2';
+
+/* Integration platform - one URL shape for every ordering channel.
+ * The provider code is a URL segment, so app #2 needs no new route. */
+$route['api/integration/(:any)/webhook']       = 'Integration_api/webhook/$1';
+$route['api/integration/(:any)/health']        = 'Integration_api/health/$1';
+$route['api/integration/(:any)/health/(:any)'] = 'Integration_api/health/$1/$2';
+
 $route['translate_uri_dashes'] = FALSE;
 
 

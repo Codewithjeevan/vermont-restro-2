@@ -1,0 +1,51 @@
+{
+  "eventType": "order.created",
+  "token": "TLB-MODS-1",
+  "code": "8829302",
+  "createdAt": "2026-08-10T11:20:00Z",
+  "expeditionType": "delivery",
+  "preOrder": false,
+  "platformRestaurant": { "id": "TLB-DXB-0042" },
+  "localInfo": { "countryCode": "AE", "currencySymbol": "AED" },
+  "customer": {
+    "firstName": "Talabat",
+    "lastName": "Customer",
+    "mobilePhone": "+9715XXXXXXX"
+  },
+  "delivery": {
+    "address": { "street": "Al Barsha 1", "number": "Villa 7", "city": "Dubai" }
+  },
+  "payment": { "status": "paid", "type": "online" },
+  "comments": { "customerComment": "" },
+  "price": {
+    "subTotal": "32.55",
+    "vatTotal": "1.55",
+    "grandTotal": "32.55",
+    "riderTip": "0.00",
+    "serviceFee": "0.00",
+    "deliveryFees": [],
+    "discounts": []
+  },
+  "products": [
+    {
+      "remoteCode": "SKU-111",
+      "name": "Kadak Tea",
+      "quantity": "2",
+      "unitPrice": "3.15",
+      "paidPrice": "6.30",
+      "comment": "hot",
+      "selectedToppings": [
+        { "remoteCode": "MOD-1", "name": "no sugar", "price": "0.00", "quantity": "1" }
+      ]
+    },
+    {
+      "remoteCode": "SKU-112",
+      "name": "Kunafa",
+      "quantity": "1",
+      "unitPrice": "26.25",
+      "paidPrice": "26.25",
+      "comment": "",
+      "selectedToppings": []
+    }
+  ]
+}
