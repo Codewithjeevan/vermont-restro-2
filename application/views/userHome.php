@@ -393,6 +393,12 @@ $user_id = $this->session->userdata('user_id');
                                         <?php echo lang('sos_Self_Order_Setting'); ?></a></li>
                                         <li data-access="update-334" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>setting/onlineOrder">
                                         <?php echo lang('sos_online_order_setting'); ?></a></li>
+                                <li data-access="view-362" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Integration/settings">
+                                        <?php echo lang('integration_settings'); ?></a></li>
+                                <li data-access="view-365" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Integration/itemMap">
+                                        <?php echo lang('integration_item_map'); ?></a></li>
+                                <li data-access="view-368" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Integration/orderLog">
+                                        <?php echo lang('integration_order_log'); ?></a></li>
                                 <li data-access="update-64" class="menu_assign_class" data-menu__cid="irp_2"><a href="<?php echo base_url()?>authentication/reservationSetting">
                                         <?php echo lang('reservationSetting'); ?></a></li>
 
@@ -868,8 +874,14 @@ $user_id = $this->session->userdata('user_id');
                                         <?php echo lang('sos_Self_Order_Setting'); ?></a></li>
                                         <li data-access="update-334" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>setting/onlineOrder">
                                         <?php echo lang('sos_online_order_setting'); ?></a></li>
+                                <li data-access="view-362" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Integration/settings">
+                                        <?php echo lang('integration_settings'); ?></a></li>
+                                <li data-access="view-365" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Integration/itemMap">
+                                        <?php echo lang('integration_item_map'); ?></a></li>
+                                <li data-access="view-368" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Integration/orderLog">
+                                        <?php echo lang('integration_order_log'); ?></a></li>
 
-                                   
+
                                 <li data-access="update-64" class="menu_assign_class" data-menu__cid="irp_2"><a href="<?php echo base_url()?>authentication/reservationSetting">
                                         <?php echo lang('reservationSetting'); ?></a></li>
 

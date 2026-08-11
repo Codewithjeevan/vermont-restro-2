@@ -3133,7 +3133,37 @@ We hope to see you again!";
         }
         $this->db->where('id', $sale_id);
         $this->db->update('tbl_sales', $order_status);
+
+        //integration platform: a settled bill is COMPLETED on the channel's side too.
+        //Enqueue only - the outbound call happens in Integration_cron, never here.
+        if($close_order=='true'){
+            $this->notifyIntegrationStatus($sale_id, 'COMPLETED');
+        }
+
         echo escape_output($sale_id);
+    }
+     /**
+     * Tell the integration platform that a sale changed state.
+     *
+     * Does nothing at all for ordinary sales. Never throws and never blocks:
+     * a broken or half-deployed integration must not be able to stop a bill
+     * being settled.
+     *
+     * @access private
+     * @return void
+     * @param int, string
+     */
+    private function notifyIntegrationStatus($sale_id, $canonical_status)
+    {
+        if(!file_exists(APPPATH.'libraries/Integration/Status_dispatcher.php')){
+            return;
+        }
+        try{
+            $this->load->library('Integration/Status_dispatcher', null, 'Status_dispatcher');
+            $this->Status_dispatcher->on_status_change($sale_id, $canonical_status);
+        }catch(Exception $e){
+            log_message('error', 'notifyIntegrationStatus: '.$e->getMessage());
+        }
     }
      /**
      * delete all holds with information by ajax
@@ -3188,6 +3218,13 @@ We hope to see you again!";
 
         $this->db->where('id', $sale_id);
         $this->db->update('tbl_sales', $changes);
+
+        //integration platform: "Delivered" on a channel order is COMPLETED for them.
+        //Terminal statuses are only ever pushed once, so this and the settle hook
+        //firing on the same order is harmless.
+        if($status=="Delivered"){
+            $this->notifyIntegrationStatus($sale_id, 'COMPLETED');
+        }
     }
      /**
      * get Opening Balance

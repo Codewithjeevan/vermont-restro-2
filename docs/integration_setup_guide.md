@@ -13,15 +13,21 @@ before it was written down.
 
 ## 1. What this branch ships
 
-Phase 1 + 2 of the design doc: **an order placed on Talabat auto-punches into
-the POS as a running order and the KOT prints.**
+Phases 1–4 of the design doc. Both halves of the loop the client asked for:
+
+- **Inbound** — an order placed on Talabat auto-punches into the POS as a
+  running order and the KOT prints.
+- **Outbound** — settling that bill in the POS pushes `COMPLETED` back to
+  Talabat, through a queue, never inside the cashier's request.
 
 ```
 application/
   controllers/
     Integration_api.php     REST webhook — public, no session          NEW
+    Integration.php         admin screens + POS ajax endpoints         NEW
     Integration_cli.php     setup / mapping / accept / inspect (CLI)   NEW
     Integration_cron.php    outbound queue worker (CLI)                NEW
+    Sale.php                two hook calls at the settle sites         EDIT
   models/
     Integration_model.php   every DB read/write                        NEW
   libraries/Integration/
@@ -30,10 +36,19 @@ application/
     Integration_manager.php        registry + factory + on/off         NEW
     Integration_crypto.php         AES-256-CBC for credentials         NEW
     Order_ingestor.php             DTO -> POS tables                   NEW
+    Status_dispatcher.php          POS status change -> queue          NEW
     Drivers/Talabat_driver.php     the only Talabat-aware file         NEW
+  views/integration/
+    settings.php  item_map.php  order_log.php                          NEW
+  views/userHome.php        3 menu items, in BOTH Setting blocks       EDIT
+  views/sale/POS/main_screen.php   one widget block before </body>     EDIT
   config/routes.php         + 3 routes                                 EDIT
+  language/{english,french,spanish,arabic}/*_lang.php   97 keys each   EDIT
+frequent_changing/js/
+  integration_pos.js        POS incoming-orders widget                 NEW
 Update/
-  integration_platform_migration.sql   6 tables + 6 columns            NEW
+  integration_platform_migration.sql      6 tables + 6 columns         NEW
+  integration_platform_ui_migration.sql   tbl_access rows + 1 index    NEW
 tools/mock-talabat/
   mock-talabat.js           fake Talabat API (receives our calls)      NEW
   send-order.js             send one signed webhook                    NEW
@@ -41,9 +56,8 @@ tools/mock-talabat/
   payloads/*.json           sample orders                              NEW
 ```
 
-**Not built yet** (phase 3/4 — see §8): the admin settings screen, the item
-mapping screen, the order log screen, the POS Accept/Reject buttons, and the
-`Status_dispatcher` hooks inside `Sale.php` that fire on settle.
+**Still not built** — see §8: menu push, item 86 / store open-close, a
+channel-wise sales report, and a second driver.
 
 ---
 
@@ -65,16 +79,28 @@ works on localhost because the mock sends the webhook from the same machine.
 
 ## 3. Install
 
-### 3.1 Run the migration
+### 3.1 Run the migrations
 
 ```bash
 mysql -uroot restodb < Update/integration_platform_migration.sql
+mysql -uroot restodb < Update/integration_platform_ui_migration.sql
 ```
 
-Additive and safe to re-run. It creates six `tbl_integration_*` tables and adds
-`channel_code` / `external_order_id` / `integration_order_id` to **both**
-`tbl_kitchen_sales` and `tbl_sales`, so existing reports can gain a channel
-filter later without another schema change.
+Both are additive and safe to re-run.
+
+The first creates six `tbl_integration_*` tables and adds `channel_code` /
+`external_order_id` / `integration_order_id` to **both** `tbl_kitchen_sales`
+and `tbl_sales`, so existing reports can gain a channel filter later without
+another schema change.
+
+The second adds the `tbl_access` rows for the three new Setting screens (ids
+362–370) and an index on `tbl_integration_orders.sale_no`, which the settle hook
+uses on every closed bill.
+
+> **Everyone must log out and back in after the second migration.** The
+> `function_access` list is built once at login, and `user_home_buttom.js`
+> strips any menu item whose `data-access` is not in it — so until you re-login
+> the new menus are invisible even to an Admin.
 
 Check it landed:
 
@@ -169,6 +195,29 @@ php index.php Integration_cli mapmod --config=1 --external=MOD-9  --modifier=1
 > **An unmapped item rejects the whole order** rather than dropping the line.
 > A silently missing line item is a refund and a rating hit; a rejection is
 > recoverable and shows up in `Integration_cli orders`.
+
+Everything in §3.2–§3.4 can also be done from the UI — see below. The CLI stays
+because it is the fastest way to script a new outlet and the only way in when a
+screen will not load.
+
+### 3.5 The screens
+
+Three items under **Setting** in the sidebar:
+
+| Menu | URL | tbl_access | What it does |
+|---|---|---|---|
+| **Integrations** | `Integration/settings` | 362 | One card per provider for the chosen outlet: on/off, store id, credentials, `ingest_on`, auto-accept, prep time, price mode, tax mode, payment method, delivery partner, which statuses to push, and a **Test connection** button. Shows the webhook URL to hand the channel, orders today, and an unmapped-items warning. |
+| **Channel Item Mapping** | `Integration/itemMap` | 365 | Their SKUs against our menu. Saves on change, has an **Auto map** button and an unmapped-only filter. |
+| **Channel Orders** | `Integration/orderLog` | 368 | Every inbound order, filterable by outlet/channel/status/date/search. Per order: full timeline, the outbound events with their retry state, the raw payload, and Accept / Reject. |
+
+The provider grid is rendered by looping `tbl_integration_providers`, so **a new
+app appears on the settings screen automatically** once its catalogue row
+exists. No edit to the view.
+
+Secrets are write-only from the UI: leaving the webhook secret or client secret
+blank keeps the stored value. That is why the field shows a placeholder rather
+than the value — a masked field that saved back its own mask would wipe the
+credential on the first save.
 
 ---
 
@@ -383,7 +432,81 @@ php index.php Integration_cron run_queue
 Order lands → punched as a running order → KOT prints → accept pushed back to
 Talabat. No human touched the POS.
 
-### 4.8 Cron entries
+### 4.8 The POS widget
+
+With `auto_accept = No` an order lands pending, and the cashier sees it without
+leaving the POS: a red pulsing button appears bottom-right with the count, and
+opens a panel showing the channel, their order number, the total, the drop
+address, and **how many minutes it has been waiting** — the number that actually
+matters when an aggregator SLA is ticking.
+
+Accept flips the order to a running order (`is_accept = 1`), which is exactly
+what the POS already does for a self-order, so the existing `getWaiterOrders`
+poll pulls it in and the KOT prints. Reject asks for a reason, voids the punched
+sale and tells the channel why.
+
+The widget lives in `frequent_changing/js/integration_pos.js` and injects its own
+CSS and DOM, so the only change inside the 4,300-line `main_screen.php` is one
+block before `</body>`. It polls `Integration/posPendingOrders` every 15s and
+beeps once when something genuinely new arrives (never on the first poll after a
+page load, which would beep at every open order).
+
+To see it: set `auto_accept = No`, send an order, and open the POS.
+
+```bash
+php index.php Integration_cli setup --provider=talabat --company=1 --outlet=1 --auto-accept=No
+node tools/mock-talabat/send-order.js --url=http://trul-resto.test/api/integration/talabat/webhook --secret=whsec_test_123
+```
+
+> **Permissions:** the POS endpoints are deliberately *not* behind a Settings
+> permission — accepting an incoming order is a normal counter action. A live
+> session for the outlet is the check. Putting it behind `tbl_access` id 368
+> would mean every cashier needs Settings rights.
+
+### 4.9 The completion sync — POS settle pushes COMPLETED
+
+This is the second half of the client's ask. Closing the bill in the POS fires
+`Status_dispatcher::on_status_change($sale_id, 'COMPLETED')` from two places in
+`Sale.php`:
+
+| Site | Trigger |
+|---|---|
+| `update_order_status_ajax()` [Sale.php:3041](../application/controllers/Sale.php#L3041) | bill settled / closed (`close_order = true`) |
+| `change_status_of_a_sale_ajax()` [Sale.php:3210](../application/controllers/Sale.php#L3210) | delivery status set to **Delivered** |
+
+What that does, in order: find the integration order (by `integration_order_id`,
+else by `sale_no`), backfill `channel_code` / `external_order_id` /
+`integration_order_id` onto `tbl_sales`, mark the order `COMPLETED`, and
+**enqueue** a `status.push`. Then `Integration_cron` sends it.
+
+Verify the whole loop:
+
+```bash
+node tools/mock-talabat/mock-talabat.js --port=4010     # in one terminal
+# settle a channel order in the POS, then:
+php index.php Integration_cron run_queue
+curl -s http://127.0.0.1:4010/_calls
+```
+
+```json
+{"method":"POST","path":"/orders/TLB-TEST-002/status",
+ "body":{"status":"delivered","occurredAt":"2026-08-11T07:05:45+00:00"}}
+```
+
+`COMPLETED` is our canonical word; `delivered` is Talabat's. The translation
+lives in `$status_map` inside `Talabat_driver` and nowhere else.
+
+Three properties worth knowing, all verified:
+
+- **Ordinary sales cost one indexed lookup.** A non-channel bill finds no
+  integration order and returns immediately — no events, no writes.
+- **Terminal statuses fire once.** Settling the same bill twice, or settling it
+  and then marking it Delivered, enqueues exactly one push.
+- **It cannot break a settle.** The hook is wrapped in `file_exists` +
+  `try/catch`, and `Status_dispatcher` catches everything internally. A broken
+  integration must never stop a cashier closing a bill.
+
+### 4.10 Cron entries
 
 ```
 php index.php Integration_cron run_queue        every 1 min   outbound pushes
@@ -487,19 +610,19 @@ Zero changes to `Integration_api`, `Order_ingestor`, `Integration_cron`,
 
 ## 8. What is deliberately not built yet
 
-| | Where it goes |
-|---|---|
-| Settings screen (provider grid, per-outlet drawer, Test Connection) | `views/integration/settings.php` + the 6-step menu checklist in design doc §8 |
-| Item mapping screen | `views/integration/item_map.php` |
-| Order log screen with raw payload + retry | `views/integration/order_log.php` |
-| POS Accept / Reject buttons on the incoming tray | `views/sale/POS/` — the DB effect is already proven by `Integration_cli accept` |
-| `Status_dispatcher` hooks so settling a bill pushes `COMPLETED` | one line at `Sale::update_order_status_ajax()` ([Sale.php:3041](../application/controllers/Sale.php#L3041)) and `Sale::change_status_of_a_sale_ajax()` |
-| Channel-wise sales report | `channel_code` is already on both sale tables for exactly this |
-| Menu push / item 86 / store open-close | `push_menu()` and `set_item_availability()` are declared on the interface and return an honest "unsupported" today |
+| | Where it goes | Why it waited |
+|---|---|---|
+| **Channel-wise sales report** | a new report using `tbl_sales.channel_code` | The column is already populated by the settle hook, so this is a report, not a schema change. Follow the 6-step checklist in design doc §8. |
+| **Menu push** (POS menu → their catalogue) | `Talabat_driver::push_menu()` | Declared on the interface, returns an honest "unsupported" today. Needs their real catalogue API, which is phase-0 commercial work. |
+| **Item 86 / store open-close** | `set_item_availability()`, `set_store_status()` | `set_store_status()` is implemented and is what **Test connection** exercises; nothing calls it on a schedule yet. |
+| **`READY` push from the kitchen panel** | `Kitchen.php`, one `Status_dispatcher::on_kitchen_status_change()` call | The dispatcher already accepts it; no site fires it. `READY` simply never gets enqueued until then, which is harmless. |
+| **A second driver** | `Drivers/<X>_driver.php` | The point of the architecture, but only worth doing once Talabat is live — see §7. |
+| **`auto_settle`** | the column exists and is saved | Closing a prepaid bill without a human is a money decision the client has not made yet. |
 
-The outbound queue worker (`Integration_cron`) is phase-3 work that was pulled
-forward, because without a consumer the mock server has nothing to receive and
-the outbound half could not be demonstrated at all.
+Two things that were pulled *forward* out of later phases, because without them
+a piece already built could not be demonstrated: the outbound queue worker
+(`Integration_cron` — otherwise the mock server has nothing to receive) and the
+timeout sweeper (`sweep_timeouts`).
 
 ---
 
@@ -518,6 +641,13 @@ the outbound half could not be demonstrated at all.
 | Sale exists but the POS will not open it | `self_order_content` empty or malformed | it is written at the end of the ingest transaction — check `Integration_cli logs` |
 | Queue events stay `pending` | no worker running | `php index.php Integration_cron run_queue` |
 | Queue events go `dead` immediately | no `base_url`, or the provider is unreachable | `setup --sandbox-base-url=...`, check `Integration_cli logs` |
+| The three Setting menus are missing, even for Admin | `function_access` is built once at login | run the UI migration, then **log out and back in** |
+| Menus still missing after re-login | ids 362–370 were already taken on that install | check `SELECT * FROM tbl_access WHERE id BETWEEN 362 AND 370`, then renumber **both** the UI migration and the `ACCESS_*` constants in `Integration.php` |
+| Settings screen shows the right outlet but no store id | the config belongs to a different outlet | switch outlet with the dropdown; the screen falls back to the company's first outlet when the session has none |
+| Credentials wiped after saving the settings form | not possible by design — blank secret fields keep the stored value | if a secret really is gone, re-enter it; changing `encryption_key` also invalidates every stored credential |
+| Settling a bill does not update the channel | the order never reached `ACCEPTED`, or `COMPLETED` is unticked in **Push these statuses back** | check the order's status in Channel Orders, then the config |
+| `COMPLETED` enqueued but never sent | no cron | `php index.php Integration_cron run_queue`, then check the events list in the order's Details drawer |
+| POS widget never appears | no pending orders, or `auto_accept = Yes` so nothing ever waits | `setup --auto-accept=No` and send an order |
 
 Every inbound and outbound call is on `tbl_integration_logs` with the raw bodies
 (credentials and bearer tokens redacted):
