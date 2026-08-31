@@ -315,7 +315,10 @@ class Sale_model extends CI_Model {
     public function getWaitersForThisCompany($company_id,$table){
         $language_manifesto = $this->session->userdata('language_manifesto');
         if(str_rot13($language_manifesto)=="eriutoeri"){
-          $value = $this->session->userdata("outlet_id");
+          $value = (int)$this->session->userdata("outlet_id");
+          if(!$value){ #no outlet is selected yet (add outlet page), so no waiter to list
+              return array();
+          }
           // Build the query
           $this->db->select('*');
           $this->db->from('tbl_users');

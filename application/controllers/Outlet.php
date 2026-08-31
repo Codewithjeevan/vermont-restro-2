@@ -151,8 +151,9 @@ class Outlet extends Cl_Controller {
 
                     //update user
                     $user_id = $this->session->userdata('user_id');
-                    $user_details = $this->Common_model->getDataById($id, "tbl_users");
+                    $user_details = $this->Common_model->getDataById($user_id, "tbl_users");
                     $data_user = array();
+                    $login_session = array();
                     $data_user['outlets'] = isset($user_details->outlets) && $user_details->outlets?$user_details->outlets.",".$id:$id;
                     $login_session['session_outlets'] = $data_user['outlets'];
                     $this->session->set_userdata($login_session);
