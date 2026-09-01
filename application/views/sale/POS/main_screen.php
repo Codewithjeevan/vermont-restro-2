@@ -4342,6 +4342,19 @@ foreach ($notifications as $single_notification){
     <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/vfs_fonts.js"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/newDesign/js/forTable.js"></script>
     <script src="<?php echo base_url(); ?>frequent_changing/js/register_details.js"></script>
+
+    <!-- integration platform: incoming channel orders (Accept / Reject).
+         The widget injects its own CSS and DOM, so this block is the only
+         change needed in this file. -->
+    <div id="integration_pos_lang"
+         data-incoming="<?php echo escape_output(lang('integration_incoming_orders')); ?>"
+         data-none="<?php echo escape_output(lang('integration_no_incoming')); ?>"
+         data-accept="<?php echo escape_output(lang('integration_accept')); ?>"
+         data-reject="<?php echo escape_output(lang('integration_reject')); ?>"
+         data-waiting="<?php echo escape_output(lang('integration_waiting')); ?>"
+         data-mins="<?php echo escape_output(lang('integration_mins')); ?>"
+         data-reject-prompt="<?php echo escape_output(lang('integration_reject_reason_prompt')); ?>"></div>
+    <script src="<?php echo base_url(); ?>frequent_changing/js/integration_pos.js"></script>
 </body>
 
 </html>

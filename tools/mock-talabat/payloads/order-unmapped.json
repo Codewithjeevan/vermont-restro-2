@@ -1,0 +1,29 @@
+{
+  "eventType": "order.created",
+  "token": "TLB-UNMAPPED-1",
+  "code": "8829303",
+  "createdAt": "2026-08-10T11:30:00Z",
+  "expeditionType": "delivery",
+  "platformRestaurant": { "id": "TLB-DXB-0042" },
+  "localInfo": { "countryCode": "AE", "currencySymbol": "AED" },
+  "customer": { "firstName": "Talabat", "lastName": "Customer", "mobilePhone": "+9715XXXXXXX" },
+  "delivery": { "address": { "street": "JLT Cluster C", "city": "Dubai" } },
+  "payment": { "status": "paid", "type": "online" },
+  "price": {
+    "subTotal": "45.00",
+    "vatTotal": "2.14",
+    "grandTotal": "45.00",
+    "deliveryFees": [],
+    "discounts": []
+  },
+  "products": [
+    {
+      "remoteCode": "SKU-999999",
+      "name": "Mystery Platter (not on our menu)",
+      "quantity": "1",
+      "unitPrice": "45.00",
+      "paidPrice": "45.00",
+      "selectedToppings": []
+    }
+  ]
+}
