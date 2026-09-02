@@ -75,4 +75,17 @@ interface Channel_driver_interface
     public function push_menu($outlet_id, $config);
     public function set_store_status($external_store_id, $is_open, $config);
     public function set_item_availability($external_item_id, $is_available, $config);
+
+    /**
+     * Thin-webhook support (optional - Base_channel_driver defaults it).
+     *
+     * A fat-webhook provider returns ['ok'=>true,'payload'=>null] - NULL means
+     * "normalize the webhook body you already have". A thin-webhook provider
+     * GETs the full order here; Integration_api persists the fetched payload
+     * onto the order row and normalizes it instead. Runs after the ACK and
+     * after the idempotency claim, so at most once per order.
+     *
+     * @return array ['ok'=>bool, 'payload'=>array|null, 'error'=>string]
+     */
+    public function fetch_order($external_id, $config);
 }

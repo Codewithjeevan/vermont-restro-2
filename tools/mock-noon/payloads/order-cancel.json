@@ -1,0 +1,17 @@
+{
+  "event_schema_version": 1,
+  "event_type": "FOOD::ORDER_CANCELLED",
+  "metadata": {
+    "message_id": "msg-0005",
+    "destination_id": "dest-trul-resto",
+    "published_at": "2026-01-01T12:20:00Z",
+    "project_code": "FOOD-TEST"
+  },
+  "payload": {
+    "order_nr": "NOON-SAMPLE-1",
+    "order_code": "N-4821",
+    "outlet_code": "NOON-BR-001",
+    "status": "cancelled",
+    "reason": "CUSTOMER_CANCELLED"
+  }
+}

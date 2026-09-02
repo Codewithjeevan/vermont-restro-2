@@ -31,6 +31,68 @@ class Integration_model extends CI_Model
         return $this->db->get_where('tbl_integration_providers', array('is_active' => 'Yes'))->result();
     }
 
+    /**
+     * Providers the admin screens are allowed to show. Visibility is a UI
+     * concern only - the webhook resolves by code + is_active and deliberately
+     * ignores it, so a hidden provider keeps working if it is active.
+     * Falls back to the full catalogue on installs that have not run
+     * Update/noon_food_migration.sql yet.
+     */
+    public function getVisibleProviders()
+    {
+        if (!$this->db->field_exists('is_visible', 'tbl_integration_providers')) {
+            return $this->getAllProviders();
+        }
+        $this->db->where('is_visible', 'Yes');
+        $this->db->order_by('sort_order', 'ASC');
+        return $this->db->get('tbl_integration_providers')->result();
+    }
+
+    /* ============================================= company-level credentials */
+
+    /**
+     * One credentials row per company x provider. Providers whose credential
+     * is a company-wide service account (noon) store it here once; the outlet
+     * config's own blob overrides key-by-key. See
+     * Base_channel_driver::credentials().
+     */
+    public function getCompanyCredentials($company_id, $provider_id)
+    {
+        if (!$this->db->table_exists('tbl_integration_company_credentials')) {
+            return null;
+        }
+        return $this->db->get_where('tbl_integration_company_credentials', array(
+            'company_id'  => (int) $company_id,
+            'provider_id' => (int) $provider_id,
+        ))->row();
+    }
+
+    /** Upsert on (company_id, provider_id). Returns the row id. */
+    public function saveCompanyCredentials($company_id, $provider_id, $data)
+    {
+        $now      = gmdate('Y-m-d H:i:s');
+        $existing = $this->getCompanyCredentials($company_id, $provider_id);
+        if ($existing) {
+            $data['updated_at_utc'] = $now;
+            $this->db->where('id', (int) $existing->id);
+            $this->db->update('tbl_integration_company_credentials', $data);
+            return (int) $existing->id;
+        }
+        $data['company_id']     = (int) $company_id;
+        $data['provider_id']    = (int) $provider_id;
+        $data['created_at_utc'] = $now;
+        $data['updated_at_utc'] = $now;
+        $this->db->insert('tbl_integration_company_credentials', $data);
+        return (int) $this->db->insert_id();
+    }
+
+    public function updateCompanyCredentials($id, $data)
+    {
+        $data['updated_at_utc'] = gmdate('Y-m-d H:i:s');
+        $this->db->where('id', (int) $id);
+        $this->db->update('tbl_integration_company_credentials', $data);
+    }
+
     /* ================================================================== configs */
 
     /**
@@ -495,6 +557,13 @@ class Integration_model extends CI_Model
      */
     public function getPendingChannelOrders($company_id, $outlet_id)
     {
+        // Belt-and-braces: a hidden provider should never surface in the POS
+        // widget either. With no enabled config it has no rows anyway.
+        $visible_guard = $this->db->field_exists('is_visible', 'tbl_integration_providers')
+            ? " AND EXISTS (SELECT 1 FROM tbl_integration_providers p
+                            WHERE p.code = o.provider_code AND p.is_visible = 'Yes')"
+            : '';
+
         $sql = "SELECT o.id, o.provider_code, o.external_order_id, o.external_order_no,
                        o.sale_no, o.received_at_utc, o.kitchen_sale_id,
                        k.total_payable, k.total_items, k.del_address, k.order_type, k.token_number
@@ -503,7 +572,7 @@ class Integration_model extends CI_Model
                 WHERE o.company_id = ? AND o.outlet_id = ?
                   AND o.canonical_status = 'RECEIVED'
                   AND k.is_accept = 2
-                  AND k.del_status = 'Live'
+                  AND k.del_status = 'Live'".$visible_guard."
                 ORDER BY o.id ASC";
         return $this->db->query($sql, array((int) $company_id, (int) $outlet_id))->result();
     }

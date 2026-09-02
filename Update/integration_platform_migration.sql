@@ -203,7 +203,7 @@ PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 INSERT INTO tbl_integration_providers (code, name, driver_class, capabilities, is_active, sort_order) VALUES
  ('talabat',    'Talabat',            'Talabat_driver',    'order_in,status_out,store_status',                     'Yes', 1),
  ('deliveroo',  'Deliveroo',          'Deliveroo_driver',  'order_in,status_out,menu_push,store_status',           'No',  2),
- ('noon',       'Noon Food',          'Noon_driver',       'order_in,status_out',                                  'No',  3),
+ ('noon',       'noon Food',          'Noon_food_driver',  'order_in,status_out',                                  'No',  3),
  ('careem',     'Careem Food',        'Careem_driver',     'order_in,status_out',                                  'No',  4),
  ('deliverect', 'Deliverect (multi)', 'Deliverect_driver', 'order_in,status_out,menu_push,store_status',           'No',  9)
 ON DUPLICATE KEY UPDATE

@@ -38,8 +38,9 @@ class Integration_cli extends CI_Controller
         $this->out('Integration platform CLI');
         $this->out('');
         $this->out('  providers                                     list the provider catalogue');
-        $this->out('  setup --provider=talabat --company=1 --outlet=1 [options]');
-        $this->out('                                                create or update a config');
+        $this->out('  setup --provider=noon --company=1 --outlet=1 [options]');
+        $this->out('                                                create or update an outlet config');
+        $this->out('  creds --provider=noon --company=1 [options]   company-wide credentials (service account)');
         $this->out('  show --config=1                               print a config (secrets masked)');
         $this->out('  secret --config=1 [--value=xxx]               show or set the webhook secret');
         $this->out('  automap --config=1 [--prefix=SKU-] [--apply]  map their SKUs to our menu ids');
@@ -52,12 +53,19 @@ class Integration_cli extends CI_Controller
         $this->out('  logs [--limit=20]                             recent integration calls');
         $this->out('');
         $this->out('Options for setup:');
-        $this->out('  --store=TLB-DXB-0042   their store id (the webhook routing key)');
+        $this->out('  --store=NOON-BR-001    their store id (the webhook routing key)');
         $this->out('  --enabled=Yes|No       --sandbox=Yes|No       --auto-accept=Yes|No');
         $this->out('  --ingest-on=placed|accepted                   --prep=20');
         $this->out('  --price-mode=delivery|normal                  --price-source=provider|pos');
         $this->out('  --price-includes-tax=Yes|No');
-        $this->out('  --partner=1  --payment=1  --user=1  --secret=whsec_xxx  --base-url=http://127.0.0.1:4010');
+        $this->out('  --partner=1  --payment=1  --user=1  --secret=whsec_xxx  --base-url=http://127.0.0.1:4011');
+        $this->out('');
+        $this->out('Options for creds (company-wide, shared by every outlet):');
+        $this->out('  --login-url=...  --key-id=...  --project-code=...  --channel-identifier=...');
+        $this->out('  --private-key-file=/path/to/key.pem   (or --private-key=..., file wins)');
+        $this->out('  --base-url=...  --sandbox-base-url=...  --user-agent=...');
+        $this->out('  --webhook-header=x-noon-token  --secret=<header value>  --webhook-style=fat|thin');
+        $this->out('  --orders-path=/food/partner/v1/orders  --allowed-ips=1.2.3.4,5.6.7.8  --static-token=...');
     }
 
     /* ============================================================== catalogue */
@@ -81,7 +89,7 @@ class Integration_cli extends CI_Controller
     public function setup()
     {
         $args     = $this->args();
-        $provider = $this->Integration_manager->provider($this->arg($args, 'provider', 'talabat'));
+        $provider = $this->Integration_manager->provider($this->arg($args, 'provider', 'noon'));
         if (!$provider) {
             $this->out('Unknown provider.');
             return;
@@ -127,12 +135,14 @@ class Integration_cli extends CI_Controller
 
         // credentials blob: merge so --base-url does not wipe --client-id
         $creds = $existing ? Integration_crypto::decrypt_json($existing->credentials) : array();
-        foreach (array('base-url' => 'base_url', 'sandbox-base-url' => 'sandbox_base_url',
-                       'token-url' => 'token_url', 'client-id' => 'client_id',
-                       'client-secret' => 'client_secret', 'static-token' => 'static_token') as $flag => $key) {
+        foreach ($this->cred_flag_map() as $flag => $key) {
             if (isset($args[$flag])) {
                 $creds[$key] = $args[$flag];
             }
+        }
+        $pem = $this->private_key_arg($args);
+        if ($pem !== '') {
+            $creds['private_key'] = $pem;
         }
         if (!empty($creds)) {
             $data['credentials'] = Integration_crypto::encrypt_json($creds);
@@ -141,6 +151,100 @@ class Integration_cli extends CI_Controller
         $id = $this->Integration_model->saveConfig($data, $existing ? $existing->id : null);
         $this->out(($existing ? 'Updated' : 'Created').' config #'.$id.' for '.$provider->code.' outlet '.$outlet_id);
         $this->show_config($id);
+    }
+
+    /**
+     * Company-wide credentials: the service-account material (private key,
+     * login URL, webhook credential) every outlet of the company shares.
+     * Outlet configs override key-by-key - see Base_channel_driver.
+     */
+    public function creds()
+    {
+        $args     = $this->args();
+        $provider = $this->Integration_manager->provider($this->arg($args, 'provider', 'noon'));
+        if (!$provider) {
+            $this->out('Unknown provider.');
+            return;
+        }
+        $company_id = (int) $this->arg($args, 'company', 1);
+
+        $existing = $this->Integration_model->getCompanyCredentials($company_id, $provider->id);
+        if ($existing === null && !$this->db->table_exists('tbl_integration_company_credentials')) {
+            $this->out('tbl_integration_company_credentials is missing. Run Update/noon_food_migration.sql first.');
+            return;
+        }
+
+        $creds = ($existing && !empty($existing->credentials))
+            ? Integration_crypto::decrypt_json($existing->credentials)
+            : array();
+        foreach ($this->cred_flag_map() as $flag => $key) {
+            if (isset($args[$flag])) {
+                $creds[$key] = $args[$flag];
+            }
+        }
+        $pem = $this->private_key_arg($args);
+        if ($pem !== '') {
+            $creds['private_key'] = $pem;
+        }
+
+        $data = array(
+            'credentials' => Integration_crypto::encrypt_json($creds),
+            // changing the credentials invalidates the cached session/token
+            'oauth_token'          => null,
+            'oauth_expires_at_utc' => null,
+        );
+        if (isset($args['secret'])) {
+            $data['webhook_secret'] = Integration_crypto::encrypt($args['secret']);
+        }
+
+        $id = $this->Integration_model->saveCompanyCredentials($company_id, $provider->id, $data);
+        $this->out(($existing ? 'Updated' : 'Created').' company credentials #'.$id.' for '.$provider->code.' company '.$company_id);
+
+        foreach ($creds as $key => $value) {
+            if (stripos($key, 'secret') !== false || stripos($key, 'token') !== false || $key === 'private_key') {
+                $creds[$key] = '***';
+            }
+        }
+        $this->out('  credentials    '.json_encode($creds));
+        $row = $this->Integration_model->getCompanyCredentials($company_id, $provider->id);
+        $this->out('  webhook_secret '.($row && $row->webhook_secret ? 'set' : 'NOT SET'));
+    }
+
+    /** shared --flag => credentials-blob key map for setup() and creds() */
+    protected function cred_flag_map()
+    {
+        return array(
+            'base-url'           => 'base_url',
+            'sandbox-base-url'   => 'sandbox_base_url',
+            'token-url'          => 'token_url',
+            'client-id'          => 'client_id',
+            'client-secret'      => 'client_secret',
+            'static-token'       => 'static_token',
+            'login-url'          => 'login_url',
+            'key-id'             => 'key_id',
+            'project-code'       => 'project_code',
+            'channel-identifier' => 'channel_identifier',
+            'webhook-header'     => 'webhook_header',
+            'webhook-style'      => 'webhook_style',
+            'orders-path'        => 'orders_path',
+            'user-agent'         => 'user_agent',
+            'allowed-ips'        => 'allowed_ips',
+            'private-key'        => 'private_key',
+        );
+    }
+
+    /** --private-key-file wins over --private-key; '' when neither given */
+    protected function private_key_arg($args)
+    {
+        $file = $this->arg($args, 'private-key-file', '');
+        if ($file !== '') {
+            if (!is_readable($file)) {
+                $this->out('Cannot read private key file: '.$file);
+                return '';
+            }
+            return (string) file_get_contents($file);
+        }
+        return '';
     }
 
     public function show()
@@ -411,7 +515,7 @@ class Integration_cli extends CI_Controller
         }
         $creds = Integration_crypto::decrypt_json($config->credentials);
         foreach ($creds as $key => $value) {
-            if (stripos($key, 'secret') !== false || stripos($key, 'token') !== false) {
+            if (stripos($key, 'secret') !== false || stripos($key, 'token') !== false || $key === 'private_key') {
                 $creds[$key] = '***';
             }
         }

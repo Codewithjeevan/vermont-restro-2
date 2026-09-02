@@ -57,7 +57,7 @@ class Integration extends Cl_Controller
         if ($segment_2 == 'settings' || $segment_2 == 'index' || $segment_2 == '') {
             $controller = (string) self::ACCESS_SETTINGS;
             $function   = 'view';
-        } elseif ($segment_2 == 'saveConfig' || $segment_2 == 'testConnection') {
+        } elseif ($segment_2 == 'saveConfig' || $segment_2 == 'testConnection' || $segment_2 == 'saveCompanyCredentials') {
             $controller = (string) self::ACCESS_SETTINGS;
             $function   = 'update';
         } elseif ($segment_2 == 'itemMap') {
@@ -102,10 +102,17 @@ class Integration extends Cl_Controller
         $data = array();
         $data['outlets']     = $this->Integration_model->getOutlets($company_id);
         $data['outlet_id']   = $outlet_id;
-        $data['providers']   = $this->Integration_model->getAllProviders();
+        $data['providers']   = $this->Integration_model->getVisibleProviders();
         $data['configs']     = $this->Integration_model->getConfigsForOutlet($company_id, $outlet_id);
         $data['stats']       = $this->Integration_model->getChannelStats($company_id, $outlet_id);
         $data['dead_events'] = $this->Integration_model->getDeadEventCount($company_id);
+
+        // company-wide credentials (service accounts shared by every outlet)
+        $data['company_creds'] = array();
+        foreach ($data['providers'] as $provider) {
+            $data['company_creds'][(int) $provider->id] =
+                $this->Integration_model->getCompanyCredentials($company_id, $provider->id);
+        }
 
         // options for the per-provider drawer
         $data['payment_methods']   = $this->Integration_model->getPaymentMethods($company_id);
@@ -175,15 +182,20 @@ class Integration extends Cl_Controller
         }
 
         $creds = $existing ? Integration_crypto::decrypt_json($existing->credentials) : array();
-        foreach (array('base_url', 'sandbox_base_url', 'token_url', 'client_id', 'scope') as $key) {
+        foreach (array('base_url', 'sandbox_base_url', 'token_url', 'client_id', 'scope',
+                       'login_url', 'key_id', 'project_code', 'channel_identifier',
+                       'webhook_header', 'webhook_style', 'orders_path', 'user_agent', 'allowed_ips') as $key) {
             $value = $this->post($key);
             if ($value !== '') {
                 $creds[$key] = $value;
             }
         }
-        $client_secret = $this->post('client_secret');
-        if ($client_secret !== '') {
-            $creds['client_secret'] = $client_secret;
+        // secret-valued keys: write-only, never round-tripped to the form
+        foreach (array('client_secret', 'private_key', 'static_token') as $key) {
+            $value = $this->post($key);
+            if ($value !== '') {
+                $creds[$key] = $value;
+            }
         }
         $data['credentials'] = Integration_crypto::encrypt_json($creds);
 
@@ -195,6 +207,64 @@ class Integration extends Cl_Controller
 
         $this->session->set_flashdata('exception', lang('integration_saved'));
         redirect('Integration/settings?outlet_id='.$outlet_id);
+    }
+
+    /**
+     * Company-wide credentials for one provider - the service-account material
+     * (private key, login URL, webhook credential) every outlet of the company
+     * shares. Outlet configs override key-by-key; see
+     * Base_channel_driver::credentials().
+     */
+    public function saveCompanyCredentials()
+    {
+        require_once APPPATH.'libraries/Integration/Integration_crypto.php';
+
+        $company_id  = (int) $this->session->userdata('company_id');
+        $provider_id = (int) $this->post('provider_id');
+        $outlet_id   = (int) $this->post('outlet_id');   // only for the redirect
+
+        if ($provider_id <= 0) {
+            $this->session->set_flashdata('exception_1', lang('integration_save_failed'));
+            redirect('Integration/settings');
+        }
+
+        $existing = $this->Integration_model->getCompanyCredentials($company_id, $provider_id);
+
+        $creds = ($existing && !empty($existing->credentials))
+            ? Integration_crypto::decrypt_json($existing->credentials)
+            : array();
+
+        foreach (array('base_url', 'sandbox_base_url', 'login_url', 'token_url', 'client_id', 'scope',
+                       'key_id', 'project_code', 'channel_identifier',
+                       'webhook_header', 'webhook_style', 'orders_path', 'user_agent', 'allowed_ips') as $key) {
+            $value = $this->post($key);
+            if ($value !== '') {
+                $creds[$key] = $value;
+            }
+        }
+        // secret-valued keys: write-only, an empty field means "leave it"
+        foreach (array('client_secret', 'private_key', 'static_token') as $key) {
+            $value = $this->post($key);
+            if ($value !== '') {
+                $creds[$key] = $value;
+            }
+        }
+
+        $data = array('credentials' => Integration_crypto::encrypt_json($creds));
+
+        $webhook_secret = $this->post('webhook_secret');
+        if ($webhook_secret !== '') {
+            $data['webhook_secret'] = Integration_crypto::encrypt($webhook_secret);
+        }
+
+        // changing the credentials invalidates the cached session/token
+        $data['oauth_token']          = null;
+        $data['oauth_expires_at_utc'] = null;
+
+        $this->Integration_model->saveCompanyCredentials($company_id, $provider_id, $data);
+
+        $this->session->set_flashdata('exception', lang('integration_saved'));
+        redirect('Integration/settings'.($outlet_id > 0 ? '?outlet_id='.$outlet_id : ''));
     }
 
     /**
@@ -213,9 +283,14 @@ class Integration extends Cl_Controller
             $this->jsonOut(array('status' => 'error', 'message' => lang('integration_driver_missing')));
         }
 
-        // store_status is the cheapest authenticated round trip most channels
-        // expose; a driver without it still exercises auth and reports honestly.
-        $result = $driver->set_store_status($config->external_store_id, true, $config);
+        // A driver may expose a dedicated probe (noon: a login round-trip,
+        // since it declares no store_status capability). Otherwise store_status
+        // is the cheapest authenticated round trip most channels expose.
+        if (method_exists($driver, 'test_connection')) {
+            $result = $driver->test_connection($config);
+        } else {
+            $result = $driver->set_store_status($config->external_store_id, true, $config);
+        }
 
         $this->jsonOut(array(
             'status'      => !empty($result['ok']) ? 'ok' : 'error',
@@ -252,7 +327,7 @@ class Integration extends Cl_Controller
         $data['outlets']    = $this->Integration_model->getOutlets($company_id);
         $data['outlet_id']  = $outlet_id;
         $data['configs']    = $configs;
-        $data['providers']  = $this->Integration_model->getAllProviders();
+        $data['providers']  = $this->Integration_model->getVisibleProviders();
         $data['config']     = $config;
         $data['filter']     = $filter;
         $data['rows']       = $config ? $this->Integration_model->getItemMapRows($config->id, $filter) : array();
@@ -368,7 +443,7 @@ class Integration extends Cl_Controller
 
         $data = array();
         $data['outlets']   = $this->Integration_model->getOutlets($company_id);
-        $data['providers'] = $this->Integration_model->getAllProviders();
+        $data['providers'] = $this->Integration_model->getVisibleProviders();
         $data['filters']   = $filters;
         $data['orders']    = $this->Integration_model->getOrdersFiltered($company_id, $filters, 300);
         $data['statuses']  = array('RECEIVED', 'ACCEPTED', 'REJECTED', 'PREPARING', 'READY', 'PICKED_UP', 'COMPLETED', 'CANCELLED');

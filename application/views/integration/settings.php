@@ -328,6 +328,98 @@ $currency = $this->session->userdata('currency');
                                     <button type="submit" name="submit" value="submit" class="btn bg-blue-btn"><?php echo lang('submit'); ?></button>
                                 </div>
                                 <?php echo form_close(); ?>
+
+                                <!-- company-wide credentials: the service-account material every
+                                     outlet shares (one login, one webhook credential). Separate
+                                     form - saving it does not touch the per-outlet config above. -->
+                                <?php
+                                $cc       = isset($company_creds[(int) $provider->id]) ? $company_creds[(int) $provider->id] : null;
+                                $cc_creds = array();
+                                if ($cc && !empty($cc->credentials)) {
+                                    require_once APPPATH.'libraries/Integration/Integration_crypto.php';
+                                    $cc_creds = Integration_crypto::decrypt_json($cc->credentials);
+                                }
+                                ?>
+                                <?php echo form_open(base_url().'Integration/saveCompanyCredentials'); ?>
+                                <div class="modal-body" style="border-top: 3px solid #eee;">
+                                    <input type="hidden" name="provider_id" value="<?php echo (int) $provider->id; ?>">
+                                    <input type="hidden" name="outlet_id" value="<?php echo (int) $outlet_id; ?>">
+
+                                    <h6><?php echo lang('integration_company_credentials'); ?></h6>
+                                    <small class="text-muted d-block mb-3"><?php echo lang('integration_company_credentials_hint'); ?></small>
+
+                                    <div class="row">
+                                        <div class="mb-3 col-md-6">
+                                            <label><?php echo lang('integration_base_url'); ?></label>
+                                            <input type="text" name="base_url" class="form-control"
+                                                   value="<?php echo isset($cc_creds['base_url']) ? escape_output($cc_creds['base_url']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label><?php echo lang('integration_sandbox_base_url'); ?></label>
+                                            <input type="text" name="sandbox_base_url" class="form-control"
+                                                   value="<?php echo isset($cc_creds['sandbox_base_url']) ? escape_output($cc_creds['sandbox_base_url']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label><?php echo lang('integration_login_url'); ?></label>
+                                            <input type="text" name="login_url" class="form-control"
+                                                   value="<?php echo isset($cc_creds['login_url']) ? escape_output($cc_creds['login_url']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label><?php echo lang('integration_key_id'); ?></label>
+                                            <input type="text" name="key_id" class="form-control"
+                                                   value="<?php echo isset($cc_creds['key_id']) ? escape_output($cc_creds['key_id']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label><?php echo lang('integration_project_code'); ?></label>
+                                            <input type="text" name="project_code" class="form-control"
+                                                   value="<?php echo isset($cc_creds['project_code']) ? escape_output($cc_creds['project_code']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label><?php echo lang('integration_channel_identifier'); ?></label>
+                                            <input type="text" name="channel_identifier" class="form-control"
+                                                   value="<?php echo isset($cc_creds['channel_identifier']) ? escape_output($cc_creds['channel_identifier']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3 col-md-12">
+                                            <label><?php echo lang('integration_private_key'); ?></label>
+                                            <textarea name="private_key" rows="4" class="form-control" autocomplete="off"
+                                                      placeholder="<?php echo !empty($cc_creds['private_key']) ? lang('integration_secret_set') : '-----BEGIN PRIVATE KEY-----'; ?>"></textarea>
+                                            <small class="text-muted"><?php echo lang('integration_private_key_hint'); ?></small>
+                                        </div>
+                                        <div class="mb-3 col-md-4">
+                                            <label><?php echo lang('integration_webhook_header'); ?></label>
+                                            <input type="text" name="webhook_header" class="form-control" placeholder="x-noon-token"
+                                                   value="<?php echo isset($cc_creds['webhook_header']) ? escape_output($cc_creds['webhook_header']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3 col-md-4">
+                                            <label><?php echo lang('integration_webhook_secret'); ?></label>
+                                            <input type="password" name="webhook_secret" class="form-control" autocomplete="new-password"
+                                                   placeholder="<?php echo ($cc && !empty($cc->webhook_secret)) ? lang('integration_secret_set') : ''; ?>">
+                                            <small class="text-muted"><?php echo lang('integration_secret_hint'); ?></small>
+                                        </div>
+                                        <div class="mb-3 col-md-4">
+                                            <label><?php echo lang('integration_webhook_style'); ?></label>
+                                            <select name="webhook_style" class="form-control">
+                                                <option value="fat"  <?php echo (!isset($cc_creds['webhook_style']) || $cc_creds['webhook_style'] !== 'thin') ? 'selected' : ''; ?>><?php echo lang('integration_webhook_fat'); ?></option>
+                                                <option value="thin" <?php echo (isset($cc_creds['webhook_style']) && $cc_creds['webhook_style'] === 'thin') ? 'selected' : ''; ?>><?php echo lang('integration_webhook_thin'); ?></option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label><?php echo lang('integration_user_agent'); ?></label>
+                                            <input type="text" name="user_agent" class="form-control"
+                                                   value="<?php echo isset($cc_creds['user_agent']) ? escape_output($cc_creds['user_agent']) : ''; ?>">
+                                        </div>
+                                        <div class="mb-3 col-md-6">
+                                            <label><?php echo lang('integration_static_token'); ?></label>
+                                            <input type="password" name="static_token" class="form-control" autocomplete="new-password"
+                                                   placeholder="<?php echo !empty($cc_creds['static_token']) ? lang('integration_secret_set') : ''; ?>">
+                                            <small class="text-muted"><?php echo lang('integration_static_token_hint'); ?></small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="submit" name="submit" value="submit" class="btn bg-blue-btn"><?php echo lang('integration_save_company_credentials'); ?></button>
+                                </div>
+                                <?php echo form_close(); ?>
                             </div>
                         </div>
                     </div>

@@ -124,11 +124,19 @@ class Integration_manager
      * Attach the provider row so a driver never has to look it up.
      * Credentials stay encrypted on the object; drivers decrypt through
      * Base_channel_driver::cred() so a var_dump of a config never leaks them.
+     *
+     * Also attaches the company-level credentials row (still encrypted) when
+     * one exists - the outlet blob overrides it key-by-key inside
+     * Base_channel_driver::credentials(). Providers without a company row
+     * (Talabat) get NULL and take exactly the path they take today.
      */
     protected function hydrate_config($config)
     {
         $config->provider = $this->CI->Integration_model->getProviderById($config->provider_id);
         $config->provider_code = $config->provider ? $config->provider->code : '';
+        $config->company_credentials = $this->CI->Integration_model->getCompanyCredentials(
+            $config->company_id, $config->provider_id
+        );
         return $config;
     }
 

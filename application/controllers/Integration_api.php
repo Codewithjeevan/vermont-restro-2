@@ -213,7 +213,32 @@ class Integration_api extends REST_Controller
      */
     protected function ingest_now($driver, $config, $order_row)
     {
-        $normalized = $driver->normalize_order(json_decode($this->raw_body, true), $config);
+        $payload = json_decode($this->raw_body, true);
+
+        // Thin-webhook support: a driver whose webhook carries only an id
+        // fetches the full order here - after the ACK (a slow GET must not
+        // trip the aggregator's timeout) and after the idempotency claim (so
+        // the fetch runs at most once per order). payload NULL = "the webhook
+        // body already carries the order" (every fat-webhook driver).
+        $fetched = $driver->fetch_order($order_row->external_order_id, $config);
+        if (empty($fetched['ok'])) {
+            $this->Integration_model->updateOrder($order_row->id, array(
+                'canonical_status' => 'REJECTED',
+                'reject_reason'    => 'FETCH_FAILED',
+                'last_error'       => substr(isset($fetched['error']) ? $fetched['error'] : 'fetch_order failed', 0, 255),
+            ));
+            return;
+        }
+        if (!empty($fetched['payload']) && is_array($fetched['payload'])) {
+            $payload = $fetched['payload'];
+            // Disputes are settled with the raw payload; the thin webhook body
+            // alone is useless for that, so persist what we actually booked.
+            $this->Integration_model->updateOrder($order_row->id, array(
+                'raw_payload' => json_encode($payload),
+            ));
+        }
+
+        $normalized = $driver->normalize_order($payload, $config);
 
         if (empty($normalized['ok'])) {
             $this->Integration_model->updateOrder($order_row->id, array(

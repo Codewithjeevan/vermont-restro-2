@@ -1,0 +1,13 @@
+{
+  "event_schema_version": 1,
+  "event_type": "FOOD::PING",
+  "metadata": {
+    "message_id": "msg-0000",
+    "destination_id": "dest-trul-resto",
+    "published_at": "2026-01-01T11:55:00Z",
+    "project_code": "FOOD-TEST"
+  },
+  "payload": {
+    "outlet_code": "NOON-BR-001"
+  }
+}

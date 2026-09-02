@@ -1,0 +1,45 @@
+{
+  "event_schema_version": 1,
+  "event_type": "FOOD::ORDER_CREATED",
+  "metadata": {
+    "message_id": "msg-0002",
+    "destination_id": "dest-trul-resto",
+    "published_at": "2026-01-01T12:05:00Z",
+    "project_code": "FOOD-TEST"
+  },
+  "payload": {
+    "order_nr": "NOON-SAMPLE-2",
+    "order_code": "N-4822",
+    "outlet_code": "NOON-BR-001",
+    "created_at": "2026-01-01T12:05:00Z",
+    "order_type": "pickup",
+    "currency": "AED",
+    "note": "",
+    "customer": {
+      "name": "Omar Farouk",
+      "phone": "+971529876543",
+      "address": { "full_address": "", "city": "Dubai" }
+    },
+    "payment": { "method": "card_online", "status": "paid", "is_paid": true },
+    "items": [
+      {
+        "sku": "SKU-111",
+        "name": "Karak Chai",
+        "qty": "1",
+        "unit_price": "12.00",
+        "note": "",
+        "options": [
+          { "sku": "MOD-1", "name": "no sugar", "price": "0.00", "qty": "1" }
+        ]
+      },
+      { "sku": "SKU-112", "name": "Club Sandwich", "qty": "1", "unit_price": "28.00", "note": "", "options": [] }
+    ],
+    "subtotal": "40.00",
+    "vat": "1.90",
+    "delivery_fee": "0.00",
+    "discount": "0.00",
+    "tip": "0.00",
+    "service_fee": "0.00",
+    "total": "40.00"
+  }
+}

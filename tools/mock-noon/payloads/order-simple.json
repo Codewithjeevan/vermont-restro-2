@@ -1,0 +1,43 @@
+{
+  "event_schema_version": 1,
+  "event_type": "FOOD::ORDER_CREATED",
+  "metadata": {
+    "message_id": "msg-0001",
+    "destination_id": "dest-trul-resto",
+    "published_at": "2026-01-01T12:00:00Z",
+    "project_code": "FOOD-TEST"
+  },
+  "payload": {
+    "order_nr": "NOON-SAMPLE-1",
+    "order_code": "N-4821",
+    "outlet_code": "NOON-BR-001",
+    "created_at": "2026-01-01T12:00:00Z",
+    "order_type": "delivery",
+    "currency": "AED",
+    "note": "Ring the bell twice",
+    "customer": {
+      "name": "Ayesha Khan",
+      "phone": "+971501234567",
+      "address": {
+        "street": "Al Wasl Road 12",
+        "building": "Villa 4",
+        "area": "Jumeirah",
+        "city": "Dubai",
+        "lat": 25.1972,
+        "lng": 55.2744
+      }
+    },
+    "payment": { "method": "noon_pay", "status": "paid", "is_paid": true },
+    "items": [
+      { "sku": "SKU-130", "name": "Margherita Pizza", "qty": "1", "unit_price": "38.00", "note": "", "options": [] },
+      { "sku": "SKU-138", "name": "Iced Tea", "qty": "2", "unit_price": "19.00", "note": "less ice", "options": [] }
+    ],
+    "subtotal": "76.00",
+    "vat": "3.62",
+    "delivery_fee": "7.00",
+    "discount": "0.00",
+    "tip": "0.00",
+    "service_fee": "0.00",
+    "total": "83.00"
+  }
+}
