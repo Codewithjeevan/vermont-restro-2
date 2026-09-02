@@ -491,7 +491,6 @@ class Sale extends Cl_Controller {
         $data['menu_modifiers'] = $this->Sale_model->getAllMenuModifiers();
         $data['waiters'] = $this->Sale_model->getWaitersForThisCompany($company_id,'tbl_users');
         $data['MultipleCurrencies'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_multiple_currencies");
-        $data['users'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_users");
         $data['outlet_information'] = $this->Common_model->getDataById($outlet_id, "tbl_outlets");
         $data['payment_methods'] = $this->Sale_model->getAllPaymentMethods();
         $data['payment_method_finalize'] = $this->Sale_model->getAllPaymentMethodsFinalize();
@@ -1664,6 +1663,65 @@ class Sale extends Cl_Controller {
         $user_id = $this->session->userdata('user_id');
         $data = getRunningOrders($user_id);
         echo json_encode($data);
+    }
+    /**
+     * Shared running orders.
+     * Every POS terminal of an outlet mirrors its running orders in
+     * tbl_running_orders (one row per sale_no per company) and pulls the
+     * outlet's list back every few seconds, so every user of the company
+     * sees the same "Running Orders" sidebar on any terminal.
+     * Schema: Update/shared_running_orders_migration.sql
+     */
+    public function get_running_orders(){
+        if(!$this->session->userdata('user_id')){
+            echo json_encode(array());
+            return;
+        }
+        $outlet_id = (int)$this->session->userdata('outlet_id');
+        $company_id = (int)$this->session->userdata('company_id');
+        $this->db->select('id, sale_no, user_id, order_content, record_meta, version');
+        $this->db->from('tbl_running_orders');
+        $this->db->where(array('outlet_id' => $outlet_id, 'company_id' => $company_id, 'del_status' => 'Live'));
+        $this->db->order_by('id', 'ASC');
+        echo json_encode($this->db->get()->result());
+    }
+    public function save_running_order(){
+        /*order and record_meta could not be escaped because they are json data*/
+        $order = $this->input->post('order');
+        $record_meta = $this->input->post('record_meta');
+        $order_details = json_decode($order);
+        if(!$this->session->userdata('user_id') || !$order_details || empty($order_details->sale_no)){
+            echo json_encode(array('status' => 'error'));
+            return;
+        }
+        $sale_no = (string)$order_details->sale_no;
+        $user_id = (int)$this->session->userdata('user_id');
+        $outlet_id = (int)$this->session->userdata('outlet_id');
+        $company_id = (int)$this->session->userdata('company_id');
+        $now = date('Y-m-d H:i:s');
+        //atomic upsert on (sale_no, company_id); version grows on every save so other terminals can spot the change
+        $this->db->query(
+            "INSERT INTO tbl_running_orders (sale_no, order_content, record_meta, user_id, outlet_id, company_id, version, updated_at, del_status)
+             VALUES (?, ?, ?, ?, ?, ?, 1, ?, 'Live')
+             ON DUPLICATE KEY UPDATE order_content = VALUES(order_content), record_meta = VALUES(record_meta),
+                 outlet_id = VALUES(outlet_id), version = version + 1, updated_at = VALUES(updated_at), del_status = 'Live'",
+            array($sale_no, $order, $record_meta, $user_id, $outlet_id, $company_id, $now)
+        );
+        $row = $this->db->get_where('tbl_running_orders', array('sale_no' => $sale_no, 'company_id' => $company_id))->row();
+        echo json_encode(array('status' => 'success', 'sale_no' => $sale_no, 'version' => $row ? (int)$row->version : 1));
+    }
+    public function remove_running_order(){
+        $sale_no = escape_output($this->input->post('sale_no'));
+        if(!$this->session->userdata('user_id') || !$sale_no){
+            echo json_encode(array('status' => 'error'));
+            return;
+        }
+        $company_id = (int)$this->session->userdata('company_id');
+        $this->db->delete('tbl_running_orders', array('sale_no' => $sale_no, 'company_id' => $company_id));
+        //table bookings of the order live server-side as well; the terminal that settles
+        //the order may never have had them in its own browser store
+        $this->db->delete('tbl_running_order_tables', array('sale_no' => $sale_no));
+        echo json_encode(array('status' => 'success'));
     }
     public function add_cancel_audit_report(){
         /*This variable could not be escaped because this is json data*/

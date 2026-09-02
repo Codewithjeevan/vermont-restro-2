@@ -1442,6 +1442,7 @@ $lang['backup_running_order_msg_2']='pedido(s) en su orden de ejecución, guárd
 $lang['who_will_pull_the_order']='Quién sacará la(s) orden(es)';
 $lang['logout_action']='Alerta de cierre de sesión';
 $lang['without_submit']='Sin Enviar';
+$lang['running_order_removed_elsewhere']='El pedido %s fue cobrado o cancelado desde otro terminal, el carrito se ha vaciado.';
 $lang['Delivery']='Entrega';
 $lang['inv_delivery_charge']='Gastos de envío';
 $lang['alert_running_order']='¿Está seguro de que desea extraer todas las órdenes en ejecución de local?';

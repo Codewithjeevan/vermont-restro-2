@@ -1439,6 +1439,7 @@ $lang['backup_running_order_msg_2']='الطلب (الطلبات) في أمر ا�
 $lang['who_will_pull_the_order']='من سيقوم بسحب الأمر (الأوامر)';
 $lang['logout_action']='تنبيه الخروج';
 $lang['without_submit']='بدون إرسال';
+$lang['running_order_removed_elsewhere']='تمت تسوية الطلب %s أو إلغاؤه من جهاز آخر، وتم إفراغ السلة.';
 $lang['Delivery']='توصيل';
 $lang['inv_delivery_charge']='رسوم التوصيل';
 $lang['alert_running_order']='هل أنت متأكد أنك تريد سحب جميع الأوامر الجارية من المحلية؟';

@@ -1440,6 +1440,7 @@ $lang['backup_running_order_msg_2']='commande(s) dans votre commande en cours, v
 $lang['who_will_pull_the_order']='Qui tirera la ou les commandes';
 $lang['logout_action']='Alerte de déconnexion';
 $lang['without_submit']='Sans Soumettre';
+$lang['running_order_removed_elsewhere']='La commande %s a été réglée ou annulée depuis un autre terminal, le panier a été vidé.';
 $lang['Delivery']='Livraison';
 $lang['inv_delivery_charge']='Frais de livraison';
 $lang['alert_running_order']='Êtes-vous sûr de vouloir extraire toutes les commandes en cours du local ?';

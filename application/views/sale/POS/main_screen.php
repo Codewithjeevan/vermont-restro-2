@@ -769,9 +769,6 @@ foreach ($notifications as $single_notification){
                 </ul>
                 <ul class="btn__menu">
                     <li class="<?php echo escape_output($is_self_order_class) ?>">
-                        <a href="#" id="pull_running_order" data-tippy-content="Pull your running orders" class="header_menu_icon bg__red"><i class="fas fa-exchange-alt"></i></a>
-                    </li>
-                    <li class="<?php echo escape_output($is_self_order_class) ?>">
                         <a href="#" id="sync_online" data-tippy-content="(0)<?php echo lang('sales_currently_in_local'); ?>" class="header_menu_icon bg__green"><i class="fas fa-sync"></i></a>
                     </li>
                     <li class="<?php echo escape_output($is_self_order_class) ?>">
@@ -1667,36 +1664,6 @@ foreach ($notifications as $single_notification){
         <div class="btn__box staff_meal_btn_box">
             <button type="button" id="submit_staff_meal"><i class="fas fa-utensils"></i> <?php echo lang('submit'); ?></button>
             <button type="button" class="cancel"><?php echo lang('cancel'); ?></button>
-        </div>
-    </div>
-</div>
-    <div id="running_order_save_modal" class="modal">
-    <!-- Modal content -->
-    <div class="modal-content">
-
-        <h1 id="modal_item_name"><?php echo lang('logout_action'); ?>
-        </h1>
-        <div class="main-content-wrapper">
-            <small class="running_order_alert"><?php echo lang('backup_running_order_msg_1'); ?> <b class="total_running_order">0</b> <?php echo lang('backup_running_order_msg_2'); ?></small>
-             <br>
-            <div class="custom_div_margin">
-                <label for="charge_type"><?php echo lang('who_will_pull_the_order'); ?></label>
-                <select id="pull_id" class="select2">
-                    <?php
-                        $user_id = $this->session->userdata('user_id');
-                        foreach ($users as $value):
-                    ?>
-                        <option <?php echo $value->id==$user_id?'selected':''?> value="<?php echo escape_output($value->id)?>"><?php echo escape_output($value->full_name)?> - <?php echo escape_output($value->designation)?></option>
-                    <?php
-                    endforeach;
-                    ?>
-                </select>
-            </div>
-        </div>
-        <div class="btn__box">
-            <button type="button" class="running_order_submit"><?php echo lang('submit'); ?></button>
-            <button type="button" class="without_submit"><?php echo lang('without_submit'); ?></button>
-            <button type="button" class="cancel_running_order_save_modal"><?php echo lang('cancel'); ?></button>
         </div>
     </div>
 </div>

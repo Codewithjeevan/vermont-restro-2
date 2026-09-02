@@ -1501,6 +1501,7 @@ $lang['backup_running_order_msg_2']='order(s) in your running order, please save
 $lang['who_will_pull_the_order']='Who will pull the order(s)';
 $lang['logout_action']='Logout Alert';
 $lang['without_submit']='Without Submit';
+$lang['running_order_removed_elsewhere']='Order %s was settled or cancelled from another terminal, the cart has been cleared.';
 $lang['Delivery']='Delivery';
 $lang['inv_delivery_charge']='Delivery Charge';
 $lang['alert_running_order']='Are you sure, you want to pull all running orders from local?';

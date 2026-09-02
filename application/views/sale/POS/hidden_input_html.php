@@ -50,7 +50,8 @@ foreach ($waiters as $waiter){
 <input type="hidden" id="is_self_order" value="<?php echo escape_output($is_self_order)?>">
 <input type="hidden" id="is_self_order_tmp" value="<?php echo escape_output($is_self_order)?>">
 <input type="hidden" id="ur_role" value="<?php echo escape_output($this->session->userdata('role'))?>">
-<input type="text" id="inv_collect_tax" value="<?php echo escape_output($this->session->userdata('collect_tax'))?>">
+<input type="hidden" id="inv_collect_tax" value="<?php echo escape_output($this->session->userdata('collect_tax'))?>">
+<input type="hidden" id="running_order_removed_elsewhere" value="<?php echo lang('running_order_removed_elsewhere'); ?>">
 <input type="hidden" id="tax_is_gst" value="<?php echo escape_output($this->session->userdata('tax_is_gst'))?>">
 <input type="hidden" id="decimals_separator" value="<?php echo escape_output($this->session->userdata('decimals_separator'))?>">
 <input type="hidden" id="thousands_separator" value="<?php echo escape_output($this->session->userdata('thousands_separator'))?>">
