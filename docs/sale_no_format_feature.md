@@ -34,28 +34,34 @@ Atomicity comes from `UPDATE ... SET last_no = LAST_INSERT_ID(last_no + n)`. The
 row lock makes read-and-increment a single indivisible step, so two terminals asking at
 the same moment get two different ranges instead of the same number twice.
 
-## Why the terminal buffers numbers
+## One number per bill, taken when the order is placed
 
-The POS is offline-first: a bill is written to IndexedDB and its KOT is printed
-immediately, then pushed to the server by `push_online()` on a 10-second interval. The
-number therefore has to exist *before* the server is necessarily reachable.
+The first version kept a buffer of 20 reserved numbers per terminal in
+`localStorage`. That produced exactly the complaint it was later removed for: numbers
+**interleaved** between terminals (A billed 1–20 while B billed 21–40), every fresh
+browser profile burned 20 numbers, and the counter ran far ahead of the last bill
+(counter 331 with the newest bill at 312 on the dev database).
 
-Each terminal keeps `SALE_NO_POOL_SIZE` (20) reserved numbers in
-`localStorage["sale_no_pool_<company_id>"]` and tops back up once it drops to
-`SALE_NO_POOL_MIN` (10). Both constants are at the top of the numbering block in
-`pos_script_v7.3.js`.
+Since the shared-running-orders branch, `generateSaleNo()` asks the server for **one**
+number, synchronously, at the moment Place Order / Quick Invoice runs. The company
+sequence is therefore strictly 1, 2, 3 … in billing order across all terminals.
+`Sale::reserve_sale_numbers()` always hands out one number now, even to a terminal still
+running the old script, and any old buffer found in `localStorage` is deleted on load.
 
 Consequences worth knowing:
 
-- With several terminals the sequence **interleaves** — terminal A bills 1–20 while
-  terminal B bills 21–40. Numbers are unique and increasing per terminal, not globally
-  chronological.
-- Numbers left in the buffer of a terminal that is retired, or whose browser storage is
-  cleared, **stay unused** — a permanent gap in the sequence. This is the price of being
-  able to bill offline; it was the accepted trade-off when the feature was specified.
-- If the buffer runs dry *and* the server is unreachable, the bill is **blocked** with an
-  error toast. Inventing a number locally would duplicate an invoice number, so stopping
-  is the only safe option.
+- A bill **cannot be created while the server is unreachable** (error toast
+  *"Could not get an invoice number from the server"*). Inventing a number locally would
+  duplicate an invoice number, so stopping is the only safe option.
+- A number that was reserved but whose order then failed to save stays unused. That is
+  rare (a failure between the reserve call and the IndexedDB write) and the only source of
+  gaps left.
+- `Sale::save_running_order()` bumps the counter past any bill number it receives
+  (`bumpCompanySaleCounter()` in `my_helper.php`), so a stale terminal can never make the
+  counter hand out a number twice.
+- After deploying, run `Update/sale_no_counter_resync.sql` **once every terminal has
+  reloaded the POS** to pull the counter back to the highest number in use; otherwise
+  the next bill continues after the old buffer hole.
 
 To start a company somewhere other than 1 (e.g. to continue an existing paper series),
 set `last_no` before the first POS bill — see the commented example at the end of the

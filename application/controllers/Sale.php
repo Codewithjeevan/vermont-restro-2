@@ -1131,15 +1131,10 @@ class Sale extends Cl_Controller {
      * @param no
      */
     public function reserve_sale_numbers(){
-        $count = (int)$this->input->post('count');
-        if($count<1){
-            $count = 1;
-        }
-        //cap it so a stray request cannot burn a big hole in the company's sequence
-        if($count>50){
-            $count = 50;
-        }
-        $numbers = reserveCompanySaleNumbers($this->session->userdata('company_id'), $count);
+        //exactly one number per bill, taken when the order is placed, so the company
+        //sequence stays 1,2,3... in billing order; a terminal running an older script
+        //that still asks for a buffer gets one number as well
+        $numbers = reserveCompanySaleNumbers($this->session->userdata('company_id'), 1);
         echo json_encode(array('sale_numbers' => $numbers));
     }
      /**
@@ -1708,6 +1703,9 @@ class Sale extends Cl_Controller {
             array($sale_no, $order, $record_meta, $user_id, $outlet_id, $company_id, $now)
         );
         $row = $this->db->get_where('tbl_running_orders', array('sale_no' => $sale_no, 'company_id' => $company_id))->row();
+        //safety net for the invoice sequence: a bill numbered by a terminal that still held an
+        //old buffered number must never let the counter hand that number out a second time
+        bumpCompanySaleCounter($company_id, $sale_no);
         echo json_encode(array('status' => 'success', 'sale_no' => $sale_no, 'version' => $row ? (int)$row->version : 1));
     }
     public function remove_running_order(){

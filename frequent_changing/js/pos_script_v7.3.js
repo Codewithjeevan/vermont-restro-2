@@ -2158,85 +2158,43 @@
           The number comes from one counter per company on the server (see
           reserveCompanySaleNumbers() in my_helper.php), because every counter/terminal of
           the company shares the same sequence and a purely local counter would hand out
-          the same number twice. A bill needs its number before anything is written to
-          IndexedDB or the KOT is printed, so this terminal keeps a small buffer of already
-          reserved numbers - that also keeps the POS billing while the server is
-          unreachable. Numbers left in the buffer of a terminal that is retired simply stay
-          unused, which is the price of being able to bill offline. */
-      const SALE_NO_POOL_SIZE = 20; //numbers kept reserved on this terminal
-      const SALE_NO_POOL_MIN = 10;  //top the buffer back up once it drops to this
-      let sale_no_topping_up = false;
+          the same number twice. Exactly one number is taken at the moment the order is
+          placed, so bills come out 1, 2, 3 ... in the order they are made across every
+          terminal of the company. There is no local buffer any more: buffered numbers
+          left the sequence interleaved between terminals and full of permanent gaps. */
+      //a buffer written by the previous version of this script must never be used again:
+      //its numbers are out of sequence by now
+      localStorage.removeItem("sale_no_pool_" + ($("#company_id_indexdb").val() || "0"));
 
-      function saleNoPoolKey() {
-          return "sale_no_pool_" + ($("#company_id_indexdb").val() || "0");
-      }
-      function readSaleNoPool() {
-          try {
-              let pool = JSON.parse(localStorage[saleNoPoolKey()] || "[]");
-              return Array.isArray(pool) ? pool : [];
-          } catch (e) {
-              return [];
-          }
-      }
-      function writeSaleNoPool(pool) {
-          localStorage[saleNoPoolKey()] = JSON.stringify(pool);
-      }
-      function reserveSaleNumbers(count, is_blocking) {
-          if (count < 1) {
-              return;
-          }
+      function generateSaleNo() {
+          let sale_no = '';
+          //the number is needed right now, before the order is written locally or the KOT
+          //is printed, so this call waits for the server
           $.ajax({
               url: base_url + "Sale/reserve_sale_numbers",
               method: "POST",
               dataType: "json",
-              async: !is_blocking,
+              async: false,
+              timeout: 15000,
               data: {
-                  count: count,
+                  count: 1,
                   csrf_irestoraplus: csrf_value_,
               },
               success: function (response) {
                   if (response && response.sale_numbers && response.sale_numbers.length) {
-                      //re-read here: an order may have consumed a number while this was in flight
-                      writeSaleNoPool(readSaleNoPool().concat(response.sale_numbers));
+                      sale_no = response.sale_numbers[0];
                   }
               },
               error: function () {},
-              complete: function () {
-                  sale_no_topping_up = false;
-              },
           });
-      }
-      function topUpSaleNoPool() {
-          if (sale_no_topping_up) {
-              return;
-          }
-          let pool = readSaleNoPool();
-          if (pool.length > SALE_NO_POOL_MIN) {
-              return;
-          }
-          sale_no_topping_up = true;
-          reserveSaleNumbers(SALE_NO_POOL_SIZE - pool.length, false);
-      }
-      function generateSaleNo() {
-          let pool = readSaleNoPool();
-          if (!pool.length) {
-              //buffer is empty - the number is needed right now, so ask the server and wait
-              sale_no_topping_up = true;
-              reserveSaleNumbers(SALE_NO_POOL_SIZE, true);
-              pool = readSaleNoPool();
-          }
-          if (!pool.length) {
+          if (!sale_no) {
               //no number could be reserved; making one up locally would duplicate an
               //invoice number, so the order has to be stopped instead
               toastr['error']($("#invoice_no_reserve_error").val(), '');
               return '';
           }
-          let sale_no = pool.shift();
-          writeSaleNoPool(pool);
-          topUpSaleNoPool();
           return sale_no;
       }
-      topUpSaleNoPool();
       function getRandomCode(length) {
           let result           = '';
           //this is random character pattern
