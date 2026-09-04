@@ -226,3 +226,29 @@
 #main_part .left_item .main_middle #bottom_absolute{
     padding-bottom: 6px;
 }
+
+/* Running Orders sidebar: loader shown while the shared list is fetched from the server */
+.running_order_loading{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 6px;
+    font-size: 12px;
+    color: #77797a;
+}
+.running_order_spinner{
+    width: 16px;
+    height: 16px;
+    border: 2px solid #cfd9db;
+    border-top-color: #2196f3;
+    border-radius: 50%;
+    animation: running_order_spin 0.8s linear infinite;
+}
+#refresh_order.syncing i{
+    display: inline-block;
+    animation: running_order_spin 0.8s linear infinite;
+}
+@keyframes running_order_spin{
+    to{ transform: rotate(360deg); }
+}

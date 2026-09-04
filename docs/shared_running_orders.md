@@ -73,6 +73,18 @@ Client side, block *"Shared running orders (server mirror)"* right after
   header icon, the synchronous pull XHR on page load and `$data['users']` are
   removed. Closing the register keeps its own open-orders guard.
 
+Loader and robustness (second pass):
+
+- The view renders `#running_order_loading` (spinner + `lang('loading')`)
+  inside the list so it is visible before any JS runs; `setRunningOrderLoading`
+  re-shows it whenever a fetch is in flight and the list is empty, and spins
+  the refresh icon (`#refresh_order.syncing`) during every fetch.
+- Fetch/save/remove requests carry a 20 s timeout and a sync stuck for more
+  than 30 s is released, so one hung request can never freeze the sidebar.
+- `pos_script_v7.3.js` and `custom_pos.css` are included with
+  `?v=filemtime(...)` so terminals cannot keep running a stale cached script
+  after an update.
+
 Known trade-off: last write wins per order, same rule as the kitchen copy. Two
 cashiers editing the same order at the same moment overwrite each other; the
 sidebar itself is consistent within one tick.

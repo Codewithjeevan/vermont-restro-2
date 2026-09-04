@@ -515,7 +515,7 @@ foreach ($notifications as $single_notification){
     <!-- Sweet alert -->
     <script src="<?php echo base_url(); ?>assets/POS/sweetalert2/dist/sweetalert.min.js"></script>
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/POS/sweetalert2/dist/sweetalert.min.css">
-    <link rel="stylesheet" href="<?php echo base_url(); ?>assets/POS/css/custom_pos.css">
+    <link rel="stylesheet" href="<?php echo base_url(); ?>assets/POS/css/custom_pos.css?v=<?php echo filemtime(FCPATH.'assets/POS/css/custom_pos.css'); ?>">
     <!--notification for waiter panel-->
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.css">
     <script type="text/javascript"
@@ -921,7 +921,7 @@ foreach ($notifications as $single_notification){
 
                         <div class="order_details scrollbar-macosx" id="order_details_holder">
                             <!--This variable could not be escaped because this is html content-->
-                        
+                            <div id="running_order_loading" class="running_order_loading"><span class="running_order_spinner"></span><span><?php echo lang('loading'); ?></span></div>
                         </div>
                         <div id="left_side_button_holder_absolute">
                             <?php
@@ -4256,7 +4256,7 @@ foreach ($notifications as $single_notification){
 
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/howler.min.js"></script>
     <script src="<?php echo base_url(); ?>assets/dist/js/feather.min.js"></script>
-    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js"></script>
+    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js?v=<?php echo filemtime(FCPATH.'frequent_changing/js/pos_script_v7.3.js'); ?>"></script>
     <script src="<?php echo base_url(); ?>assets/POS/js/media.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.js"></script>
     <script type="text/javascript">

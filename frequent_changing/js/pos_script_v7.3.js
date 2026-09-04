@@ -583,11 +583,17 @@
                       i++;
                   }
                   cursor.continue();
-              } else if (keep_selection) {
-                  restoreRunningOrderSelection(selected_sale_no);
-                  if ($("#search_running_orders").val()) {
-                      //a sync re-render must not drop the filter the cashier is typing
-                      $("#search_running_orders").trigger("keyup");
+              } else {
+                  if (keep_selection) {
+                      restoreRunningOrderSelection(selected_sale_no);
+                      if ($("#search_running_orders").val()) {
+                          //a sync re-render must not drop the filter the cashier is typing
+                          $("#search_running_orders").trigger("keyup");
+                      }
+                  }
+                  if (running_order_sync_in_progress) {
+                      //list is (re)built while the server fetch is still running: keep the loader visible
+                      setRunningOrderLoading(true);
                   }
               }
           };
@@ -603,6 +609,20 @@
       let running_order_last_sync = 0;
       let running_order_push_pending = {};
       let running_order_removed_recently = {};
+      let running_order_sync_started = 0;
+      //the loader markup is rendered by the view so it shows before any JS runs; keep a copy to re-show it
+      let running_order_loader_html = $("#running_order_loading").length ? $("#running_order_loading")[0].outerHTML : '';
+
+      function setRunningOrderLoading(on){
+          $("#refresh_order").toggleClass("syncing", !!on);
+          if (on) {
+              if (!$("#order_details_holder .single_order").length && !$("#running_order_loading").length && running_order_loader_html) {
+                  $("#order_details_holder").append(running_order_loader_html);
+              }
+          } else {
+              $("#running_order_loading").remove();
+          }
+      }
 
       function runningOrderSaleNo(record){
           try {
@@ -643,6 +663,7 @@
           $.ajax({
               url: base_url + "Sale/save_running_order",
               method: "POST",
+              timeout: 20000,
               dataType: "json",
               data: {
                   order: record.order,
@@ -671,6 +692,7 @@
           $.ajax({
               url: base_url + "Sale/remove_running_order",
               method: "POST",
+              timeout: 20000,
               data: {
                   sale_no: sale_no,
                   csrf_irestoraplus: csrf_value_,
@@ -680,29 +702,39 @@
           });
       }
       function syncRunningOrdersFromServer(force){
-          if (!db || running_order_sync_in_progress) {
+          if (!db) {
               return;
+          }
+          if (running_order_sync_in_progress) {
+              //a fetch that never came back must not block the sidebar forever
+              if ((Date.now() - running_order_sync_started) < 30000) {
+                  return;
+              }
+              running_order_sync_in_progress = false;
           }
           if (!force && (Date.now() - running_order_last_sync) < 5000) {
               return;
           }
           running_order_sync_in_progress = true;
+          running_order_sync_started = Date.now();
+          setRunningOrderLoading(true);
+          let syncDone = function () {
+              running_order_sync_in_progress = false;
+              setRunningOrderLoading(false);
+          };
           $.ajax({
               url: base_url + "Sale/get_running_orders",
               method: "POST",
               dataType: "json",
+              timeout: 20000,
               data: {
                   csrf_irestoraplus: csrf_value_,
               },
               success: function (rows) {
                   running_order_last_sync = Date.now();
-                  reconcileRunningOrders(Array.isArray(rows) ? rows : [], function () {
-                      running_order_sync_in_progress = false;
-                  });
+                  reconcileRunningOrders(Array.isArray(rows) ? rows : [], syncDone);
               },
-              error: function () {
-                  running_order_sync_in_progress = false;
-              },
+              error: syncDone,
           });
       }
       function buildRunningOrderRecordFromServer(row){
@@ -790,7 +822,12 @@
               for (let i = 0; i < unsynced.length; i++) {
                   pushRunningOrderToServer(unsynced[i]);
               }
+              let finished = false;
               let finish = function() {
+                  if (finished) {
+                      return;
+                  }
+                  finished = true;
                   if (changed) {
                       displayOrderList(true);
                   }
@@ -811,8 +848,9 @@
               changed = true;
               addTransaction.oncomplete = finish;
               addTransaction.onerror = finish;
+              addTransaction.onabort = finish;
           };
-          transaction.onerror = function() {
+          transaction.onerror = transaction.onabort = function() {
               if (typeof done === 'function') {
                   done();
               }
