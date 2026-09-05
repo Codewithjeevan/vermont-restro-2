@@ -1725,6 +1725,7 @@ $lang['print_server_instruction_title_5']='4. ¿Cómo imprimir directamente con 
 $lang['Chef']='el chef'; 
 $lang['admin_password_required_to_clear']='Solo el administrador o el gerente pueden borrar el pedido. Ingrese la contraseña de administrador para continuar.';
 $lang['incorrect_admin_password']='Contraseña incorrecta. Inténtelo de nuevo.';
+$lang['admin_password_required_to_remove_item']='Solo el administrador o el gerente pueden eliminar un artículo de un pedido en curso. Ingrese la contraseña de administrador para continuar.';
 
 $lang['register_already_open_msg']='La caja de este mostrador ya esta abierta, ha sido conectado a ella.';
 

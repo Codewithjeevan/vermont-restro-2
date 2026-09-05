@@ -6089,11 +6089,34 @@
               }
             );
           } else {
-            $("#admin_verify_password_input").val("").css("border", "1px solid #B5D6F6");
-            $(".admin_verify_password_error").hide();
-            $("#admin_password_verify_modal").addClass("active");
-            $(".pos__modal__overlay").fadeIn(200);
+            requestAdminPassword($("#admin_verify_password_msg").attr("data-default_msg"), clearPosCartConfirmed);
           }
+        }
+      });
+      /**
+       * Admin-password gate shared by "clear cart" and "remove item from a running
+       * order". Opens #admin_password_verify_modal with the given message and runs
+       * on_success once Sale/verify_admin_password_by_ajax accepts the password.
+       */
+      let admin_verify_pending_action = null;
+      function requestAdminPassword(message, on_success) {
+        admin_verify_pending_action = on_success;
+        $("#admin_verify_password_msg").text(message);
+        $("#admin_verify_password_input").val("").css("border", "1px solid #B5D6F6");
+        $(".admin_verify_password_error").hide();
+        $("#admin_password_verify_modal").addClass("active");
+        $(".pos__modal__overlay").fadeIn(200);
+        setTimeout(function () {
+          $("#admin_verify_password_input").focus();
+        }, 200);
+      }
+      $(document).on("click", "#admin_password_verify_modal .cancel, #admin_password_verify_modal .alertCloseIcon", function () {
+        admin_verify_pending_action = null;
+      });
+      $(document).on("keypress", "#admin_verify_password_input", function (e) {
+        if (e.which == 13) {
+          e.preventDefault();
+          $("#submit_admin_verify_password").trigger("click");
         }
       });
       $(document).on("click", "#submit_admin_verify_password", function (e) {
@@ -6120,7 +6143,11 @@
                 $(".modal").removeClass("inActive");
               }, 1000);
               $(".pos__modal__overlay").fadeOut(300);
-              clearPosCartConfirmed();
+              let action = admin_verify_pending_action;
+              admin_verify_pending_action = null;
+              if (typeof action === "function") {
+                action();
+              }
             } else {
               $(".admin_verify_password_error").show();
               $("#admin_verify_password_input").css("border", "1px solid red");
@@ -15945,11 +15972,22 @@
             toastr['error']((this_item_already_cooked_please_contact_with_admin), '');
             return false;
         } else {
-          //VOID guard: removing an item already sent to the kitchen is Admin/Manager only
-          if ($("#p_qty_" + id).length && Number($("#p_qty_" + id).val()) > 0 && Number($("#can_void_order_item").val()) != 1) {
-              toastr['error']($("#void_only_admin_manager").val(), '');
+          //Item belongs to a running order (loaded from Running Orders, or already sent to the kitchen):
+          //non Admin/Manager users must enter the admin password, same gate as clearing the cart
+          let is_running_order_item = $(this).hasClass("update_kitchen_status") ||
+              ($("#p_qty_" + id).length && Number($("#p_qty_" + id).val()) > 0);
+          if (is_running_order_item && Number($("#can_clear_cart_without_pass").val()) != 1) {
+              let remove_icon = $(this);
+              requestAdminPassword($("#admin_password_required_to_remove_item").val(), function () {
+                  removeCartItemConfirmed(remove_icon, sale_no, waiter_app_status);
+              });
               return false;
           }
+          removeCartItemConfirmed($(this), sale_no, waiter_app_status);
+        }
+    });
+    //actual removal of a cart row (remove_icon = the clicked .removeCartItem element)
+    function removeCartItemConfirmed(remove_icon, sale_no, waiter_app_status) {
           let pos_7 = Number($("#pos_7").val());
           if(waiter_app_status=="Yes"){
               pos_7 = 1;
@@ -15961,23 +15999,22 @@
           let is_self_order = $("#is_self_order").val();
           if(pos_7 || is_self_order=="Yes"){
                   if(sale_no && sale_no!=undefined){
-                      let this_action = $(this);
-                      let food_menu_id = $(this).attr('data-id');;
-                      let qty = $(this).parent().parent().find('.qty_item_custom').text();
+                      let food_menu_id = remove_icon.attr('data-id');
+                      let qty = remove_icon.parent().parent().find('.qty_item_custom').text();
                       $.ajax({
                           url: base_url + "authentication/remove_item_checking",
                           method: "POST",
                           dataType:'json',
                           data:{food_menu_id:food_menu_id,qty:qty,sale_no:sale_no},
                           success: function (response) {
-                                 
+
                           },
                           error: function () {
-  
+
                           },
                       });
                   }
-              $(this)
+              remove_icon
                   .parent()
                   .parent()
                   .parent()
@@ -15987,13 +16024,10 @@
           }else{
               toastr['error']((menu_not_permit_access + "!"), '');
           }
-  
-  
-        }
         setTimeout(function () {
             do_addition_of_item_and_modifiers_price();
         }, 500);
-    });
+    }
     /**
      * Cart rows are redrawn constantly, so the complementary icon cannot get a
      * tippy instance up front - tippy.delegate binds once on body and builds one

@@ -325,6 +325,7 @@ $sms_send_auto = $this->session->userdata('sms_send_auto');
 <input type="hidden" id="can_void_order_item" value="<?php echo canVoidOrderedItem()?1:0; ?>">
 <input type="hidden" id="void_only_admin_manager" value="<?php echo lang('void_only_admin_manager'); ?>">
 <input type="hidden" id="can_clear_cart_without_pass" value="<?php echo canVoidOrderedItem()?1:0; ?>">
+<input type="hidden" id="admin_password_required_to_remove_item" value="<?php echo lang('admin_password_required_to_remove_item'); ?>">
 <input type="hidden" id="can_give_complementary" value="<?php echo canGiveComplementaryItem()?1:0; ?>">
 <input type="hidden" id="complementary_only_admin_manager" value="<?php echo lang('complementary_only_admin_manager'); ?>">
 <input type="hidden" id="mark_as_complementary_lang" value="<?php echo lang('mark_as_complementary'); ?>">

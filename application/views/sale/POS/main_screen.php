@@ -1614,7 +1614,7 @@ foreach ($notifications as $single_notification){
             </a>
         </h1>
         <div class="main-content-wrapper">
-            <p><?php echo lang('admin_password_required_to_clear'); ?></p>
+            <p id="admin_verify_password_msg" data-default_msg="<?php echo lang('admin_password_required_to_clear'); ?>"><?php echo lang('admin_password_required_to_clear'); ?></p>
             <p class="admin_verify_password_error display_none ir_color_red"><?php echo lang('incorrect_admin_password'); ?></p>
             <div>
                 <label for="admin_verify_password_input"><?php echo lang('password'); ?></label>

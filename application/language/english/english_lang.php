@@ -1792,6 +1792,7 @@ $lang['print_server_instruction_title_5']='4. How to print direct with network p
 $lang['Chef']='Chef'; 
 $lang['admin_password_required_to_clear']='Only Admin or Manager can clear the order. Please enter admin password to continue.';
 $lang['incorrect_admin_password']='Incorrect password. Please try again.';
+$lang['admin_password_required_to_remove_item']='Only Admin or Manager can remove an item from a running order. Please enter admin password to continue.';
 
 $lang['register_already_open_msg']='This counter register is already open, you have been connected to it.';
 
