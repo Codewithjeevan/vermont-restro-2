@@ -563,6 +563,8 @@ $user_id = $this->session->userdata('user_id');
                                         <?php echo lang('Add'); ?> <?php echo lang('sale'); ?></a></li>
                                 <li data-access="view-123" class="menu_assign_class" data-menu__cid="8"><a href="<?php echo base_url()?>Sale/sales">
                                         <?php echo lang('List'); ?> <?php echo lang('sale'); ?></a></li>
+                                <li data-access="view-123" class="menu_assign_class" data-menu__cid="8"><a href="<?php echo base_url()?>Sale/runningOrders">
+                                        <?php echo lang('running_order'); ?></a></li>
 
 
                             </ul>
@@ -1040,6 +1042,8 @@ $user_id = $this->session->userdata('user_id');
                                         <?php echo lang('Add'); ?> <?php echo lang('sale'); ?></a></li>
                                 <li data-access="view-123" class="menu_assign_class" data-menu__cid="8"><a href="<?php echo base_url()?>Sale/sales">
                                         <?php echo lang('List'); ?> <?php echo lang('sale'); ?></a></li>
+                                <li data-access="view-123" class="menu_assign_class" data-menu__cid="8"><a href="<?php echo base_url()?>Sale/runningOrders">
+                                        <?php echo lang('running_order'); ?></a></li>
                             </ul>
                         </li>
                         <li class="treeview menu__cidirp_9">

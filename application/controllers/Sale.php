@@ -92,6 +92,70 @@ class Sale extends Cl_Controller {
         $data['main_content'] = $this->load->view('sale/sales', $data, TRUE);
         $this->load->view('userHome', $data);
     }
+    /**
+     * Sale > Running Orders: company wide list of the orders that are still open on the POS.
+     * Reads the tbl_running_orders mirror (source of truth for the POS "Running Orders" sidebar)
+     * and decodes order_content for display. Uses the same permission as List Sale (view-123).
+     */
+    public function runningOrders() {
+        //start check access function
+        $controller = "123";
+        $function = "view";
+        if(!checkAccess($controller,$function)){
+            $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
+            redirect('Authentication/userProfile');
+        }
+        //end check access function
+
+        $company_id = (int)$this->session->userdata('company_id');
+        $this->db->select('ro.id, ro.sale_no, ro.order_content, ro.updated_at, ro.outlet_id, o.outlet_name');
+        $this->db->from('tbl_running_orders ro');
+        $this->db->join('tbl_outlets o', 'o.id = ro.outlet_id', 'left');
+        $this->db->where(array('ro.company_id' => $company_id, 'ro.del_status' => 'Live'));
+        $this->db->order_by('ro.updated_at', 'DESC');
+        $rows = $this->db->get()->result();
+
+        $order_types = array('1' => lang('dine'), '2' => lang('take_away'), '3' => lang('delivery'));
+        $running_orders = array();
+        $outlet_ids = array();
+        foreach ($rows as $row) {
+            $content = json_decode($row->order_content);
+            if (!$content) {
+                $content = new stdClass();
+            }
+            $order = new stdClass();
+            $order->sale_no = $row->sale_no;
+            $order->outlet_name = $row->outlet_name;
+            $order->updated_at = $row->updated_at;
+            $order_type = isset($content->order_type) ? (string)$content->order_type : '';
+            $order->order_type_text = isset($order_types[$order_type]) ? $order_types[$order_type] : $order_type;
+            $order->table_text = !empty($content->orders_table_text) ? $content->orders_table_text : '-';
+            $order->customer_name = isset($content->customer_name) ? trim($content->customer_name) : '';
+            $order->waiter_name = isset($content->waiter_name) ? $content->waiter_name : '';
+            $order->user_name = isset($content->user_name) ? $content->user_name : '';
+            $order->order_time = isset($content->date_time) ? $content->date_time : '';
+            $order->total_payable = isset($content->total_payable) ? $content->total_payable : 0;
+            $order->items = array();
+            if (!empty($content->items) && is_array($content->items)) {
+                foreach ($content->items as $it) {
+                    $item = new stdClass();
+                    $item->name = isset($it->menu_name) ? $it->menu_name : '';
+                    $item->qty = isset($it->qty) ? $it->qty : '';
+                    $item->modifiers = isset($it->modifiers_name) ? trim((string)$it->modifiers_name, ', ') : '';
+                    $item->note = isset($it->item_note) ? (string)$it->item_note : '';
+                    $order->items[] = $item;
+                }
+            }
+            $running_orders[] = $order;
+            $outlet_ids[$row->outlet_id] = true;
+        }
+
+        $data = array();
+        $data['running_orders'] = $running_orders;
+        $data['show_outlet'] = count($outlet_ids) > 1 || isLMni();
+        $data['main_content'] = $this->load->view('sale/runningOrders', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
     public function refund($encrypted_id = "") {
         //start check access function
         $segment_2 = $this->uri->segment(2);

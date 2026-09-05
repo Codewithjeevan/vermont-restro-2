@@ -1725,6 +1725,9 @@ $lang['Chef']='le chef';
 $lang['admin_password_required_to_clear']="Seul l'administrateur ou le directeur peut effacer la commande. Veuillez entrer le mot de passe administrateur pour continuer.";
 $lang['incorrect_admin_password']='Mot de passe incorrect. Veuillez réessayer.';
 $lang['admin_password_required_to_remove_item']="Seul l'administrateur ou le directeur peut supprimer un article d'une commande en cours. Veuillez entrer le mot de passe administrateur pour continuer.";
+$lang['last_updated']='Dernière mise à jour';
+$lang['item_list']='Articles';
+$lang['refresh']='Actualiser';
 
 $lang['register_already_open_msg']="La caisse de ce comptoir est deja ouverte, vous y avez ete connecte.";
 
