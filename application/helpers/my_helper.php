@@ -3541,6 +3541,22 @@ function getStaffMealPercentage(){
     return $percentage;
 }
 /**
+ * Is the POS on-screen numpad (touch keypad) turned on for this company?
+ * Mainly for single-screen / touch-only terminals, so it is off by default.
+ * A missing column means the migration has not been applied yet - treat that
+ * as off, which is exactly how the POS behaved before the feature existed.
+ * @access public
+ * @return boolean
+ * @param no
+ */
+function isNumpadEnabled(){
+    $company_info = getCompanyInfo();
+    if(!isset($company_info->is_numpad_enable)){
+        return FALSE;
+    }
+    return (int)$company_info->is_numpad_enable === 1;
+}
+/**
  * When ordered quantity is reduced (VOID), put the cancelled units back into stock.
  * Stock = purchases - tbl_sale_consumptions_of_menus(+modifiers), so refilling means
  * reducing the consumption already recorded for this sale. Mirrors the consumption

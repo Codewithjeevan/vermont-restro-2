@@ -134,6 +134,8 @@ class Setting extends Cl_Controller {
                     $staff_meal_percentage = 100;
                 }
                 $outlet_info['staff_meal_percentage'] = $staff_meal_percentage;
+                //on-screen numpad for touch-only POS terminals, off unless explicitly turned on
+                $outlet_info['is_numpad_enable'] = $this->input->post('is_numpad_enable') == "1" ? 1 : 0;
                 $outlet_info['decimals_separator'] = htmlspecialcharscustom($this->input->post('decimals_separator'));
                 $outlet_info['thousands_separator'] = htmlspecialcharscustom($this->input->post('thousands_separator'));
                 $outlet_info['default_order_type_delivery_p'] = htmlspecialcharscustom($this->input->post('default_order_type_delivery_p'));

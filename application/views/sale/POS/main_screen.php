@@ -522,6 +522,26 @@ foreach ($notifications as $single_notification){
         src="<?php echo base_url(); ?>assets/bower_components/select2/dist/js/select2.full.min.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/calculator.js"></script>
 
+    <?php if(isNumpadEnabled()): ?>
+    <!-- Numpad: on-screen keypad for the amount inputs (.numpad_input).
+         Off unless Settings -> On-screen Numpad (POS) is set to Yes for this
+         company, so a keyboard terminal never pays for the extra js/css. -->
+    <script src="<?php echo base_url(); ?>assets/bower_components/numpad/jquery.numpad.js"></script>
+    <link rel="stylesheet" href="<?php echo base_url(); ?>assets/bower_components/numpad/jquery.numpad.css">
+    <style>
+        /* the numpad ships no button styling of its own, and its theme.css
+           carries no .nmpd rules at all - only styles that clash with the POS */
+        .nmpd-overlay {position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, .45);}
+        .nmpd-grid {width: 260px; border-collapse: separate; border-spacing: 4px; border-radius: 4px; box-shadow: 0 2px 12px rgba(0, 0, 0, .4);}
+        .nmpd-grid td {padding: 0;}
+        .nmpd-grid button {width: 100%; min-height: 48px; font-size: 20px; border: 0; border-radius: 3px; background: #fff; color: #333; cursor: pointer;}
+        .nmpd-grid button.done {background: #28a745; color: #fff;}
+        .nmpd-grid button.cancel {background: #dc3545; color: #fff;}
+        .nmpd-grid button.del, .nmpd-grid button.clear {background: #e6e6e6;}
+        input.nmpd-display {width: 100%; min-height: 44px; padding: 4px 8px; font-size: 22px; border: 0; border-radius: 3px;}
+    </style>
+    <?php endif; ?>
+
     <!--for delivery_partner-->
     <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/delivery_partner.css">
     <link href="<?php echo base_url(); ?>frequent_changing/notify/toastr.css" rel="stylesheet" type="text/css" />
@@ -1861,7 +1881,7 @@ foreach ($notifications as $single_notification){
                                 class="fal fa-question-circle tooltip_modifier"></i></p><input type="text" name=""
                                                                                                onfocus="select();"
                         <?php echo isset($waiter_app_status) && $waiter_app_status=="Yes"?"readonly":'' ?>
-                                                                                               id="modal_discount"  class="<?php echo isset($is_discount) && $is_discount=="Yes"?"numpad_input_":'' ?>" placeholder="<?php echo lang('amt_or_p'); ?>" />
+                                                                                               id="modal_discount"  class="numpad_input" placeholder="<?php echo lang('amt_or_p'); ?>" />
                 </div>
                 <div class="section4 fix"><?php echo lang('total'); ?>&nbsp;&nbsp;&nbsp;
                     <span id="modal_total_price">0</span>
@@ -3163,7 +3183,7 @@ foreach ($notifications as $single_notification){
             <div class="main-content-wrapper">
                 <div>
                     <label for="discount_val"><?php echo lang('value'); ?></label>
-                    <input type="text" class="special_textbox integerchk" placeholder="<?php echo lang('flat_amount'); ?>"
+                    <input type="text" class="special_textbox integerchk numpad_input" placeholder="<?php echo lang('flat_amount'); ?>"
                         id="sub_total_discount_finalize" />
 
                     <span class="ir_display_none" id="sub_total_discount_amount"></span>
@@ -3309,7 +3329,7 @@ foreach ($notifications as $single_notification){
                                 <div class="top-layer">
                                     <div class="input-field cash_div">
                                         <p class="label set_no_access"><?php echo lang('given_amount'); ?></p>
-                                        <input type="text" placeholder="<?php echo lang('given_amount'); ?>" onfocus="select();" class="add_customer_modal_input set_no_access" id="finalize_given_amount_input">
+                                        <input type="text" placeholder="<?php echo lang('given_amount'); ?>" onfocus="select();" class="add_customer_modal_input set_no_access numpad_input" id="finalize_given_amount_input">
                                     </div>
                                     <div class="input-field cash_div">
                                         <p class="label set_no_access"><?php echo lang('change_amount'); ?></p>
@@ -3317,7 +3337,7 @@ foreach ($notifications as $single_notification){
                                     </div>
                                     <div class="input-field">
                                         <p class="label set_no_access amount_txt"><?php echo lang('amount'); ?></p>
-                                        <input type="text" placeholder="<?php echo lang('amount'); ?>" onfocus="select();" class="add_customer_modal_input set_no_access" id="finalize_amount_input">
+                                        <input type="text" placeholder="<?php echo lang('amount'); ?>" onfocus="select();" class="add_customer_modal_input set_no_access numpad_input" id="finalize_amount_input">
                                     </div>
                                     <div class="btns">
                                         <button class="add-btn start_animation set_no_access" id="add_payment"><b><?php echo lang('add'); ?></b></button>
@@ -4259,6 +4279,54 @@ foreach ($notifications as $single_notification){
     <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js?v=<?php echo filemtime(FCPATH.'frequent_changing/js/pos_script_v7.3.js'); ?>"></script>
     <script src="<?php echo base_url(); ?>assets/POS/js/media.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.js"></script>
+
+    <?php if(isNumpadEnabled()): ?>
+    <!-- Numpad: bind the on-screen keypad to every .numpad_input field.
+         Wrapped in an IIFE because a second jQuery is loaded further down this
+         page - this keeps the instance that actually carries $.fn.numpad. -->
+    <script type="text/javascript">
+    (function ($) {
+        $(function () {
+            var $numpad_inputs = $('.numpad_input');
+            if (!$.fn.numpad || !$numpad_inputs.length) {
+                return;
+            }
+
+            var precision = parseInt($('#ir_precision').val(), 10);
+            if (isNaN(precision)) {
+                precision = 2;
+            }
+
+            $numpad_inputs.numpad({
+                // custom event, so the plugin does not bind its own click handler.
+                // We open the keypad ourselves and can honour the readonly flag the
+                // POS puts on these fields (discount permission, waiter app, ...).
+                openOnEvent: 'nmpdopen',
+                decimalSeparator: '.',
+                hidePlusMinusButton: true,
+                hideDecimalButton: precision < 1
+            });
+
+            // the plugin makes every target readonly on init - drop it again so the
+            // POS stays in charge of which fields are editable and typing still works
+            $numpad_inputs.removeAttr('readonly');
+
+            $(document).on('click', '.numpad_input', function () {
+                if ($(this).is('[readonly]') || $(this).is(':disabled')) {
+                    return;
+                }
+                $(this).trigger('nmpdopen');
+            });
+
+            // the keypad only fires 'change' when it closes, but the POS recalculates
+            // due / change / discount on 'keyup'
+            $(document).on('change', '.numpad_input', function () {
+                $(this).trigger('keyup');
+            });
+        });
+    })(jQuery);
+    </script>
+    <?php endif; ?>
     <script type="text/javascript">
     /*This variable could not be escaped because this is building object*/
     window.customers = [<?php echo ($customer_objects);?>]
