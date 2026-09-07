@@ -593,6 +593,27 @@ if ($this->session->flashdata('exception')) {
                                 <?php } ?>
                             </div>
 
+                            <div class="mb-3 col-sm-12 col-md-4 col-lg-3">
+                                <div class="form-group">
+                                    <label><?php echo lang('numpad_enable'); ?> <div class="tooltip_custom">
+                                            <i data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo lang('numpad_enable_tooltip'); ?>" data-feather="help-circle"></i>
+                                        </div></label>
+                                    <select tabindex="14" class="form-control select2" name="is_numpad_enable" id="is_numpad_enable">
+                                        <option
+                                            <?= !isset($outlet_information->is_numpad_enable) || $outlet_information->is_numpad_enable == "0" ? 'selected' : '' ?>
+                                                value="0"><?php echo lang('no'); ?></option>
+                                        <option
+                                            <?= isset($outlet_information->is_numpad_enable) && $outlet_information->is_numpad_enable == "1" ? 'selected' : '' ?>
+                                                value="1"><?php echo lang('yes'); ?></option>
+                                    </select>
+                                </div>
+                                <?php if (form_error('is_numpad_enable')) { ?>
+                                    <div class="callout callout-danger my-2">
+                                        <?php echo form_error('is_numpad_enable'); ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
+
 
                             <div class="mb-3 col-sm-12 col-md-4 col-lg-3">
                                 <div class="form-group">

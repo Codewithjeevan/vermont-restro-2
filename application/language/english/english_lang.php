@@ -1152,6 +1152,8 @@ $lang['complementary_only_admin_manager'] = 'Only Admin or Manager can mark an i
 $lang['staff_meal'] = 'Staff Meal';
 $lang['staff_meal_percentage'] = 'Staff Meal Discount (%)';
 $lang['staff_meal_percentage_tooltip'] = 'Discount percentage given when an order is settled as a Staff Meal. Keep it 0 to hide the Staff Meal button in POS.';
+$lang['numpad_enable'] = 'On-screen Numpad (POS)';
+$lang['numpad_enable_tooltip'] = 'Show a touch keypad when the cashier taps an amount or discount field in POS. Meant for single-screen / touch-only terminals. Keep it No to type with the keyboard only.';
 $lang['staff_meal_discount'] = 'Staff Meal Discount';
 $lang['payable_after_discount'] = 'Payable After Discount';
 $lang['staff_meal_confirm_msg'] = 'This order will be settled as a Staff Meal. The discount below will be applied, no invoice will be printed.';
@@ -1501,6 +1503,7 @@ $lang['backup_running_order_msg_2']='order(s) in your running order, please save
 $lang['who_will_pull_the_order']='Who will pull the order(s)';
 $lang['logout_action']='Logout Alert';
 $lang['without_submit']='Without Submit';
+$lang['running_order_removed_elsewhere']='Order %s was settled or cancelled from another terminal, the cart has been cleared.';
 $lang['Delivery']='Delivery';
 $lang['inv_delivery_charge']='Delivery Charge';
 $lang['alert_running_order']='Are you sure, you want to pull all running orders from local?';
@@ -1791,6 +1794,10 @@ $lang['print_server_instruction_title_5']='4. How to print direct with network p
 $lang['Chef']='Chef'; 
 $lang['admin_password_required_to_clear']='Only Admin or Manager can clear the order. Please enter admin password to continue.';
 $lang['incorrect_admin_password']='Incorrect password. Please try again.';
+$lang['admin_password_required_to_remove_item']='Only Admin or Manager can remove an item from a running order. Please enter admin password to continue.';
+$lang['last_updated']='Last Updated';
+$lang['item_list']='Items';
+$lang['refresh']='Refresh';
 
 $lang['register_already_open_msg']='This counter register is already open, you have been connected to it.';
 

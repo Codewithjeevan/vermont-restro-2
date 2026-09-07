@@ -184,3 +184,71 @@
     border-radius: 3px;
     vertical-align: middle;
 }
+
+/* ------------------------------------------------------------------
+   POS layout: keep the cart action row (Cancel / Draft / Quick Invoice /
+   Place Order) on screen at every viewport size.
+   The stock CSS sizes .main_center with fixed calc(100vh - N) values that
+   do not add up to the real header + toolbar heights, so the bottom row
+   ended a few pixels below the fold on every desktop size. The columns
+   are flex containers now: the cart list takes whatever height is left,
+   the action row always keeps its own height.
+   ------------------------------------------------------------------ */
+#main-wrapper-content{
+    display: flex;
+    flex-direction: column;
+}
+#main_part{
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+}
+#main_part .left_item{
+    height: 100%;
+    min-height: 0;
+}
+#main_part .left_item .main_middle{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+#main_part .left_item .main_middle .main_top,
+#main_part .left_item .main_middle .waiter_customer,
+#main_part .left_item .main_middle #bottom_absolute{
+    flex: 0 0 auto;
+}
+#main_part .left_item .main_middle .main_center{
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+}
+#main_part .left_item .main_middle #bottom_absolute{
+    padding-bottom: 6px;
+}
+
+/* Running Orders sidebar: loader shown while the shared list is fetched from the server */
+.running_order_loading{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 6px;
+    font-size: 12px;
+    color: #77797a;
+}
+.running_order_spinner{
+    width: 16px;
+    height: 16px;
+    border: 2px solid #cfd9db;
+    border-top-color: #2196f3;
+    border-radius: 50%;
+    animation: running_order_spin 0.8s linear infinite;
+}
+#refresh_order.syncing i{
+    display: inline-block;
+    animation: running_order_spin 0.8s linear infinite;
+}
+@keyframes running_order_spin{
+    to{ transform: rotate(360deg); }
+}

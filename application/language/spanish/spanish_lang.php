@@ -1083,6 +1083,8 @@ $lang['complementary_only_admin_manager'] = 'Solo el administrador o el gerente 
 $lang['staff_meal'] = 'Comida del Personal';
 $lang['staff_meal_percentage'] = 'Descuento Comida del Personal (%)';
 $lang['staff_meal_percentage_tooltip'] = 'Porcentaje de descuento aplicado cuando un pedido se cierra como Comida del Personal. Deje 0 para ocultar el botón en el POS.';
+$lang['numpad_enable'] = 'Teclado numérico en pantalla (POS)';
+$lang['numpad_enable_tooltip'] = 'Mostrar un teclado numérico táctil cuando el cajero toca un campo de importe o descuento en el POS. Pensado para terminales de una sola pantalla / solo táctiles. Deje No para escribir solo con el teclado.';
 $lang['staff_meal_discount'] = 'Descuento Comida del Personal';
 $lang['payable_after_discount'] = 'A Pagar Después del Descuento';
 $lang['staff_meal_confirm_msg'] = 'Este pedido se cerrará como Comida del Personal. Se aplicará el descuento indicado y no se imprimirá factura.';
@@ -1442,6 +1444,7 @@ $lang['backup_running_order_msg_2']='pedido(s) en su orden de ejecución, guárd
 $lang['who_will_pull_the_order']='Quién sacará la(s) orden(es)';
 $lang['logout_action']='Alerta de cierre de sesión';
 $lang['without_submit']='Sin Enviar';
+$lang['running_order_removed_elsewhere']='El pedido %s fue cobrado o cancelado desde otro terminal, el carrito se ha vaciado.';
 $lang['Delivery']='Entrega';
 $lang['inv_delivery_charge']='Gastos de envío';
 $lang['alert_running_order']='¿Está seguro de que desea extraer todas las órdenes en ejecución de local?';
@@ -1724,6 +1727,10 @@ $lang['print_server_instruction_title_5']='4. ¿Cómo imprimir directamente con 
 $lang['Chef']='el chef'; 
 $lang['admin_password_required_to_clear']='Solo el administrador o el gerente pueden borrar el pedido. Ingrese la contraseña de administrador para continuar.';
 $lang['incorrect_admin_password']='Contraseña incorrecta. Inténtelo de nuevo.';
+$lang['admin_password_required_to_remove_item']='Solo el administrador o el gerente pueden eliminar un artículo de un pedido en curso. Ingrese la contraseña de administrador para continuar.';
+$lang['last_updated']='Última actualización';
+$lang['item_list']='Artículos';
+$lang['refresh']='Actualizar';
 
 $lang['register_already_open_msg']='La caja de este mostrador ya esta abierta, ha sido conectado a ella.';
 

@@ -1083,6 +1083,8 @@ $lang['complementary_only_admin_manager'] = "Seul l'administrateur ou le directe
 $lang['staff_meal'] = 'Repas du Personnel';
 $lang['staff_meal_percentage'] = 'Remise Repas du Personnel (%)';
 $lang['staff_meal_percentage_tooltip'] = "Pourcentage de remise accordé lorsqu'une commande est réglée comme Repas du Personnel. Laissez 0 pour masquer le bouton dans le POS.";
+$lang['numpad_enable'] = "Pavé numérique à l'écran (POS)";
+$lang['numpad_enable_tooltip'] = "Afficher un pavé numérique tactile lorsque le caissier touche un champ de montant ou de remise dans le POS. Prévu pour les terminaux à écran unique / tactiles uniquement. Laissez Non pour saisir uniquement au clavier.";
 $lang['staff_meal_discount'] = 'Remise Repas du Personnel';
 $lang['payable_after_discount'] = 'À Payer Après Remise';
 $lang['staff_meal_confirm_msg'] = "Cette commande sera réglée comme Repas du Personnel. La remise ci-dessous sera appliquée, aucune facture ne sera imprimée.";
@@ -1440,6 +1442,7 @@ $lang['backup_running_order_msg_2']='commande(s) dans votre commande en cours, v
 $lang['who_will_pull_the_order']='Qui tirera la ou les commandes';
 $lang['logout_action']='Alerte de déconnexion';
 $lang['without_submit']='Sans Soumettre';
+$lang['running_order_removed_elsewhere']='La commande %s a été réglée ou annulée depuis un autre terminal, le panier a été vidé.';
 $lang['Delivery']='Livraison';
 $lang['inv_delivery_charge']='Frais de livraison';
 $lang['alert_running_order']='Êtes-vous sûr de vouloir extraire toutes les commandes en cours du local ?';
@@ -1723,6 +1726,10 @@ $lang['print_server_instruction_title_5']='4. Comment imprimer directement avec 
 $lang['Chef']='le chef'; 
 $lang['admin_password_required_to_clear']="Seul l'administrateur ou le directeur peut effacer la commande. Veuillez entrer le mot de passe administrateur pour continuer.";
 $lang['incorrect_admin_password']='Mot de passe incorrect. Veuillez réessayer.';
+$lang['admin_password_required_to_remove_item']="Seul l'administrateur ou le directeur peut supprimer un article d'une commande en cours. Veuillez entrer le mot de passe administrateur pour continuer.";
+$lang['last_updated']='Dernière mise à jour';
+$lang['item_list']='Articles';
+$lang['refresh']='Actualiser';
 
 $lang['register_already_open_msg']="La caisse de ce comptoir est deja ouverte, vous y avez ete connecte.";
 

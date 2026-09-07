@@ -515,12 +515,32 @@ foreach ($notifications as $single_notification){
     <!-- Sweet alert -->
     <script src="<?php echo base_url(); ?>assets/POS/sweetalert2/dist/sweetalert.min.js"></script>
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/POS/sweetalert2/dist/sweetalert.min.css">
-    <link rel="stylesheet" href="<?php echo base_url(); ?>assets/POS/css/custom_pos.css">
+    <link rel="stylesheet" href="<?php echo base_url(); ?>assets/POS/css/custom_pos.css?v=<?php echo filemtime(FCPATH.'assets/POS/css/custom_pos.css'); ?>">
     <!--notification for waiter panel-->
     <link rel="stylesheet" href="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.css">
     <script type="text/javascript"
         src="<?php echo base_url(); ?>assets/bower_components/select2/dist/js/select2.full.min.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/calculator.js"></script>
+
+    <?php if(isNumpadEnabled()): ?>
+    <!-- Numpad: on-screen keypad for the amount inputs (.numpad_input).
+         Off unless Settings -> On-screen Numpad (POS) is set to Yes for this
+         company, so a keyboard terminal never pays for the extra js/css. -->
+    <script src="<?php echo base_url(); ?>assets/bower_components/numpad/jquery.numpad.js"></script>
+    <link rel="stylesheet" href="<?php echo base_url(); ?>assets/bower_components/numpad/jquery.numpad.css">
+    <style>
+        /* the numpad ships no button styling of its own, and its theme.css
+           carries no .nmpd rules at all - only styles that clash with the POS */
+        .nmpd-overlay {position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, .45);}
+        .nmpd-grid {width: 260px; border-collapse: separate; border-spacing: 4px; border-radius: 4px; box-shadow: 0 2px 12px rgba(0, 0, 0, .4);}
+        .nmpd-grid td {padding: 0;}
+        .nmpd-grid button {width: 100%; min-height: 48px; font-size: 20px; border: 0; border-radius: 3px; background: #fff; color: #333; cursor: pointer;}
+        .nmpd-grid button.done {background: #28a745; color: #fff;}
+        .nmpd-grid button.cancel {background: #dc3545; color: #fff;}
+        .nmpd-grid button.del, .nmpd-grid button.clear {background: #e6e6e6;}
+        input.nmpd-display {width: 100%; min-height: 44px; padding: 4px 8px; font-size: 22px; border: 0; border-radius: 3px;}
+    </style>
+    <?php endif; ?>
 
     <!--for delivery_partner-->
     <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/delivery_partner.css">
@@ -769,9 +789,6 @@ foreach ($notifications as $single_notification){
                 </ul>
                 <ul class="btn__menu">
                     <li class="<?php echo escape_output($is_self_order_class) ?>">
-                        <a href="#" id="pull_running_order" data-tippy-content="Pull your running orders" class="header_menu_icon bg__red"><i class="fas fa-exchange-alt"></i></a>
-                    </li>
-                    <li class="<?php echo escape_output($is_self_order_class) ?>">
                         <a href="#" id="sync_online" data-tippy-content="(0)<?php echo lang('sales_currently_in_local'); ?>" class="header_menu_icon bg__green"><i class="fas fa-sync"></i></a>
                     </li>
                     <li class="<?php echo escape_output($is_self_order_class) ?>">
@@ -924,7 +941,7 @@ foreach ($notifications as $single_notification){
 
                         <div class="order_details scrollbar-macosx" id="order_details_holder">
                             <!--This variable could not be escaped because this is html content-->
-                        
+                            <div id="running_order_loading" class="running_order_loading"><span class="running_order_spinner"></span><span><?php echo lang('loading'); ?></span></div>
                         </div>
                         <div id="left_side_button_holder_absolute">
                             <?php
@@ -1617,7 +1634,7 @@ foreach ($notifications as $single_notification){
             </a>
         </h1>
         <div class="main-content-wrapper">
-            <p><?php echo lang('admin_password_required_to_clear'); ?></p>
+            <p id="admin_verify_password_msg" data-default_msg="<?php echo lang('admin_password_required_to_clear'); ?>"><?php echo lang('admin_password_required_to_clear'); ?></p>
             <p class="admin_verify_password_error display_none ir_color_red"><?php echo lang('incorrect_admin_password'); ?></p>
             <div>
                 <label for="admin_verify_password_input"><?php echo lang('password'); ?></label>
@@ -1667,36 +1684,6 @@ foreach ($notifications as $single_notification){
         <div class="btn__box staff_meal_btn_box">
             <button type="button" id="submit_staff_meal"><i class="fas fa-utensils"></i> <?php echo lang('submit'); ?></button>
             <button type="button" class="cancel"><?php echo lang('cancel'); ?></button>
-        </div>
-    </div>
-</div>
-    <div id="running_order_save_modal" class="modal">
-    <!-- Modal content -->
-    <div class="modal-content">
-
-        <h1 id="modal_item_name"><?php echo lang('logout_action'); ?>
-        </h1>
-        <div class="main-content-wrapper">
-            <small class="running_order_alert"><?php echo lang('backup_running_order_msg_1'); ?> <b class="total_running_order">0</b> <?php echo lang('backup_running_order_msg_2'); ?></small>
-             <br>
-            <div class="custom_div_margin">
-                <label for="charge_type"><?php echo lang('who_will_pull_the_order'); ?></label>
-                <select id="pull_id" class="select2">
-                    <?php
-                        $user_id = $this->session->userdata('user_id');
-                        foreach ($users as $value):
-                    ?>
-                        <option <?php echo $value->id==$user_id?'selected':''?> value="<?php echo escape_output($value->id)?>"><?php echo escape_output($value->full_name)?> - <?php echo escape_output($value->designation)?></option>
-                    <?php
-                    endforeach;
-                    ?>
-                </select>
-            </div>
-        </div>
-        <div class="btn__box">
-            <button type="button" class="running_order_submit"><?php echo lang('submit'); ?></button>
-            <button type="button" class="without_submit"><?php echo lang('without_submit'); ?></button>
-            <button type="button" class="cancel_running_order_save_modal"><?php echo lang('cancel'); ?></button>
         </div>
     </div>
 </div>
@@ -1894,7 +1881,7 @@ foreach ($notifications as $single_notification){
                                 class="fal fa-question-circle tooltip_modifier"></i></p><input type="text" name=""
                                                                                                onfocus="select();"
                         <?php echo isset($waiter_app_status) && $waiter_app_status=="Yes"?"readonly":'' ?>
-                                                                                               id="modal_discount"  class="<?php echo isset($is_discount) && $is_discount=="Yes"?"numpad_input_":'' ?>" placeholder="<?php echo lang('amt_or_p'); ?>" />
+                                                                                               id="modal_discount"  class="numpad_input" placeholder="<?php echo lang('amt_or_p'); ?>" />
                 </div>
                 <div class="section4 fix"><?php echo lang('total'); ?>&nbsp;&nbsp;&nbsp;
                     <span id="modal_total_price">0</span>
@@ -3196,7 +3183,7 @@ foreach ($notifications as $single_notification){
             <div class="main-content-wrapper">
                 <div>
                     <label for="discount_val"><?php echo lang('value'); ?></label>
-                    <input type="text" class="special_textbox integerchk" placeholder="<?php echo lang('flat_amount'); ?>"
+                    <input type="text" class="special_textbox integerchk numpad_input" placeholder="<?php echo lang('flat_amount'); ?>"
                         id="sub_total_discount_finalize" />
 
                     <span class="ir_display_none" id="sub_total_discount_amount"></span>
@@ -3342,7 +3329,7 @@ foreach ($notifications as $single_notification){
                                 <div class="top-layer">
                                     <div class="input-field cash_div">
                                         <p class="label set_no_access"><?php echo lang('given_amount'); ?></p>
-                                        <input type="text" placeholder="<?php echo lang('given_amount'); ?>" onfocus="select();" class="add_customer_modal_input set_no_access" id="finalize_given_amount_input">
+                                        <input type="text" placeholder="<?php echo lang('given_amount'); ?>" onfocus="select();" class="add_customer_modal_input set_no_access numpad_input" id="finalize_given_amount_input">
                                     </div>
                                     <div class="input-field cash_div">
                                         <p class="label set_no_access"><?php echo lang('change_amount'); ?></p>
@@ -3350,7 +3337,7 @@ foreach ($notifications as $single_notification){
                                     </div>
                                     <div class="input-field">
                                         <p class="label set_no_access amount_txt"><?php echo lang('amount'); ?></p>
-                                        <input type="text" placeholder="<?php echo lang('amount'); ?>" onfocus="select();" class="add_customer_modal_input set_no_access" id="finalize_amount_input">
+                                        <input type="text" placeholder="<?php echo lang('amount'); ?>" onfocus="select();" class="add_customer_modal_input set_no_access numpad_input" id="finalize_amount_input">
                                     </div>
                                     <div class="btns">
                                         <button class="add-btn start_animation set_no_access" id="add_payment"><b><?php echo lang('add'); ?></b></button>
@@ -4289,9 +4276,57 @@ foreach ($notifications as $single_notification){
 
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/howler.min.js"></script>
     <script src="<?php echo base_url(); ?>assets/dist/js/feather.min.js"></script>
-    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js"></script>
+    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js?v=<?php echo filemtime(FCPATH.'frequent_changing/js/pos_script_v7.3.js'); ?>"></script>
     <script src="<?php echo base_url(); ?>assets/POS/js/media.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.js"></script>
+
+    <?php if(isNumpadEnabled()): ?>
+    <!-- Numpad: bind the on-screen keypad to every .numpad_input field.
+         Wrapped in an IIFE because a second jQuery is loaded further down this
+         page - this keeps the instance that actually carries $.fn.numpad. -->
+    <script type="text/javascript">
+    (function ($) {
+        $(function () {
+            var $numpad_inputs = $('.numpad_input');
+            if (!$.fn.numpad || !$numpad_inputs.length) {
+                return;
+            }
+
+            var precision = parseInt($('#ir_precision').val(), 10);
+            if (isNaN(precision)) {
+                precision = 2;
+            }
+
+            $numpad_inputs.numpad({
+                // custom event, so the plugin does not bind its own click handler.
+                // We open the keypad ourselves and can honour the readonly flag the
+                // POS puts on these fields (discount permission, waiter app, ...).
+                openOnEvent: 'nmpdopen',
+                decimalSeparator: '.',
+                hidePlusMinusButton: true,
+                hideDecimalButton: precision < 1
+            });
+
+            // the plugin makes every target readonly on init - drop it again so the
+            // POS stays in charge of which fields are editable and typing still works
+            $numpad_inputs.removeAttr('readonly');
+
+            $(document).on('click', '.numpad_input', function () {
+                if ($(this).is('[readonly]') || $(this).is(':disabled')) {
+                    return;
+                }
+                $(this).trigger('nmpdopen');
+            });
+
+            // the keypad only fires 'change' when it closes, but the POS recalculates
+            // due / change / discount on 'keyup'
+            $(document).on('change', '.numpad_input', function () {
+                $(this).trigger('keyup');
+            });
+        });
+    })(jQuery);
+    </script>
+    <?php endif; ?>
     <script type="text/javascript">
     /*This variable could not be escaped because this is building object*/
     window.customers = [<?php echo ($customer_objects);?>]

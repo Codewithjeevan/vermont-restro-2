@@ -92,6 +92,70 @@ class Sale extends Cl_Controller {
         $data['main_content'] = $this->load->view('sale/sales', $data, TRUE);
         $this->load->view('userHome', $data);
     }
+    /**
+     * Sale > Running Orders: company wide list of the orders that are still open on the POS.
+     * Reads the tbl_running_orders mirror (source of truth for the POS "Running Orders" sidebar)
+     * and decodes order_content for display. Uses the same permission as List Sale (view-123).
+     */
+    public function runningOrders() {
+        //start check access function
+        $controller = "123";
+        $function = "view";
+        if(!checkAccess($controller,$function)){
+            $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
+            redirect('Authentication/userProfile');
+        }
+        //end check access function
+
+        $company_id = (int)$this->session->userdata('company_id');
+        $this->db->select('ro.id, ro.sale_no, ro.order_content, ro.updated_at, ro.outlet_id, o.outlet_name');
+        $this->db->from('tbl_running_orders ro');
+        $this->db->join('tbl_outlets o', 'o.id = ro.outlet_id', 'left');
+        $this->db->where(array('ro.company_id' => $company_id, 'ro.del_status' => 'Live'));
+        $this->db->order_by('ro.updated_at', 'DESC');
+        $rows = $this->db->get()->result();
+
+        $order_types = array('1' => lang('dine'), '2' => lang('take_away'), '3' => lang('delivery'));
+        $running_orders = array();
+        $outlet_ids = array();
+        foreach ($rows as $row) {
+            $content = json_decode($row->order_content);
+            if (!$content) {
+                $content = new stdClass();
+            }
+            $order = new stdClass();
+            $order->sale_no = $row->sale_no;
+            $order->outlet_name = $row->outlet_name;
+            $order->updated_at = $row->updated_at;
+            $order_type = isset($content->order_type) ? (string)$content->order_type : '';
+            $order->order_type_text = isset($order_types[$order_type]) ? $order_types[$order_type] : $order_type;
+            $order->table_text = !empty($content->orders_table_text) ? $content->orders_table_text : '-';
+            $order->customer_name = isset($content->customer_name) ? trim($content->customer_name) : '';
+            $order->waiter_name = isset($content->waiter_name) ? $content->waiter_name : '';
+            $order->user_name = isset($content->user_name) ? $content->user_name : '';
+            $order->order_time = isset($content->date_time) ? $content->date_time : '';
+            $order->total_payable = isset($content->total_payable) ? $content->total_payable : 0;
+            $order->items = array();
+            if (!empty($content->items) && is_array($content->items)) {
+                foreach ($content->items as $it) {
+                    $item = new stdClass();
+                    $item->name = isset($it->menu_name) ? $it->menu_name : '';
+                    $item->qty = isset($it->qty) ? $it->qty : '';
+                    $item->modifiers = isset($it->modifiers_name) ? trim((string)$it->modifiers_name, ', ') : '';
+                    $item->note = isset($it->item_note) ? (string)$it->item_note : '';
+                    $order->items[] = $item;
+                }
+            }
+            $running_orders[] = $order;
+            $outlet_ids[$row->outlet_id] = true;
+        }
+
+        $data = array();
+        $data['running_orders'] = $running_orders;
+        $data['show_outlet'] = count($outlet_ids) > 1 || isLMni();
+        $data['main_content'] = $this->load->view('sale/runningOrders', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
     public function refund($encrypted_id = "") {
         //start check access function
         $segment_2 = $this->uri->segment(2);
@@ -491,7 +555,6 @@ class Sale extends Cl_Controller {
         $data['menu_modifiers'] = $this->Sale_model->getAllMenuModifiers();
         $data['waiters'] = $this->Sale_model->getWaitersForThisCompany($company_id,'tbl_users');
         $data['MultipleCurrencies'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_multiple_currencies");
-        $data['users'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_users");
         $data['outlet_information'] = $this->Common_model->getDataById($outlet_id, "tbl_outlets");
         $data['payment_methods'] = $this->Sale_model->getAllPaymentMethods();
         $data['payment_method_finalize'] = $this->Sale_model->getAllPaymentMethodsFinalize();
@@ -1132,15 +1195,10 @@ class Sale extends Cl_Controller {
      * @param no
      */
     public function reserve_sale_numbers(){
-        $count = (int)$this->input->post('count');
-        if($count<1){
-            $count = 1;
-        }
-        //cap it so a stray request cannot burn a big hole in the company's sequence
-        if($count>50){
-            $count = 50;
-        }
-        $numbers = reserveCompanySaleNumbers($this->session->userdata('company_id'), $count);
+        //exactly one number per bill, taken when the order is placed, so the company
+        //sequence stays 1,2,3... in billing order; a terminal running an older script
+        //that still asks for a buffer gets one number as well
+        $numbers = reserveCompanySaleNumbers($this->session->userdata('company_id'), 1);
         echo json_encode(array('sale_numbers' => $numbers));
     }
      /**
@@ -1664,6 +1722,68 @@ class Sale extends Cl_Controller {
         $user_id = $this->session->userdata('user_id');
         $data = getRunningOrders($user_id);
         echo json_encode($data);
+    }
+    /**
+     * Shared running orders.
+     * Every POS terminal of an outlet mirrors its running orders in
+     * tbl_running_orders (one row per sale_no per company) and pulls the
+     * outlet's list back every few seconds, so every user of the company
+     * sees the same "Running Orders" sidebar on any terminal.
+     * Schema: Update/shared_running_orders_migration.sql
+     */
+    public function get_running_orders(){
+        if(!$this->session->userdata('user_id')){
+            echo json_encode(array());
+            return;
+        }
+        $outlet_id = (int)$this->session->userdata('outlet_id');
+        $company_id = (int)$this->session->userdata('company_id');
+        $this->db->select('id, sale_no, user_id, order_content, record_meta, version');
+        $this->db->from('tbl_running_orders');
+        $this->db->where(array('outlet_id' => $outlet_id, 'company_id' => $company_id, 'del_status' => 'Live'));
+        $this->db->order_by('id', 'ASC');
+        echo json_encode($this->db->get()->result());
+    }
+    public function save_running_order(){
+        /*order and record_meta could not be escaped because they are json data*/
+        $order = $this->input->post('order');
+        $record_meta = $this->input->post('record_meta');
+        $order_details = json_decode($order);
+        if(!$this->session->userdata('user_id') || !$order_details || empty($order_details->sale_no)){
+            echo json_encode(array('status' => 'error'));
+            return;
+        }
+        $sale_no = (string)$order_details->sale_no;
+        $user_id = (int)$this->session->userdata('user_id');
+        $outlet_id = (int)$this->session->userdata('outlet_id');
+        $company_id = (int)$this->session->userdata('company_id');
+        $now = date('Y-m-d H:i:s');
+        //atomic upsert on (sale_no, company_id); version grows on every save so other terminals can spot the change
+        $this->db->query(
+            "INSERT INTO tbl_running_orders (sale_no, order_content, record_meta, user_id, outlet_id, company_id, version, updated_at, del_status)
+             VALUES (?, ?, ?, ?, ?, ?, 1, ?, 'Live')
+             ON DUPLICATE KEY UPDATE order_content = VALUES(order_content), record_meta = VALUES(record_meta),
+                 outlet_id = VALUES(outlet_id), version = version + 1, updated_at = VALUES(updated_at), del_status = 'Live'",
+            array($sale_no, $order, $record_meta, $user_id, $outlet_id, $company_id, $now)
+        );
+        $row = $this->db->get_where('tbl_running_orders', array('sale_no' => $sale_no, 'company_id' => $company_id))->row();
+        //safety net for the invoice sequence: a bill numbered by a terminal that still held an
+        //old buffered number must never let the counter hand that number out a second time
+        bumpCompanySaleCounter($company_id, $sale_no);
+        echo json_encode(array('status' => 'success', 'sale_no' => $sale_no, 'version' => $row ? (int)$row->version : 1));
+    }
+    public function remove_running_order(){
+        $sale_no = escape_output($this->input->post('sale_no'));
+        if(!$this->session->userdata('user_id') || !$sale_no){
+            echo json_encode(array('status' => 'error'));
+            return;
+        }
+        $company_id = (int)$this->session->userdata('company_id');
+        $this->db->delete('tbl_running_orders', array('sale_no' => $sale_no, 'company_id' => $company_id));
+        //table bookings of the order live server-side as well; the terminal that settles
+        //the order may never have had them in its own browser store
+        $this->db->delete('tbl_running_order_tables', array('sale_no' => $sale_no));
+        echo json_encode(array('status' => 'success'));
     }
     public function add_cancel_audit_report(){
         /*This variable could not be escaped because this is json data*/

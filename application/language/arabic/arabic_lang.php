@@ -1080,6 +1080,8 @@ $lang['complementary_only_admin_manager'] = 'فقط المشرف أو المدي
 $lang['staff_meal'] = 'وجبة الموظفين';
 $lang['staff_meal_percentage'] = 'خصم وجبة الموظفين (%)';
 $lang['staff_meal_percentage_tooltip'] = 'نسبة الخصم عند إغلاق الطلب كوجبة موظفين. اتركها 0 لإخفاء الزر في نقطة البيع.';
+$lang['numpad_enable'] = 'لوحة أرقام على الشاشة (نقطة البيع)';
+$lang['numpad_enable_tooltip'] = 'إظهار لوحة أرقام باللمس عند الضغط على حقل المبلغ أو الخصم في نقطة البيع. مخصصة للأجهزة ذات الشاشة الواحدة أو التي تعمل باللمس فقط. اتركها "لا" للكتابة بلوحة المفاتيح فقط.';
 $lang['staff_meal_discount'] = 'خصم وجبة الموظفين';
 $lang['payable_after_discount'] = 'المستحق بعد الخصم';
 $lang['staff_meal_confirm_msg'] = 'سيتم إغلاق هذا الطلب كوجبة موظفين. سيتم تطبيق الخصم أدناه ولن تتم طباعة فاتورة.';
@@ -1439,6 +1441,7 @@ $lang['backup_running_order_msg_2']='الطلب (الطلبات) في أمر ا�
 $lang['who_will_pull_the_order']='من سيقوم بسحب الأمر (الأوامر)';
 $lang['logout_action']='تنبيه الخروج';
 $lang['without_submit']='بدون إرسال';
+$lang['running_order_removed_elsewhere']='تمت تسوية الطلب %s أو إلغاؤه من جهاز آخر، وتم إفراغ السلة.';
 $lang['Delivery']='توصيل';
 $lang['inv_delivery_charge']='رسوم التوصيل';
 $lang['alert_running_order']='هل أنت متأكد أنك تريد سحب جميع الأوامر الجارية من المحلية؟';
@@ -1723,6 +1726,10 @@ $lang['Chef']='الشيف';
 
 $lang['admin_password_required_to_clear']='يمكن فقط للمشرف أو المدير مسح الطلب. يرجى إدخال كلمة مرور المشرف للمتابعة.';
 $lang['incorrect_admin_password']='كلمة مرور غير صحيحة. حاول مرة أخرى.';
+$lang['admin_password_required_to_remove_item']='يمكن فقط للمشرف أو المدير حذف صنف من طلب جارٍ. يرجى إدخال كلمة مرور المشرف للمتابعة.';
+$lang['last_updated']='آخر تحديث';
+$lang['item_list']='الأصناف';
+$lang['refresh']='تحديث';
 
 $lang['register_already_open_msg']='سجل هذا الكاونتر مفتوح بالفعل، وقد تم ربطك به.';
 

@@ -504,6 +504,25 @@ function reserveCompanySaleNumbers($company_id, $count = 1) {
     }
     return $numbers;
 }
+/**
+ * Never let the company counter fall behind a number that is already in use.
+ * Called when a bill reaches the server: if its INV-<company>-<n> is above last_no
+ * (a terminal still on an old buffered number, or a counter that was re-seeded), the
+ * counter jumps to n so that number can never be handed out again.
+ *
+ * @access public
+ * @return void
+ * @param int, string
+ */
+function bumpCompanySaleCounter($company_id, $sale_no) {
+    $CI = & get_instance();
+    $company_id = (int)$company_id;
+    if($company_id<=0 || !preg_match('/^INV-'.$company_id.'-(\d+)/', (string)$sale_no, $m)){
+        return;
+    }
+    $n = (int)$m[1];
+    $CI->db->query("INSERT INTO tbl_sale_no_counters (company_id, last_no) VALUES ($company_id, $n) ON DUPLICATE KEY UPDATE last_no = GREATEST(last_no, $n)");
+}
 function getSaleDetailsByCode($code) {
     $CI = & get_instance();
     $CI->db->select('*');
@@ -3520,6 +3539,22 @@ function getStaffMealPercentage(){
         $percentage = 100;
     }
     return $percentage;
+}
+/**
+ * Is the POS on-screen numpad (touch keypad) turned on for this company?
+ * Mainly for single-screen / touch-only terminals, so it is off by default.
+ * A missing column means the migration has not been applied yet - treat that
+ * as off, which is exactly how the POS behaved before the feature existed.
+ * @access public
+ * @return boolean
+ * @param no
+ */
+function isNumpadEnabled(){
+    $company_info = getCompanyInfo();
+    if(!isset($company_info->is_numpad_enable)){
+        return FALSE;
+    }
+    return (int)$company_info->is_numpad_enable === 1;
 }
 /**
  * When ordered quantity is reduced (VOID), put the cancelled units back into stock.

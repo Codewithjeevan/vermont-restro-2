@@ -238,6 +238,7 @@
       request.onsuccess = function(event) {
           db = request.result;
           displayOrderList();
+          syncRunningOrdersFromServer(true);
       }
   
       request.onerror = function(event) {
@@ -457,6 +458,7 @@
                           let kot_print_tmp = (orderData.kot_print);
                           orderData.kot_print = 2;
                           cursor.update(orderData);
+                          pushRunningOrderToServer(orderData);
   
                           let promiseResolution = {order:orderData.order,kot_print :kot_print_tmp};
                           resolve(promiseResolution);
@@ -518,7 +520,11 @@
           })
       }
       /**************Get Sales Information from indexedDB End *******************/
-      function displayOrderList(){
+      function displayOrderList(keep_selection){
+          //shared list: every running order of this outlet is shown, whoever punched it.
+          //keep_selection re-applies the highlighted order after a background sync re-render
+          //so settle / modify keep working on it.
+          let selected_sale_no = keep_selection ? $("#order_details_holder .single_order[data-selected=selected]").find(".running_order_order_number").text() : '';
           $("#order_details_holder").html('')
           let order_list_left = '';
           let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
@@ -535,10 +541,8 @@
   
                   let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
                   let outlet_id = Number(orderData.outlet_id);
-                  let user_id = Number(orderData.user_id);
-                  let user_id_login = Number($("#user_id").val());
-  
-                  if(user_id_login==user_id){
+
+                  if(!outlet_id || outlet_id===outlet_id_indexdb){
                       if (i == 1) {
                           order_list_left += '<div data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix txt_5" data-selected="unselected"  order_type="'+rowData.order_type+'"  data-total_payable="'+rowData.total_payable+'" data-table_id="'+hidden_table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sales_id + '">';
                       } else {
@@ -579,9 +583,311 @@
                       i++;
                   }
                   cursor.continue();
+              } else {
+                  if (keep_selection) {
+                      restoreRunningOrderSelection(selected_sale_no);
+                      if ($("#search_running_orders").val()) {
+                          //a sync re-render must not drop the filter the cashier is typing
+                          $("#search_running_orders").trigger("keyup");
+                      }
+                  }
+                  if (running_order_sync_in_progress) {
+                      //list is (re)built while the server fetch is still running: keep the loader visible
+                      setRunningOrderLoading(true);
+                  }
               }
           };
       }
+      /**************Shared running orders (server mirror) *******************/
+      //The "Running Orders" sidebar is shared by every user of the company: each terminal
+      //pushes its running orders to tbl_running_orders on every change and pulls the
+      //outlet's list back (on load, on the refresh icon, on every 7s tick, on tab focus).
+      //IndexedDB stays the working copy the rest of the POS reads; the server row is the
+      //source of truth and `server_version` on the local record says which server version
+      //the local copy mirrors (undefined = never confirmed by the server).
+      let running_order_sync_in_progress = false;
+      let running_order_last_sync = 0;
+      let running_order_push_pending = {};
+      let running_order_removed_recently = {};
+      let running_order_sync_started = 0;
+      //the loader markup is rendered by the view so it shows before any JS runs; keep a copy to re-show it
+      let running_order_loader_html = $("#running_order_loading").length ? $("#running_order_loading")[0].outerHTML : '';
+
+      function setRunningOrderLoading(on){
+          $("#refresh_order").toggleClass("syncing", !!on);
+          if (on) {
+              if (!$("#order_details_holder .single_order").length && !$("#running_order_loading").length && running_order_loader_html) {
+                  $("#order_details_holder").append(running_order_loader_html);
+              }
+          } else {
+              $("#running_order_loading").remove();
+          }
+      }
+
+      function runningOrderSaleNo(record){
+          try {
+              let order = JSON.parse(record.order);
+              return order && order.sale_no ? String(order.sale_no) : '';
+          } catch (e) {
+              return '';
+          }
+      }
+      function runningOrderRecordMeta(record){
+          let meta = {};
+          for (let key in record) {
+              if (key !== 'order' && key !== 'sales_id' && key !== 'server_version') {
+                  meta[key] = record[key];
+              }
+          }
+          return meta;
+      }
+      function setRunningOrderServerVersion(sales_id, version){
+          let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
+          let getRequest = objectStore.get(Number(sales_id));
+          getRequest.onsuccess = function() {
+              let record = getRequest.result;
+              if (record) {
+                  record.server_version = Number(version);
+                  objectStore.put(record);
+              }
+          };
+      }
+      function pushRunningOrderToServer(record){
+          if (!record || !record.order) {
+              return;
+          }
+          let sales_id = record.sales_id;
+          if (sales_id) {
+              running_order_push_pending[sales_id] = true;
+          }
+          $.ajax({
+              url: base_url + "Sale/save_running_order",
+              method: "POST",
+              timeout: 20000,
+              dataType: "json",
+              data: {
+                  order: record.order,
+                  record_meta: JSON.stringify(runningOrderRecordMeta(record)),
+                  csrf_irestoraplus: csrf_value_,
+              },
+              success: function (response) {
+                  if (response && response.status === 'success' && sales_id) {
+                      setRunningOrderServerVersion(sales_id, response.version);
+                  }
+              },
+              error: function () {},
+              complete: function () {
+                  if (sales_id) {
+                      delete running_order_push_pending[sales_id];
+                  }
+              },
+          });
+      }
+      function removeRunningOrderFromServer(sale_no){
+          if (!sale_no) {
+              return;
+          }
+          //remembered so a sync that overlaps the delete does not re-add the order for a tick
+          running_order_removed_recently[sale_no] = Date.now();
+          $.ajax({
+              url: base_url + "Sale/remove_running_order",
+              method: "POST",
+              timeout: 20000,
+              data: {
+                  sale_no: sale_no,
+                  csrf_irestoraplus: csrf_value_,
+              },
+              success: function () {},
+              error: function () {},
+          });
+      }
+      function syncRunningOrdersFromServer(force){
+          if (!db) {
+              return;
+          }
+          if (running_order_sync_in_progress) {
+              //a fetch that never came back must not block the sidebar forever
+              if ((Date.now() - running_order_sync_started) < 30000) {
+                  return;
+              }
+              running_order_sync_in_progress = false;
+          }
+          if (!force && (Date.now() - running_order_last_sync) < 5000) {
+              return;
+          }
+          running_order_sync_in_progress = true;
+          running_order_sync_started = Date.now();
+          setRunningOrderLoading(true);
+          let syncDone = function () {
+              running_order_sync_in_progress = false;
+              setRunningOrderLoading(false);
+          };
+          $.ajax({
+              url: base_url + "Sale/get_running_orders",
+              method: "POST",
+              dataType: "json",
+              timeout: 20000,
+              data: {
+                  csrf_irestoraplus: csrf_value_,
+              },
+              success: function (rows) {
+                  running_order_last_sync = Date.now();
+                  reconcileRunningOrders(Array.isArray(rows) ? rows : [], syncDone);
+              },
+              error: syncDone,
+          });
+      }
+      function buildRunningOrderRecordFromServer(row){
+          let meta = null;
+          try {
+              meta = row.record_meta ? JSON.parse(row.record_meta) : null;
+          } catch (e) {
+              meta = null;
+          }
+          //rows written by the old per-user "pull" flow carry no meta: treat them as printed running orders
+          let record = meta && typeof meta === 'object' ? meta : {
+              sale_id: 0,
+              online_push: 0,
+              user_id: Number(row.user_id),
+              added_offline_status: 2,
+              kot_print: 2,
+              hidden_table_id: 0,
+              pre_or_post_payment: pre_or_post_payment,
+              is_running: 1,
+              is_invoice: 1,
+          };
+          delete record.sales_id;
+          record.order = row.order_content;
+          record.outlet_id = Number($("#outlet_id_indexdb").val());
+          record.company_id = Number($("#company_id_indexdb").val());
+          record.server_version = Number(row.version);
+          return record;
+      }
+      function reconcileRunningOrders(server_rows, done){
+          let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
+          let server_by_sale_no = {};
+          for (let i = 0; i < server_rows.length; i++) {
+              server_by_sale_no[String(server_rows[i].sale_no)] = server_rows[i];
+          }
+          let seen = {};
+          let changed = false;
+          let removed = [];
+          let unsynced = [];
+          let transaction = db.transaction(['sales'], "readwrite");
+          let objectStore = transaction.objectStore("sales");
+          objectStore.openCursor().onsuccess = function(event) {
+              let cursor = event.target.result;
+              if (!cursor) {
+                  return;
+              }
+              let local = cursor.value;
+              let local_outlet_id = Number(local.outlet_id);
+              let sale_no = runningOrderSaleNo(local);
+              if ((local_outlet_id && local_outlet_id !== outlet_id_indexdb) || !sale_no) {
+                  //another outlet's order or an unreadable record: not ours to touch
+                  cursor.continue();
+                  return;
+              }
+              let remote = server_by_sale_no[sale_no];
+              if (remote) {
+                  seen[sale_no] = true;
+                  if (Number(local.server_version) !== Number(remote.version)) {
+                      //changed on another terminal (or never confirmed here): the server copy wins
+                      let fresh = buildRunningOrderRecordFromServer(remote);
+                      fresh.sales_id = local.sales_id;
+                      if (fresh.order !== local.order) {
+                          changed = true;
+                      }
+                      cursor.update(fresh);
+                  }
+              } else if (local.server_version !== undefined) {
+                  //was on the server before and is gone now: settled or cancelled from another terminal
+                  removed.push({sales_id: local.sales_id, sale_no: sale_no});
+                  cursor.delete();
+                  changed = true;
+              } else if (!running_order_push_pending[local.sales_id]) {
+                  //never reached the server (offline, or punched before this feature): send it now
+                  unsynced.push(local);
+              }
+              cursor.continue();
+          };
+          transaction.oncomplete = function() {
+              let to_add = [];
+              for (let sale_no in server_by_sale_no) {
+                  let removed_at = running_order_removed_recently[sale_no];
+                  if (!seen[sale_no] && !(removed_at && (Date.now() - removed_at) < 20000)) {
+                      to_add.push(buildRunningOrderRecordFromServer(server_by_sale_no[sale_no]));
+                  }
+              }
+              for (let i = 0; i < unsynced.length; i++) {
+                  pushRunningOrderToServer(unsynced[i]);
+              }
+              let finished = false;
+              let finish = function() {
+                  if (finished) {
+                      return;
+                  }
+                  finished = true;
+                  if (changed) {
+                      displayOrderList(true);
+                  }
+                  handleRunningOrdersRemovedElsewhere(removed);
+                  if (typeof done === 'function') {
+                      done();
+                  }
+              };
+              if (!to_add.length) {
+                  finish();
+                  return;
+              }
+              let addTransaction = db.transaction(['sales'], "readwrite");
+              let addStore = addTransaction.objectStore("sales");
+              for (let i = 0; i < to_add.length; i++) {
+                  addStore.add(to_add[i]);
+              }
+              changed = true;
+              addTransaction.oncomplete = finish;
+              addTransaction.onerror = finish;
+              addTransaction.onabort = finish;
+          };
+          transaction.onerror = transaction.onabort = function() {
+              if (typeof done === 'function') {
+                  done();
+              }
+          };
+      }
+      function handleRunningOrdersRemovedElsewhere(removed){
+          if (!removed.length) {
+              return;
+          }
+          let update_sale_id = Number($("#update_sale_id").val());
+          let removed_msg = $("#running_order_removed_elsewhere").val();
+          for (let i = 0; i < removed.length; i++) {
+              removeOrderTablesBySaleId(removed[i].sales_id, '');
+              if (update_sale_id && update_sale_id === Number(removed[i].sales_id)) {
+                  //the order being edited in the cart no longer exists: drop the stale cart
+                  $("#update_sale_id").val("");
+                  clearPosCartConfirmed();
+                  toastr['info'](removed_msg.replace('%s', removed[i].sale_no), '');
+              }
+          }
+      }
+      function restoreRunningOrderSelection(sale_no){
+          if (!sale_no) {
+              return;
+          }
+          $("#order_details_holder .single_order").each(function() {
+              if ($(this).find(".running_order_order_number").text() === sale_no) {
+                  $(this).attr("data-selected", "selected").css("background-color", "#ecf0f1");
+              }
+          });
+      }
+      $(document).on("visibilitychange", function () {
+          if (document.visibilityState === "visible") {
+              syncRunningOrdersFromServer(true);
+          }
+      });
+      /**************Shared running orders End *******************/
       function removePulledTableData(sale_no){
           $.ajax({
               url: base_url + "Sale/removePulledTableData",
@@ -748,12 +1054,14 @@
               if (cursor) {
                   if(cursor.value.sales_id == sale_id) {
                       if(pre_or_post_payment==1){
+                          removeRunningOrderFromServer(runningOrderSaleNo(cursor.value));
                           let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
                       }else{
                           let updateData = cursor.value;
                           updateData.is_invoice = 2;
                           let request = cursor.update(updateData);
-  
+                          pushRunningOrderToServer(updateData);
+
                           displayOrderList();
                       }
                       request.onsuccess = function(event) {}
@@ -1044,6 +1352,7 @@
                           updateData.online_push = 0;
                           updateData.is_offline_system = ($("#is_offline_system").val());
                           let request = cursor.update(updateData);
+                          pushRunningOrderToServer(updateData);
                           //populated html conent
                           populateRemainingTable();
                           request.onsuccess = function() {
@@ -1248,6 +1557,7 @@
                           updateData.hidden_table_id = table_id;
                           updateData.is_offline_system = ($("#is_offline_system").val());
                           let request = cursor.update(updateData);
+                          pushRunningOrderToServer(updateData);
                           request.onsuccess = function() {
   
                           }
@@ -1848,85 +2158,43 @@
           The number comes from one counter per company on the server (see
           reserveCompanySaleNumbers() in my_helper.php), because every counter/terminal of
           the company shares the same sequence and a purely local counter would hand out
-          the same number twice. A bill needs its number before anything is written to
-          IndexedDB or the KOT is printed, so this terminal keeps a small buffer of already
-          reserved numbers - that also keeps the POS billing while the server is
-          unreachable. Numbers left in the buffer of a terminal that is retired simply stay
-          unused, which is the price of being able to bill offline. */
-      const SALE_NO_POOL_SIZE = 20; //numbers kept reserved on this terminal
-      const SALE_NO_POOL_MIN = 10;  //top the buffer back up once it drops to this
-      let sale_no_topping_up = false;
+          the same number twice. Exactly one number is taken at the moment the order is
+          placed, so bills come out 1, 2, 3 ... in the order they are made across every
+          terminal of the company. There is no local buffer any more: buffered numbers
+          left the sequence interleaved between terminals and full of permanent gaps. */
+      //a buffer written by the previous version of this script must never be used again:
+      //its numbers are out of sequence by now
+      localStorage.removeItem("sale_no_pool_" + ($("#company_id_indexdb").val() || "0"));
 
-      function saleNoPoolKey() {
-          return "sale_no_pool_" + ($("#company_id_indexdb").val() || "0");
-      }
-      function readSaleNoPool() {
-          try {
-              let pool = JSON.parse(localStorage[saleNoPoolKey()] || "[]");
-              return Array.isArray(pool) ? pool : [];
-          } catch (e) {
-              return [];
-          }
-      }
-      function writeSaleNoPool(pool) {
-          localStorage[saleNoPoolKey()] = JSON.stringify(pool);
-      }
-      function reserveSaleNumbers(count, is_blocking) {
-          if (count < 1) {
-              return;
-          }
+      function generateSaleNo() {
+          let sale_no = '';
+          //the number is needed right now, before the order is written locally or the KOT
+          //is printed, so this call waits for the server
           $.ajax({
               url: base_url + "Sale/reserve_sale_numbers",
               method: "POST",
               dataType: "json",
-              async: !is_blocking,
+              async: false,
+              timeout: 15000,
               data: {
-                  count: count,
+                  count: 1,
                   csrf_irestoraplus: csrf_value_,
               },
               success: function (response) {
                   if (response && response.sale_numbers && response.sale_numbers.length) {
-                      //re-read here: an order may have consumed a number while this was in flight
-                      writeSaleNoPool(readSaleNoPool().concat(response.sale_numbers));
+                      sale_no = response.sale_numbers[0];
                   }
               },
               error: function () {},
-              complete: function () {
-                  sale_no_topping_up = false;
-              },
           });
-      }
-      function topUpSaleNoPool() {
-          if (sale_no_topping_up) {
-              return;
-          }
-          let pool = readSaleNoPool();
-          if (pool.length > SALE_NO_POOL_MIN) {
-              return;
-          }
-          sale_no_topping_up = true;
-          reserveSaleNumbers(SALE_NO_POOL_SIZE - pool.length, false);
-      }
-      function generateSaleNo() {
-          let pool = readSaleNoPool();
-          if (!pool.length) {
-              //buffer is empty - the number is needed right now, so ask the server and wait
-              sale_no_topping_up = true;
-              reserveSaleNumbers(SALE_NO_POOL_SIZE, true);
-              pool = readSaleNoPool();
-          }
-          if (!pool.length) {
+          if (!sale_no) {
               //no number could be reserved; making one up locally would duplicate an
               //invoice number, so the order has to be stopped instead
               toastr['error']($("#invoice_no_reserve_error").val(), '');
               return '';
           }
-          let sale_no = pool.shift();
-          writeSaleNoPool(pool);
-          topUpSaleNoPool();
           return sale_no;
       }
-      topUpSaleNoPool();
       function getRandomCode(length) {
           let result           = '';
           //this is random character pattern
@@ -5821,11 +6089,34 @@
               }
             );
           } else {
-            $("#admin_verify_password_input").val("").css("border", "1px solid #B5D6F6");
-            $(".admin_verify_password_error").hide();
-            $("#admin_password_verify_modal").addClass("active");
-            $(".pos__modal__overlay").fadeIn(200);
+            requestAdminPassword($("#admin_verify_password_msg").attr("data-default_msg"), clearPosCartConfirmed);
           }
+        }
+      });
+      /**
+       * Admin-password gate shared by "clear cart" and "remove item from a running
+       * order". Opens #admin_password_verify_modal with the given message and runs
+       * on_success once Sale/verify_admin_password_by_ajax accepts the password.
+       */
+      let admin_verify_pending_action = null;
+      function requestAdminPassword(message, on_success) {
+        admin_verify_pending_action = on_success;
+        $("#admin_verify_password_msg").text(message);
+        $("#admin_verify_password_input").val("").css("border", "1px solid #B5D6F6");
+        $(".admin_verify_password_error").hide();
+        $("#admin_password_verify_modal").addClass("active");
+        $(".pos__modal__overlay").fadeIn(200);
+        setTimeout(function () {
+          $("#admin_verify_password_input").focus();
+        }, 200);
+      }
+      $(document).on("click", "#admin_password_verify_modal .cancel, #admin_password_verify_modal .alertCloseIcon", function () {
+        admin_verify_pending_action = null;
+      });
+      $(document).on("keypress", "#admin_verify_password_input", function (e) {
+        if (e.which == 13) {
+          e.preventDefault();
+          $("#submit_admin_verify_password").trigger("click");
         }
       });
       $(document).on("click", "#submit_admin_verify_password", function (e) {
@@ -5852,7 +6143,11 @@
                 $(".modal").removeClass("inActive");
               }, 1000);
               $(".pos__modal__overlay").fadeOut(300);
-              clearPosCartConfirmed();
+              let action = admin_verify_pending_action;
+              admin_verify_pending_action = null;
+              if (typeof action === "function") {
+                action();
+              }
             } else {
               $(".admin_verify_password_error").show();
               $("#admin_verify_password_input").css("border", "1px solid red");
@@ -6577,6 +6872,7 @@
                   if(cursor.value.sales_id == sale_id) {
                       let orderData = cursor.value;
                       let orderInfo = orderData.order;
+                      removeRunningOrderFromServer(runningOrderSaleNo(orderData));
                       let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
                       request.onsuccess = function(event) {
                           //update log
@@ -6610,6 +6906,7 @@
                   if(cursor.value.sales_id == sale_id) {
                       let orderData = cursor.value;
                       let orderInfo = orderData.order;
+                      removeRunningOrderFromServer(runningOrderSaleNo(orderData));
                       let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
                       request.onsuccess = function(event) {
                           $("#order_" + sale_id).remove();
@@ -6648,6 +6945,7 @@
                   if(sale_no_local == sale_no) {
                       let orderData = cursor.value;
                       let orderInfo = orderData.order;
+                      removeRunningOrderFromServer(sale_no_local);
                       let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
                       request.onsuccess = function(event) {
                           removeOrderTablesBySaleId(cursor.value.sales_id,'');
@@ -6671,6 +6969,7 @@
                       let updateData = cursor.value;
                       updateData.order = content_html;
                       let request = cursor.update(updateData);
+                      pushRunningOrderToServer(updateData);
   
                       request.onsuccess = function() {
                           displayOrderList();
@@ -6690,7 +6989,7 @@
                   let sale_no_local = rowData.sale_no;
   
                   if(sale_no_local == sale_no) {
-  
+                      removeRunningOrderFromServer(sale_no_local);
                       let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
                       request.onsuccess = function(event) {
                           displayOrderList();
@@ -7119,6 +7418,7 @@
   
                                 if (cursor) {
                                     if(cursor.value.sales_id == sale_id) {
+                                        removeRunningOrderFromServer(runningOrderSaleNo(cursor.value));
                                         let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
                                         request.onsuccess = function(event) {
                                             $("#order_" + sale_id).remove();
@@ -9740,6 +10040,7 @@
   
                         if (cursor) {
                             if(cursor.value.sales_id == sale_id) {
+                                removeRunningOrderFromServer(runningOrderSaleNo(cursor.value));
                                 let request = db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
                                 request.onsuccess = function(event) {
                                     $("#order_" + sale_id).remove();
@@ -10242,6 +10543,7 @@
       $(document).on("click", "#refresh_order", function (e) {
         $(this).css("color", "#495057");
         $("#stop_refresh_for_search").html("yes");
+        syncRunningOrdersFromServer(true);
         set_new_orders_to_view_for_interval();
       });
       $(document).on(
@@ -12249,6 +12551,8 @@
                 };
                 let request = db.transaction("sales", "readwrite").objectStore("sales").add(order_info);
                 request.onsuccess = function(event) {
+                    order_info.sales_id = request.result;
+                    pushRunningOrderToServer(order_info);
                     $("#open_invoice_date_hidden").val(getCurrentDate());
                     if (waiter_app_status == "Yes") {
                         $("#show_running_order").click();
@@ -12313,6 +12617,7 @@
                             }
                             updateData.is_offline_system = ($("#is_offline_system").val());
                             let request = cursor.update(updateData);
+                            pushRunningOrderToServer(updateData);
   
                             request.onsuccess = function() {
                             }
@@ -14804,6 +15109,7 @@
           if(checkInternetConnection()){
               new_notification_interval();
           }
+          syncRunningOrdersFromServer();
         refresh_orders_left();
       }, 7000);
     }
@@ -15645,181 +15951,6 @@
       }, 1000);
       $(".pos__modal__overlay").fadeOut(300);
     });
-    // Hide Modal When Click to close Icon
-    $("body").on("click", ".without_submit", function () {
-      $(this)
-        .parent()
-        .parent()
-        .parent()
-        .removeClass("active")
-        .addClass("inActive");
-      setTimeout(function () {
-        $(".modal").removeClass("inActive");
-          window.location.href = base_url+"authentication/logout";
-      }, 1000);
-      $(".pos__modal__overlay2").fadeOut(300);
-    });
-  
-      function pull_running_order(){
-          let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-          let sales_id = '';
-          objectStore.openCursor(null, 'prev').onsuccess = function(event) {
-              let cursor = event.target.result;
-              if (cursor) {
-                  let orderData = cursor.value;
-                  let orderInfo = orderData.order;
-                  let rowData = JSON.parse(orderInfo);
-                  let sales_id = cursor.value.sales_id;
-  
-                  let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
-                  let user_id = Number($("#pull_id").val());
-                  let outlet_id = Number(orderData.outlet_id);
-  
-                  if(outlet_id_indexdb===outlet_id){
-                      $.ajax({
-                          url: base_url + "Sale/pull_running_order",
-                          method: "POST",
-                          dataType:"json",
-                          async:false,
-                          data: {
-                              order: orderInfo,
-                              user_id:user_id,
-                              csrf_irestoraplus: csrf_value_,
-                          },
-                          success: function (response) {
-                              if(response){
-                                  db.transaction("sales", "readwrite").objectStore("sales").delete(cursor.key);
-                                  $("#refresh_order").click();
-                              }
-                          },
-                          error: function () {
-  
-                          },
-                      });
-                  }
-                  cursor.continue();
-              }
-          };
-      }
-      function pull_running_order_checker(){
-          $.ajax({
-              url: base_url + "Sale/pull_running_order_server",
-              method: "POST",
-              async:false,
-              data: {
-                  csrf_irestoraplus: csrf_value_,
-              },
-              success: function (response) {
-                  if(response){
-                      let orders = JSON.parse(response);
-                      if(!orders.length){
-                         $("#pull_running_order").hide();
-                      }
-                  }
-              },
-              error: function () {
-  
-              },
-          });
-      }
-      pull_running_order_checker();
-      function removePulledData(id){
-          $.ajax({
-              url: base_url + "Sale/removePulledData",
-              method: "POST",
-              data: {
-                  id: id,
-                  csrf_irestoraplus: csrf_value_,
-              },
-              success: function (response) {
-  
-              }
-          });
-      }
-    // Hide Modal When Click to close Icon
-    $("body").on("click", ".running_order_submit", function () {
-        let alert_running_order = $("#alert_running_order").val();
-        let this_action  = $(this);
-        swal(
-            {
-                title: warning + "!",
-                text: alert_running_order,
-                confirmButtonColor: "#3c8dbc",
-                confirmButtonText: ok,
-                showCancelButton: true,
-            },
-            function () {
-                pull_running_order();
-                this_action.parent()
-                    .parent()
-                    .parent()
-                    .removeClass("active")
-                    .addClass("inActive");
-                setTimeout(function () {
-                    $(".modal").removeClass("inActive");
-                    window.location.href = base_url+"authentication/logout";
-                }, 2000);
-                $(".pos__modal__overlay2").fadeOut(300);
-            }
-        );
-    });
-    // Hide Modal When Click to close Icon
-      function pull_running_order_server(){
-          $.ajax({
-              url: base_url + "Sale/pull_running_order_server",
-              method: "POST",
-              async:false,
-              data: {
-                  csrf_irestoraplus: csrf_value_,
-              },
-              success: function (response) {
-                  if(response){
-                      let orders = JSON.parse(response);
-                      for (let key in orders) {
-                          let sale_no_new = orders[key].sale_no;
-                          let order_object = (orders[key].order_content);
-                          let outlet_id_indexdb = $("#outlet_id_indexdb").val();
-                          let company_id_indexdb = $("#company_id_indexdb").val();
-                          add_sale_by_ajax(order_object, 0,outlet_id_indexdb,company_id_indexdb,sale_no_new,"","");
-                          removePulledData(orders[key].id);
-                      }
-                      $("#pull_running_order").hide();
-                  }
-              },
-              error: function () {
-  
-              },
-          });
-      }
-    $("body").on("click", "#pull_running_order", function () {
-        let alert_running_order = $("#alert_running_order1").val();
-        let this_action  = $(this);
-        swal(
-            {
-                title: warning + "!",
-                text: alert_running_order,
-                confirmButtonColor: "#3c8dbc",
-                confirmButtonText: ok,
-                showCancelButton: true,
-            },
-            function () {
-                pull_running_order_server();
-            }
-        );
-    });
-    // Hide Modal When Click to close Icon
-    $("body").on("click", ".cancel_running_order_save_modal", function () {
-      $(this)
-        .parent()
-        .parent()
-        .parent()
-        .removeClass("active")
-        .addClass("inActive");
-      setTimeout(function () {
-        $(".modal").removeClass("inActive");
-      }, 1000);
-      $(".pos__modal__overlay2").fadeOut(300);
-    });
     $(document).on("click", ".pos__modal__overlay", function (e) {
       $(".modal").removeClass("active");
       $("aside#pos__sidebar").removeClass("active");
@@ -15841,11 +15972,22 @@
             toastr['error']((this_item_already_cooked_please_contact_with_admin), '');
             return false;
         } else {
-          //VOID guard: removing an item already sent to the kitchen is Admin/Manager only
-          if ($("#p_qty_" + id).length && Number($("#p_qty_" + id).val()) > 0 && Number($("#can_void_order_item").val()) != 1) {
-              toastr['error']($("#void_only_admin_manager").val(), '');
+          //Item belongs to a running order (loaded from Running Orders, or already sent to the kitchen):
+          //non Admin/Manager users must enter the admin password, same gate as clearing the cart
+          let is_running_order_item = $(this).hasClass("update_kitchen_status") ||
+              ($("#p_qty_" + id).length && Number($("#p_qty_" + id).val()) > 0);
+          if (is_running_order_item && Number($("#can_clear_cart_without_pass").val()) != 1) {
+              let remove_icon = $(this);
+              requestAdminPassword($("#admin_password_required_to_remove_item").val(), function () {
+                  removeCartItemConfirmed(remove_icon, sale_no, waiter_app_status);
+              });
               return false;
           }
+          removeCartItemConfirmed($(this), sale_no, waiter_app_status);
+        }
+    });
+    //actual removal of a cart row (remove_icon = the clicked .removeCartItem element)
+    function removeCartItemConfirmed(remove_icon, sale_no, waiter_app_status) {
           let pos_7 = Number($("#pos_7").val());
           if(waiter_app_status=="Yes"){
               pos_7 = 1;
@@ -15857,23 +15999,22 @@
           let is_self_order = $("#is_self_order").val();
           if(pos_7 || is_self_order=="Yes"){
                   if(sale_no && sale_no!=undefined){
-                      let this_action = $(this);
-                      let food_menu_id = $(this).attr('data-id');;
-                      let qty = $(this).parent().parent().find('.qty_item_custom').text();
+                      let food_menu_id = remove_icon.attr('data-id');
+                      let qty = remove_icon.parent().parent().find('.qty_item_custom').text();
                       $.ajax({
                           url: base_url + "authentication/remove_item_checking",
                           method: "POST",
                           dataType:'json',
                           data:{food_menu_id:food_menu_id,qty:qty,sale_no:sale_no},
                           success: function (response) {
-                                 
+
                           },
                           error: function () {
-  
+
                           },
                       });
                   }
-              $(this)
+              remove_icon
                   .parent()
                   .parent()
                   .parent()
@@ -15883,13 +16024,10 @@
           }else{
               toastr['error']((menu_not_permit_access + "!"), '');
           }
-  
-  
-        }
         setTimeout(function () {
             do_addition_of_item_and_modifiers_price();
         }, 500);
-    });
+    }
     /**
      * Cart rows are redrawn constantly, so the complementary icon cannot get a
      * tippy instance up front - tippy.delegate binds once on body and builds one
@@ -15961,15 +16099,8 @@
     
     $("body").on("click", ".logout_for_user", function (e) {
         e.preventDefault();
-       let this_action = $(this).attr("href");
-        let is_running = $(".main_left").find(".single_order").length;
-        if(is_running){
-            $(".total_running_order").text(is_running);
-            $("#running_order_save_modal").addClass("active");
-            $(".pos__modal__overlay2").fadeIn(300);
-        }else{
-            window.location.href = this_action;
-        }
+        //running orders live on the server now: nothing to save or hand over on logout
+        window.location.href = $(this).attr("href");
     });
     $("body").on("click", ".removeCartItemFree", function () {
         let alert_free_item =  $("#alert_free_item").val();
