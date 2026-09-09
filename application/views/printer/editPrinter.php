@@ -1,7 +1,6 @@
 <link rel="stylesheet" href="<?php echo base_url('assets/') ?>buttonCSS/checkBotton.css">
 <input type="hidden" value="<?php echo (isset($_SERVER["HTTPS"]) ? "https://" : "http://")?>" id="ssl_type">
 <section class="main-content-wrapper">
-    <input type="hidden" value="https://" id="ssl_type">
     <section class="content-header">
         <h3 class="top-left-header">
             <?php echo lang('EditPrinter'); ?>
@@ -100,8 +99,8 @@
                             <div class="form-group">
                                 <label><?php echo lang('inv_qr_code_enable_status'); ?> <span class="required_star">*</span></label>
                                 <select name="inv_qr_code_status" id="inv_qr_code_status" class="select2 form-control">
-                                    <option <?php echo isset($printer_->inv_qr_code_status) && $printer_->inv_qr_code_status == "Enable"?"selected":'' ?> value="Enable"><?php echo lang('enable'); ?></option>
-                                    <option <?php echo isset($printer_->inv_qr_code_status) && $printer_->inv_qr_code_status == "Disable"?"selected":'' ?> value="Disable"><?php echo lang('disable'); ?></option>
+                                    <option <?php echo isset($printer_->inv_qr_code_enable_status) && $printer_->inv_qr_code_enable_status == "Enable"?"selected":'' ?> value="Enable"><?php echo lang('enable'); ?></option>
+                                    <option <?php echo isset($printer_->inv_qr_code_enable_status) && $printer_->inv_qr_code_enable_status == "Disable"?"selected":'' ?> value="Disable"><?php echo lang('disable'); ?></option>
                                 </select>
                             </div>
                         </div>

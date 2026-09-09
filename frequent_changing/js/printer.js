@@ -22,7 +22,7 @@ $(function () {
 
     $(document).on('change','#type' , function(e){
         set_printing_type();
-
+        generate_test_print();
     });
     // Print Server Configuratin Div Hide Show
     function set_printing_choice() {
@@ -63,7 +63,9 @@ $(function () {
              printer_type_value = printer_ip_address;
         }
         let port = $("#printer_port").val();
-        let url = ssl_type+ipvfour_address+"/print_server/print.php?printer_type_value="+printer_type_value+"&&port="+port+"&&type="+type;
+        //a windows share name carries spaces and backslashes ("\\PC-01\Cash Printer"),
+        //a raw concatenation of it produced a url the print server could not read back
+        let url = ssl_type+ipvfour_address+"/print_server/print.php?printer_type_value="+encodeURIComponent(printer_type_value||"")+"&port="+encodeURIComponent(port||"")+"&type="+encodeURIComponent(type||"");
          $(".test_print").attr("href",url);
          if(!ipvfour_address){
             $(".ipvfour_address_div").hide();
@@ -72,7 +74,9 @@ $(function () {
          }
     }
 
-    $(document).on("keyup", "#ipvfour_address", function (e) {
+    //the test print link is a plain href, so it has to be rebuilt whenever any value
+    //that goes into it changes - otherwise it keeps testing the settings the page loaded with
+    $(document).on("keyup change", "#ipvfour_address, #path_string, #printer_ip_address, #printer_port", function (e) {
         generate_test_print();
     });
     generate_test_print();

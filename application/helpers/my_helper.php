@@ -4031,6 +4031,44 @@ if (!function_exists('getOutletInfoById')) {
  * @param int
  * @return void
  */
+/**
+ * remember the page the user was heading to when the "register is not open" guard bounced
+ * them, so Register::addBalance can send them back there after the register is opened.
+ * The POS polls background endpoints (running orders, notifications, ...) that run through
+ * the very same guard; those used to overwrite the target, and opening the register then
+ * redirected the user to a raw json action - the blank page showing "[]".
+ * @return void
+ */
+if (!function_exists('rememberClickedRedirect')) {
+    function rememberClickedRedirect() {
+        $CI = & get_instance();
+        if($CI->input->is_ajax_request()){
+            return;
+        }
+        $CI->session->set_userdata("clicked_controller", $CI->uri->segment(1));
+        $CI->session->set_userdata("clicked_method", $CI->uri->segment(2));
+    }
+}
+/**
+ * invoice QR code status of the counter's invoice printer, read from the printer row
+ * itself rather than from the session copy. The session copy is only refreshed when the
+ * user logs in or opens the register, so a printer edited from another terminal kept
+ * printing the QR code long after it was disabled.
+ * @return string
+ */
+if (!function_exists('getInvoiceQrCodeStatus')) {
+    function getInvoiceQrCodeStatus() {
+        $CI = & get_instance();
+        $printer_id = $CI->session->userdata('printer_id');
+        if($printer_id){
+            $printer_info = getPrinterInfo($printer_id);
+            if($printer_info && isset($printer_info->inv_qr_code_enable_status) && $printer_info->inv_qr_code_enable_status){
+                return $printer_info->inv_qr_code_enable_status;
+            }
+        }
+        return $CI->session->userdata('inv_qr_code_enable_status');
+    }
+}
 if (!function_exists('setCounterPrinterSession')) {
     function setCounterPrinterSession($counter_id) {
         $CI = & get_instance();

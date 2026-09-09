@@ -42,7 +42,7 @@ function print_kitchen_printers($data_arr) {
             $printer->text($data->lang_Sales_Associate.": ".($data->sales_associate)."\n");
             $printer->text($data->lang_customer.": ".($data->customer_name)."\n");
             if($data->customer_address!=NULL  && $data->customer_address!=""){
-                $printer->text($data->lang_address.": ".$data->lang_address."\n");
+                $printer->text($data->lang_address.": ".$data->customer_address."\n");
             }
 
             if($data->waiter_name!=''){

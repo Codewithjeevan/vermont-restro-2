@@ -6,6 +6,16 @@
       const win = $(window);
       const body_el = $("body");
       $('a[href="#"]').attr("href", "javascript:void(0)");
+      //the order json is assembled by string concatenation, so a missing value used to reach
+      //the server (and the printed bill) as the literal text "undefined"/"null". Treat those
+      //two strings as empty as well, so running orders already saved with them print clean.
+      function invText(value){
+          if (value === undefined || value === null) {
+              return "";
+          }
+          let text = String(value);
+          return (text === "undefined" || text === "null") ? "" : text;
+      }
       //geeting hidden files data from views/sale/POS/hidden_input_html.php file.
       let base_url = $("base").attr("data-base");
       let outlet_name = $("#outlet_name").val();
@@ -2034,6 +2044,10 @@
   
               if (cursor) {
                   if(cursor.value.sales_id == sale_id) {
+                      //deleting a recent sale only clears this terminal's history entry, the
+                      //sale itself stays on the server - remember it so the company-wide sync
+                      //does not hand the row straight back on the next modal open
+                      rememberDeletedRecentSale(cursor.value);
                       let request = db.transaction("recent_sales", "readwrite").objectStore("recent_sales").delete(cursor.key);
                       request.onsuccess = function(event) {
   
@@ -2695,8 +2709,10 @@
         }
 
         let server_value = order.counter_name;
-        let inv_p_table = (order.orders_table_text != undefined && order.orders_table_text)?` `+inv_table+`: `+order.orders_table_text+ `<br/>`: "";
-        let inv_p_address = (order.customer_address != undefined && order.customer_address)?` <br>`+inv_address+`: <b>`+order.customer_address+`</b>`: "";
+        let orders_table_text_txt = invText(order.orders_table_text);
+        let inv_p_table = orders_table_text_txt?` `+inv_table+`: `+orders_table_text_txt+ `<br/>`: "";
+        let customer_address_txt = invText(order.customer_address);
+        let inv_p_address = customer_address_txt?` <br>`+inv_address+`: <b>`+customer_address_txt+`</b>`: "";
         
         let sale_date_split = order.date_time.split(' ');
         let invoice_print =``;
@@ -2749,8 +2765,12 @@
                 </table>
                 <p style="margin-top: 4px;">`;
         
-        let inv_p_gst_number = (order.customer_gst_number != undefined && order.customer_gst_number)?` `+inv_gst_number+`: `+order.customer_gst_number+ `<br/>`: "";
-        let inv_p_waiter = (order.waiter_name != undefined && order.waiter_name)?` `+inv_waiter+`: `+order.waiter_name+ `<br/>`: "";
+        //the customer's tax number belongs on a tax invoice only, the same condition that
+        //gates the outlet's own registration number above
+        let customer_gst_number_txt = inv_collect_tax=="Yes"?invText(order.customer_gst_number):"";
+        let inv_p_gst_number = customer_gst_number_txt?` `+inv_gst_number+`: `+customer_gst_number_txt+ `<br/>`: "";
+        let waiter_name_txt = invText(order.waiter_name);
+        let inv_p_waiter = waiter_name_txt?` `+inv_waiter+`: `+waiter_name_txt+ `<br/>`: "";
        
         let inv_p_status = (order.status != undefined && order.status)?` `+status_txt+`: `+order.status+ `<br/>`: "";
         if(order_type!="Delivery"){
@@ -3002,8 +3022,10 @@
         }
 
         let server_value = order.counter_name;
-        let inv_p_table = (order.orders_table_text != undefined && order.orders_table_text)?` `+inv_table+`: `+order.orders_table_text+ `<br/>`: "";
-        let inv_p_address = (order.customer_address != undefined && order.customer_address)?` <br>`+inv_address+`: <b>`+order.customer_address+`</b>`: "";
+        let orders_table_text_txt = invText(order.orders_table_text);
+        let inv_p_table = orders_table_text_txt?` `+inv_table+`: `+orders_table_text_txt+ `<br/>`: "";
+        let customer_address_txt = invText(order.customer_address);
+        let inv_p_address = customer_address_txt?` <br>`+inv_address+`: <b>`+customer_address_txt+`</b>`: "";
         
         let sale_date_split = order.date_time.split(' ');
         let invoice_print =``;
@@ -3056,8 +3078,12 @@
                 </table>
                 <p style="margin-top: 4px;">`;
         
-        let inv_p_gst_number = (order.customer_gst_number != undefined && order.customer_gst_number)?` `+inv_gst_number+`: `+order.customer_gst_number+ `<br/>`: "";
-        let inv_p_waiter = (order.waiter_name != undefined && order.waiter_name)?` `+inv_waiter+`: `+order.waiter_name+ `<br/>`: "";
+        //the customer's tax number belongs on a tax invoice only, the same condition that
+        //gates the outlet's own registration number above
+        let customer_gst_number_txt = inv_collect_tax=="Yes"?invText(order.customer_gst_number):"";
+        let inv_p_gst_number = customer_gst_number_txt?` `+inv_gst_number+`: `+customer_gst_number_txt+ `<br/>`: "";
+        let waiter_name_txt = invText(order.waiter_name);
+        let inv_p_waiter = waiter_name_txt?` `+inv_waiter+`: `+waiter_name_txt+ `<br/>`: "";
        
         let inv_p_status = (order.status != undefined && order.status)?` `+status_txt+`: `+order.status+ `<br/>`: "";
         if(order_type!="Delivery"){
@@ -4156,18 +4182,11 @@
                 $("#last_10_customer_name").html(response.customer_name);
                 $("#last_10_table_id").html(response.table_id);
                 $("#last_10_table_name").html((response.orders_table_text!=undefined  && response.orders_table_text?response.orders_table_text:'None'));
-                $("#open_invoice_date_hidden").val(response.sale_date);
-  
-  
-                $(".datepicker_custom")
-                    .datepicker({
-                        autoclose: true,
-                        format: "yyyy-mm-dd",
-                        startDate: "0",
-                        todayHighlight: true,
-                    })
-                    .datepicker("update", response.sale_date);
-  
+                //Only PREVIEWING a past bill here - the cart is untouched, so the new-order
+                //invoice date must stay on today. Setting it to the old bill's date made the
+                //NEXT bill punched after closing this modal carry that old sale_date, which
+                //put its money on one day in the Sale Report and on another in the register.
+
                 $(".change_delivery_address").hide();
                 $(".del_hide").show();
   
@@ -7505,60 +7524,203 @@
           autoclose: true,
           endDate:'0'
       });
+      /**************Recent Sales: company-wide list ********************************
+       * The store this modal reads is per browser, so a terminal only ever knew about
+       * the bills it punched itself. Sale/get_recent_sales hands back every settled
+       * sale of the outlet (cart blob included), the ones this terminal is missing are
+       * merged into the local store, and the list is rendered from the union - so the
+       * details / print / delete handlers keep reading the local record as before.
+       ******************************************************************************/
+      let recent_sales_sync_in_progress = false;
+      const RECENT_SALES_HIDDEN_KEY = "recent_sales_hidden";
+      function getHiddenRecentSales(){
+          try {
+              let stored = JSON.parse(localStorage[RECENT_SALES_HIDDEN_KEY] || "[]");
+              return Array.isArray(stored) ? stored : [];
+          } catch (err) {
+              return [];
+          }
+      }
+      function rememberDeletedRecentSale(record){
+          let sale_no = "";
+          try {
+              let rowData = JSON.parse(record.order);
+              sale_no = rowData && rowData.sale_no ? String(rowData.sale_no) : "";
+          } catch (err) {
+              sale_no = "";
+          }
+          if (!sale_no) {
+              return;
+          }
+          let hidden = getHiddenRecentSales();
+          if (hidden.indexOf(sale_no) === -1) {
+              hidden.push(sale_no);
+          }
+          //keep the list bounded, older bills fall out of the server window anyway
+          if (hidden.length > 300) {
+              hidden = hidden.slice(hidden.length - 300);
+          }
+          try {
+              localStorage[RECENT_SALES_HIDDEN_KEY] = JSON.stringify(hidden);
+          } catch (err) {}
+      }
+      function recentSaleDateTime(rowData){
+          //bills are ordered by when they were made, never by the order this browser
+          //happened to learn about them - a backfill would otherwise land on top
+          if (!rowData || !rowData.date_time) {
+              return 0;
+          }
+          //blobs carry "2026-09-08 4:24:09 PM" (12 hour) as well as plain "2026-09-08 16:24:09";
+          //the plain parse takes both, the ISO form is only a fallback for stricter engines
+          let raw = String(rowData.date_time);
+          let stamp = Date.parse(raw);
+          if (isNaN(stamp)) {
+              stamp = Date.parse(raw.replace(' ', 'T'));
+          }
+          return isNaN(stamp) ? 0 : stamp;
+      }
+      function renderRecentSalesList(){
+          if (!db) {
+              return;
+          }
+          let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
+          let rows = [];
+          let objectStore = db.transaction(['recent_sales'], "readwrite").objectStore("recent_sales");
+          objectStore.openCursor(null, 'prev').onsuccess = function(event) {
+              let cursor = event.target.result;
+              if (cursor) {
+                  if(Number(cursor.value.outlet_id)==outlet_id_indexdb){
+                      let rowData = null;
+                      try {
+                          rowData = JSON.parse(cursor.value.order);
+                      } catch (err) {
+                          rowData = null;
+                      }
+                      if(rowData){
+                          rows.push({sales_id: cursor.value.sales_id, rowData: rowData});
+                      }
+                  }
+                  cursor.continue();
+                  return;
+              }
+              rows.sort(function(a, b){
+                  let diff = recentSaleDateTime(b.rowData) - recentSaleDateTime(a.rowData);
+                  return diff !== 0 ? diff : (Number(b.sales_id) - Number(a.sales_id));
+              });
+              let last_10_orders = "";
+              for (let idx = 0; idx < rows.length; idx++) {
+                  let sales_id = rows[idx].sales_id;
+                  let rowData = rows[idx].rowData;
+                  let phone_text_ = "";
+                  if (rowData.phone) {
+                      phone_text_ = " (" + rowData.phone + ")";
+                  }
+                  last_10_orders +=
+                      '<div class="single_last_ten_sale fix" id="last_ten_' +
+                      sales_id +
+                      '" data-selected="unselected">';
+                  last_10_orders +=
+                      '<div class="first_column column fix">' + rowData.sale_no + "</div>";
+                  last_10_orders +=
+                      '<div data-token_number="'+rowData.token_number+'" class="second_column column fix">' +
+                      rowData.customer_name +
+                      phone_text_ +
+                      "</div>";
+                  last_10_orders +=
+                      '<div class="third_column column fix">' + (rowData.orders_table_text!=undefined?rowData.orders_table_text:'None') + "</div>";
+                  last_10_orders += "</div>";
+              }
+              $(".last_ten_sales_holder .hold_list_holder .detail_holder ").empty();
+              $(".last_ten_sales_holder .hold_list_holder .detail_holder ").prepend(
+                  last_10_orders
+              );
+          };
+      }
+      function mergeRecentSalesFromServer(server_rows, done){
+          let outlet_id_indexdb = $("#outlet_id_indexdb").val();
+          let known = {};
+          let hidden = getHiddenRecentSales();
+          for (let h = 0; h < hidden.length; h++) {
+              known[hidden[h]] = true;
+          }
+          let transaction = db.transaction(['recent_sales'], "readwrite");
+          transaction.objectStore("recent_sales").openCursor().onsuccess = function(event) {
+              let cursor = event.target.result;
+              if (!cursor) {
+                  return;
+              }
+              try {
+                  let local = JSON.parse(cursor.value.order);
+                  if (local && local.sale_no) {
+                      known[String(local.sale_no)] = true;
+                  }
+              } catch (err) {}
+              cursor.continue();
+          };
+          transaction.oncomplete = function() {
+              let to_add = [];
+              for (let i = 0; i < server_rows.length; i++) {
+                  let row = server_rows[i];
+                  if (!row.order_content || known[String(row.sale_no)]) {
+                      continue;
+                  }
+                  known[String(row.sale_no)] = true;
+                  to_add.push({
+                      order: row.order_content,
+                      sale_id: row.sale_id,
+                      is_offline_system: ($("#is_offline_system").val()),
+                      //already on the server, so push_online() must never send it back up
+                      online_push: 1,
+                      outlet_id: outlet_id_indexdb,
+                      user_id: row.user_id,
+                  });
+              }
+              if (!to_add.length) {
+                  done();
+                  return;
+              }
+              let add_transaction = db.transaction(['recent_sales'], "readwrite");
+              let add_store = add_transaction.objectStore("recent_sales");
+              for (let i = 0; i < to_add.length; i++) {
+                  add_store.add(to_add[i]);
+              }
+              add_transaction.oncomplete = done;
+              add_transaction.onerror = done;
+          };
+          transaction.onerror = function() {
+              done();
+          };
+      }
+      function syncRecentSalesFromServer(){
+          if (!db || recent_sales_sync_in_progress) {
+              return;
+          }
+          recent_sales_sync_in_progress = true;
+          let syncDone = function () {
+              recent_sales_sync_in_progress = false;
+              renderRecentSalesList();
+          };
+          $.ajax({
+              url: base_url + "Sale/get_recent_sales",
+              method: "POST",
+              dataType: "json",
+              timeout: 20000,
+              data: {
+                  csrf_irestoraplus: csrf_value_,
+              },
+              success: function (rows) {
+                  mergeRecentSalesFromServer(Array.isArray(rows) ? rows : [], syncDone);
+              },
+              //offline or endpoint unreachable: the terminal's own list still shows
+              error: syncDone,
+          });
+      }
         $(document).on("click", "#last_ten_sales_button", function (e) {
             $("#show_last_ten_sales_modal").addClass("active");
             $(".pos__modal__overlay").fadeIn(200);
-  
-            let objectStore = db.transaction(['recent_sales'], "readwrite").objectStore("recent_sales");
-            let sales_id = '';
-            let i = 1;
-            let last_10_orders = "";
-            objectStore.openCursor(null, 'prev').onsuccess = function(event) {
-                let cursor = event.target.result;
-                if (cursor) {
-                      let outlet_id_indexdb = Number($("#outlet_id_indexdb").val());
-  
-                      let orderData = cursor.value;
-                      let orderInfo = orderData.order;
-                      let rowData = JSON.parse(orderInfo);
-                      let sales_id = cursor.value.sales_id;
-                      let db_outlet_id = Number(cursor.value.outlet_id);
-                          
-                      if(db_outlet_id==outlet_id_indexdb){
-                          let order_name = "";
-                          let phone_text_ = "";
-                          
-                          if (rowData.phone) {
-                              phone_text_ = " (" + rowData.phone + ")";
-                          }
-                          let table_name =
-                              rowData.table_name != null ? rowData.table_name : "&nbsp;";
-                          last_10_orders +=
-                              '<div class="single_last_ten_sale fix" id="last_ten_' +
-                              sales_id +
-                              '" data-selected="unselected">';
-                          last_10_orders +=
-                              '<div class="first_column column fix">' + rowData.sale_no + "</div>";
-                          last_10_orders +=
-                              '<div data-token_number="'+rowData.token_number+'" class="second_column column fix">' +
-                              rowData.customer_name +
-                              phone_text_ +
-                              "</div>";
-                          last_10_orders +=
-                              '<div class="third_column column fix">' + (rowData.orders_table_text!=undefined?rowData.orders_table_text:'None') + "</div>";
-                          last_10_orders += "</div>";
-      
-                          i++;
-                    }
-                    cursor.continue();
-                }
-                $(".last_ten_sales_holder .hold_list_holder .detail_holder ").empty();
-                $(".last_ten_sales_holder .hold_list_holder .detail_holder ").prepend(
-                    last_10_orders
-                );
-  
-  
-            };
+            //show what this terminal already has straight away, then fill in the rest
+            renderRecentSalesList();
+            syncRecentSalesFromServer();
         });
   
       //when add to card button is clicked information goes to table of middle to top
@@ -8485,9 +8647,11 @@
   
   
               let self_order_table_person = $("#self_order_table_person").val();
-              let customer_address = $("#walk_in_customer").find(':selected').attr('data-customer_address');
+              //jQuery returns undefined for a missing attribute and the order json is built by
+              //string concatenation, so without this default the bill printed "undefined"
+              let customer_address = invText($("#walk_in_customer").find(':selected').attr('data-customer_address'));
   
-              let customer_gst_number = $("#walk_in_customer").find(':selected').attr('data-customer_gst_number');
+              let customer_gst_number = invText($("#walk_in_customer").find(':selected').attr('data-customer_gst_number'));
               let waiter_data = '';
               let customer_name = '';
               let waiter_name = '';
@@ -9087,8 +9251,10 @@
               if(waiter_data[0].text!=undefined){
                   waiter_name = waiter_data[0].text; //Added By Jobayer
               }
-              let customer_address = $("#walk_in_customer").find(':selected').attr('data-customer_address');
-              let customer_gst_number = $("#walk_in_customer").find(':selected').attr('data-customer_gst_number');
+              //jQuery returns undefined for a missing attribute and the order json is built by
+              //string concatenation, so without this default the bill printed "undefined"
+              let customer_address = invText($("#walk_in_customer").find(':selected').attr('data-customer_address'));
+              let customer_gst_number = invText($("#walk_in_customer").find(':selected').attr('data-customer_gst_number'));
   
               let sale_vat_objects = [];
               $("#tax_row_show .tax_field").each(function (i, obj) {

@@ -95,7 +95,8 @@
 
                     <?php
                         $gst_number = getCustomerGST($sale_object->customer_id);
-                        if(isset($gst_number) && $gst_number):
+                        //a customer tax number belongs on a tax invoice only - same gate as the outlet's own registration number
+                        if($this->session->userdata('collect_tax')=='Yes' && isset($gst_number) && $gst_number):
                          echo '<br>'.lang('gst_number'); ?>:<?php echo escape_output("$gst_number");
                         endif;
                    ?>

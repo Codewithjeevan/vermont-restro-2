@@ -147,28 +147,14 @@ class Printer extends Cl_Controller {
                     $this->Common_model->insertInformation($data, "tbl_printers");
                     $this->session->set_flashdata('exception',  lang('insertion_success'));
                 } else {
-                    $counter_id =  $this->session->userdata('counter_id');
-                        if($counter_id){
-                            $counter = $this->Common_model->getDataById($counter_id, "tbl_counters");
-                            $printer_info = $this->Common_model->getPrinterInfoById($counter->printer_id);
-                            $print_arr = [];
-                            $print_arr['counter_id'] = $counter_id;
-                            $print_arr['printer_id'] = $counter->printer_id;
-                            $print_arr['path'] = $printer_info->path;
-                            $print_arr['title'] = $printer_info->title;
-                            $print_arr['type'] = $printer_info->type;
-                            $print_arr['characters_per_line'] = $printer_info->characters_per_line;
-                            $print_arr['printer_ip_address'] = $printer_info->printer_ip_address;
-                            $print_arr['printer_port'] = $printer_info->printer_port;
-                            $print_arr['printing_choice'] = $printer_info->printing_choice;
-                            $print_arr['ipvfour_address'] = $printer_info->ipvfour_address;
-                            $print_arr['print_format'] = $printer_info->print_format;
-                            $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
-                            $this->session->set_userdata($print_arr);
-                        }
-
-                                    
                     $this->Common_model->updateInformation($data, $id, "tbl_printers");
+                    //the POS prints from the session copy of the printer row, so it has to be
+                    //rebuilt AFTER the update - reading it first left the old settings (QR code
+                    //status, share name, ip) in the session until the next login
+                    $counter_id =  $this->session->userdata('counter_id');
+                    if($counter_id){
+                        setCounterPrinterSession($counter_id);
+                    }
                     $this->session->set_flashdata('exception', lang('update_success'));
                 }
                 redirect('printer/printers');

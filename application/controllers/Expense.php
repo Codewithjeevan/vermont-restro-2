@@ -32,8 +32,7 @@ class Expense extends Cl_Controller {
         if (!$this->session->has_userdata('outlet_id')) {
             $this->session->set_flashdata('exception_2',lang('please_click_green_button'));
 
-            $this->session->set_userdata("clicked_controller", $this->uri->segment(1));
-            $this->session->set_userdata("clicked_method", $this->uri->segment(2));
+            rememberClickedRedirect();
             redirect('Outlet/outlets');
         }
 
@@ -113,8 +112,7 @@ class Expense extends Cl_Controller {
                  if($this->uri->segment(2)=='registerDetailCalculationToShowAjax' || $this->uri->segment(2)=='closeRegister'){
                      redirect('Register/openRegister');
                  }else{
-                     $this->session->set_userdata("clicked_controller", $this->uri->segment(1));
-                     $this->session->set_userdata("clicked_method", $this->uri->segment(2));
+                     rememberClickedRedirect();
                      redirect('Register/openRegister');
                  }
  

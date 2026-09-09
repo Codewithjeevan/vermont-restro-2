@@ -48,8 +48,7 @@ class Sale extends Cl_Controller {
                 if($this->uri->segment(2)=='registerDetailCalculationToShowAjax' || $this->uri->segment(2)=='closeRegister'){
                     redirect('Register/openRegister');
                 }else{
-                    $this->session->set_userdata("clicked_controller", $this->uri->segment(1));
-                    $this->session->set_userdata("clicked_method", $this->uri->segment(2));
+                    rememberClickedRedirect();
                     redirect('Register/openRegister');
                 }
 
@@ -1744,6 +1743,38 @@ class Sale extends Cl_Controller {
         $this->db->order_by('id', 'ASC');
         echo json_encode($this->db->get()->result());
     }
+    /**
+     * Recent sales of the whole company, not just of this browser.
+     * The "Recent Sales" modal renders from the terminal's own IndexedDB store, so a
+     * cashier only ever saw the bills punched on that one browser - nothing from the
+     * other terminals or users of the company. tbl_sales.self_order_content already
+     * holds the exact cart blob the POS keeps locally (push_online stores it), so the
+     * outlet's settled sales can be handed back in the same shape and merged into the
+     * local store, which keeps details / print / delete working unchanged.
+     */
+    public function get_recent_sales(){
+        if(!$this->session->userdata('user_id')){
+            echo json_encode(array());
+            return;
+        }
+        $outlet_id = (int)$this->session->userdata('outlet_id');
+        $company_id = (int)$this->session->userdata('company_id');
+        $this->db->select('id as sale_id, sale_no, user_id, self_order_content as order_content');
+        $this->db->from('tbl_sales');
+        $this->db->where(array(
+            'outlet_id' => $outlet_id,
+            'company_id' => $company_id,
+            'order_status' => 3,
+            'del_status' => 'Live',
+        ));
+        $this->db->where('self_order_content IS NOT NULL', NULL, FALSE);
+        $this->db->where('self_order_content !=', '');
+        $this->db->order_by('id', 'DESC');
+        $this->db->limit(100);
+        //newest first for the limit, oldest first on the way out so a terminal seeds its
+        //local store in the order the bills were actually made
+        echo json_encode(array_reverse($this->db->get()->result()));
+    }
     public function save_running_order(){
         /*order and record_meta could not be escaped because they are json data*/
         $order = $this->input->post('order');
@@ -2705,7 +2736,7 @@ We hope to see you again!";
         
         $data['sale_object'] = $this->get_all_information_of_a_sale_modify($sale_id);
         
-        $inv_qr_code_enable_status = $this->session->userdata('inv_qr_code_enable_status');
+        $inv_qr_code_enable_status = getInvoiceQrCodeStatus();
         $data['inv_qr_code_enable_status'] = $inv_qr_code_enable_status;
         
         $print_format = $this->session->userdata('print_format');

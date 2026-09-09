@@ -356,11 +356,15 @@ foreach ($customers as $customer){
     $i++;
 }
 
+//the fallback walk-in option must carry the same data-* attributes as a real customer:
+//without them the POS read `undefined` off the option and shipped the literal string
+//"undefined" into the order json, which then printed as "Address/GST Number: undefined"
+$walk_in_fallback_option = '<option selected data-default_discount="0" data-current_due="" data-customer_address="" data-customer_gst_number="" data-same_or_diff_state="" value="1">Walk-in Customer</option>';
 if($check_walk_in_customer==1 && $customers_option==""){
-    $customers_option .= '<option selected data-default_discount="0" data-current_due="" value="1">Walk-in Customer</option>';
+    $customers_option .= $walk_in_fallback_option;
     $customer_objects .= "{customer_id:'1',customer_name:'Walk-in Customer',customer_address:'',gst_number:''}";
 }else if($check_walk_in_customer==1 && $customers_option){
-    $customers_option .= '<option selected data-default_discount="0" data-current_due="" value="1">Walk-in Customer</option>';
+    $customers_option .= $walk_in_fallback_option;
     $customer_objects .= ",{customer_id:'1',customer_name:'Walk-in Customer',customer_address:'',gst_number:''}";
 }
 

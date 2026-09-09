@@ -345,7 +345,7 @@ $sms_send_auto = $this->session->userdata('sms_send_auto');
 <input type="hidden" id="kot_print" value="">
 <input type="hidden" id="counter_id" value="<?php echo escape_output($this->session->userdata('counter_id')); ?>">
 <input type="hidden" id="counter_name" value="<?php echo escape_output($this->session->userdata('counter_name')); ?>">
-<input type="hidden" id="inv_qr_code_enable_status" value="<?php echo escape_output($this->session->userdata('inv_qr_code_enable_status')); ?>">
+<input type="hidden" id="inv_qr_code_enable_status" value="<?php echo escape_output(getInvoiceQrCodeStatus()); ?>">
 <input type="hidden" id="is_click_transfer_table" value="">
 <input type="hidden" id="active_transfer_table" value="">
 <input type="hidden" id="active_transfer_sale_id" value="">

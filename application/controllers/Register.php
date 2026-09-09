@@ -78,8 +78,7 @@ class Register extends Cl_Controller {
                 if($this->uri->segment(2)=='registerDetailCalculationToShowAjax' || $this->uri->segment(2)=='closeRegister'){
                     redirect('Register/openRegister');
                 }else{
-                    $this->session->set_userdata("clicked_controller", $this->uri->segment(1));
-                    $this->session->set_userdata("clicked_method", $this->uri->segment(2));
+                    rememberClickedRedirect();
                     redirect('Register/openRegister');
                 }
 
@@ -144,6 +143,10 @@ class Register extends Cl_Controller {
                 } else {
                     $controller = $this->session->userdata('clicked_controller');
                     $function = $this->session->userdata('clicked_method');
+                    //the target is good for this one redirect only, a leftover would send the
+                    //next register opening to a page the user never asked for
+                    $this->session->unset_userdata('clicked_controller');
+                    $this->session->unset_userdata('clicked_method');
                     if($function=="getWaiterOrders.html"){
                         redirect('Dashboard/dashboard');
                     }else{

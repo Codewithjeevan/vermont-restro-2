@@ -32,8 +32,7 @@ class Customer_due_receive extends Cl_Controller {
         if (!$this->session->has_userdata('outlet_id')) {
             $this->session->set_flashdata('exception_2', lang('please_click_green_button'));
 
-            $this->session->set_userdata("clicked_controller", $this->uri->segment(1));
-            $this->session->set_userdata("clicked_method", $this->uri->segment(2));
+            rememberClickedRedirect();
             redirect('Outlet/outlets');
         }
 
@@ -66,8 +65,7 @@ class Customer_due_receive extends Cl_Controller {
         if($this->Common_model->isOpenRegister($user_id,$outlet_id)==0){
             $this->session->set_flashdata('exception_3', lang('register_not_open'));
 
-            $this->session->set_userdata("clicked_controller", $this->uri->segment(1));
-            $this->session->set_userdata("clicked_method", $this->uri->segment(2));
+            rememberClickedRedirect();
             redirect('Register/openRegister');   
         }
         $login_session['active_menu_tmp'] = '';
@@ -119,8 +117,7 @@ class Customer_due_receive extends Cl_Controller {
                  if($this->uri->segment(2)=='registerDetailCalculationToShowAjax' || $this->uri->segment(2)=='closeRegister'){
                      redirect('Register/openRegister');
                  }else{
-                     $this->session->set_userdata("clicked_controller", $this->uri->segment(1));
-                     $this->session->set_userdata("clicked_method", $this->uri->segment(2));
+                     rememberClickedRedirect();
                      redirect('Register/openRegister');
                  }
  
