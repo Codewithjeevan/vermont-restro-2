@@ -116,9 +116,10 @@ class Kitchen extends Cl_Controller {
         }
         //end check access function
 
-        $outlet_id = $this->session->userdata('company_id');
+        $company_id = $this->session->userdata('company_id');
         $data = array();
-        $data['kitchens'] = $this->Common_model->getAllByOutletId($outlet_id, "tbl_kitchens");
+        $data['kitchens'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_kitchens");
+
         foreach ($data['kitchens'] as $key=>$value){
             $txt_cates = '';
             $categories = $this->Common_model->getKitchenCategoriesById($value->id);
