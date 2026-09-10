@@ -1644,6 +1644,14 @@ class Common_model extends CI_Model {
             if($value){
                 $row = getSaleDetailsBySaleNo($value);
                 if(isset($row) && $row){
+                    //a sale row carrying this number does not prove the order is finished: items
+                    //punched after that bill keep the kitchen order open, and the caller does not
+                    //just prune this browser's list any more - it deletes the company wide
+                    //tbl_running_orders row, so an order still open in the kitchen must survive
+                    $kitchen_row = getKitchenSaleDetailsBySaleNo($value);
+                    if($kitchen_row && ($kitchen_row->order_status == 1 || $kitchen_row->order_status == 2)){
+                        continue;
+                    }
                     $inline_arr = array();
                     $inline_arr['sale_no'] =  $value;
                     $arr[] = $inline_arr;

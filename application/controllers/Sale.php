@@ -3070,6 +3070,9 @@ We hope to see you again!";
         $data['is_online_order'] = "No";
         $data['future_sale_status'] = $status;
         $data['self_order_status'] = "Decline";
+        //a declined order is finished on the kitchen side as well: leaving order_status at 1
+        //kept it blocking the register close guard forever while every POS list hid it
+        $data['order_status'] = 3;
         $this->db->where('id', $sale_id);
         $this->db->update('tbl_kitchen_sales', $data);
         echo json_encode("success");
@@ -3714,12 +3717,38 @@ We hope to see you again!";
         if(!$unsettled_orders){
             return '';
         }
-        $shown = array_slice($unsettled_orders, 0, 5);
-        $msg = lang('register_close_pending_orders').' ('.count($unsettled_orders).'): '.implode(', ', $shown);
-        if(count($unsettled_orders) > count($shown)){
-            $msg .= ' ...';
+        $running = array();
+        $pending_accept = array();
+        foreach($unsettled_orders as $order){
+            $sale_no = is_array($order)?$order['sale_no']:$order;
+            if(is_array($order) && !empty($order['pending_accept'])){
+                $pending_accept[] = $sale_no;
+            }else{
+                $running[] = $sale_no;
+            }
         }
-        return $msg;
+        $parts = array();
+        if($running){
+            $parts[] = lang('register_close_running_orders').': '.$this->listSaleNumbers($running);
+        }
+        if($pending_accept){
+            $parts[] = lang('register_close_online_orders').': '.$this->listSaleNumbers($pending_accept);
+        }
+        return lang('register_close_pending_orders').' ('.count($unsettled_orders).'). '.implode('. ', $parts);
+    }
+     /**
+     * first few sale numbers of a bucket, so a long list does not fill the modal
+     * @access private
+     * @return string
+     * @param array
+     */
+    private function listSaleNumbers($sale_nos = array()){
+        $shown = array_slice($sale_nos, 0, 5);
+        $txt = implode(', ', $shown);
+        if(count($sale_nos) > count($shown)){
+            $txt .= ' ...';
+        }
+        return $txt;
     }
      /**
      * get Balance

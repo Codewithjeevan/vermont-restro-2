@@ -514,7 +514,7 @@ class Sale_model extends CI_Model {
     public function getUnsettledOrdersByOutletId($outlet_id, $opening_date_time = ''){
       $orders = array();
 
-      $this->db->select('sale_no');
+      $this->db->select('sale_no, is_accept, is_online_order, is_self_order');
       $this->db->from('tbl_kitchen_sales');
       $this->db->where("(order_status='1' OR order_status='2')");
       $this->db->where("(future_sale_status='1' OR future_sale_status='3')");
@@ -525,7 +525,14 @@ class Sale_model extends CI_Model {
       }
       $kitchen_orders = $this->db->get()->result();
       foreach($kitchen_orders as $order){
-          $orders[$order->sale_no] = $order->sale_no;
+          //an online / self order that was never accepted never reaches the POS running
+          //orders list - it waits in the "Online" panel, so the cashier has to be sent
+          //there instead of to a list the order will never appear in
+          $is_external = ($order->is_online_order == "Yes" || $order->is_self_order == "Yes");
+          $orders[$order->sale_no] = array(
+              'sale_no' => $order->sale_no,
+              'pending_accept' => ($is_external && $order->is_accept != 1),
+          );
       }
 
       $this->db->select('sale_no');
@@ -539,7 +546,9 @@ class Sale_model extends CI_Model {
       }
       $sales_orders = $this->db->get()->result();
       foreach($sales_orders as $order){
-          $orders[$order->sale_no] = $order->sale_no;
+          if(!isset($orders[$order->sale_no])){
+              $orders[$order->sale_no] = array('sale_no' => $order->sale_no, 'pending_accept' => false);
+          }
       }
 
       return array_values($orders);
