@@ -130,6 +130,8 @@ class Printer extends Cl_Controller {
                 $data['print_format'] = htmlspecialcharscustom($this->input->post('print_format'));
                 $data['inv_qr_code_enable_status'] = htmlspecialcharscustom($this->input->post('inv_qr_code_status'));
                 $data['open_cash_drawer_when_printing_invoice'] = htmlspecialcharscustom($this->input->post('open_cash_drawer_when_printing_invoice'));
+                //browser printers only: print in-page (hidden iframe) instead of a popup window
+                $data['browser_direct_print'] = htmlspecialcharscustom($this->input->post('browser_direct_print'))=="Yes" ? "Yes" : "No";
                 if($printing_choice=="web_browser_popup"){
                     $data['path'] = '';
                     $data['profile_'] = '';
@@ -140,6 +142,7 @@ class Printer extends Cl_Controller {
                     $data['type'] = '';
                 }else{
                     $data['print_format'] = '';
+                    $data['browser_direct_print'] = 'No';
                 }
                 
                 $data['company_id'] = $this->session->userdata('company_id');

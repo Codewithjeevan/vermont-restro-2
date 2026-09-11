@@ -3861,6 +3861,8 @@ function logOutCall() {
     $CI->session->unset_userdata('ipvfour_address_bill');
     $CI->session->unset_userdata('print_format_bill');
     $CI->session->unset_userdata('inv_qr_code_enable_status_bill');
+    $CI->session->unset_userdata('browser_direct_print');
+    $CI->session->unset_userdata('browser_direct_print_bill');
 }
 
 /**
@@ -4093,6 +4095,7 @@ if (!function_exists('setCounterPrinterSession')) {
             $print_arr['ipvfour_address'] = $printer_info->ipvfour_address;
             $print_arr['print_format'] = $printer_info->print_format;
             $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
+            $print_arr['browser_direct_print'] = browserDirectPrintOf($printer_info);
         endif;
         //bill
         $print_arr['bill_printer_id'] = $counter_details->bill_printer_id;
@@ -4108,8 +4111,53 @@ if (!function_exists('setCounterPrinterSession')) {
             $print_arr['ipvfour_address_bill'] = $printer_info_bill->ipvfour_address;
             $print_arr['print_format_bill'] = $printer_info_bill->print_format;
             $print_arr['inv_qr_code_enable_status_bill'] = $printer_info_bill->inv_qr_code_enable_status;
+            $print_arr['browser_direct_print_bill'] = browserDirectPrintOf($printer_info_bill);
         endif;
         $CI->session->set_userdata($print_arr);
+    }
+}
+
+/**
+ * "Direct Print (No Popup)" flag of a tbl_printers row, normalised to Yes/No.
+ * Only a browser printer can print in-page; a print-server printer never does.
+ * Tolerates a row read before Update/browser_direct_print_migration.sql ran.
+ */
+if (!function_exists('browserDirectPrintOf')) {
+    function browserDirectPrintOf($printer_info) {
+        if (!$printer_info || !isset($printer_info->browser_direct_print)) {
+            return 'No';
+        }
+        if ($printer_info->printing_choice != 'web_browser_popup') {
+            return 'No';
+        }
+        return $printer_info->browser_direct_print == 'Yes' ? 'Yes' : 'No';
+    }
+}
+
+/**
+ * Whether the manual / offline KOT print of an outlet should print in-page:
+ * Yes when any kitchen of the outlet is on a browser printer that has
+ * "Direct Print (No Popup)" on. (The online KOT batch carries the flag per
+ * printer row, this is only for the path that has no printer information.)
+ */
+if (!function_exists('getKotBrowserDirectPrint')) {
+    function getKotBrowserDirectPrint($outlet_id) {
+        if (!$outlet_id) {
+            return 'No';
+        }
+        $CI = & get_instance();
+        //this runs on every POS load: never let a not-yet-migrated database break the POS
+        if (!$CI->db->field_exists('browser_direct_print', 'tbl_printers')) {
+            return 'No';
+        }
+        $CI->db->from('tbl_printers');
+        $CI->db->join('tbl_kitchens', 'tbl_kitchens.printer_id = tbl_printers.id', 'inner');
+        $CI->db->where('tbl_printers.outlet_id', $outlet_id);
+        $CI->db->where('tbl_printers.del_status', 'Live');
+        $CI->db->where('tbl_kitchens.del_status', 'Live');
+        $CI->db->where('tbl_printers.printing_choice', 'web_browser_popup');
+        $CI->db->where('tbl_printers.browser_direct_print', 'Yes');
+        return $CI->db->count_all_results() ? 'Yes' : 'No';
     }
 }
 /**

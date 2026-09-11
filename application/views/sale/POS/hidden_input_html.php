@@ -250,6 +250,14 @@ foreach ($waiters as $waiter){
 <input type="hidden" name="print_type_invoice" class="print_type_invoice" id="print_type_invoice" value="<?php echo $print_type_invoice?$print_type_invoice:"web_browser_popup"; ?>">
 <input type="hidden" name="print_type_bill" class="print_type_bill" id="print_type_bill" value="<?php echo $print_type_bill?$print_type_bill:"web_browser_popup"; ?>">
 <input type="hidden" name="print_format" class="print_format" id="print_format" value="<?php echo escape_output($this->session->userdata('print_format')); ?>">
+<?php
+    //"Direct Print (No Popup)" (tbl_printers.browser_direct_print): print from a hidden iframe in this page
+    //instead of a popup window. Invoice and bill come from the counter's printers (session copy); the
+    //manual / offline KOT print has no printer row of its own, so it follows the outlet's KOT printers.
+?>
+<input type="hidden" id="browser_direct_print" value="<?php echo $this->session->userdata('browser_direct_print')=="Yes"?"Yes":"No"; ?>">
+<input type="hidden" id="browser_direct_print_bill" value="<?php echo $this->session->userdata('browser_direct_print_bill')=="Yes"?"Yes":"No"; ?>">
+<input type="hidden" id="browser_direct_print_kot" value="<?php echo getKotBrowserDirectPrint($this->session->userdata('outlet_id')); ?>">
 <input type="hidden" name="service_type" class="service_type" id="service_type" value="<?php echo isset($getCompanyInfo->service_type) && $getCompanyInfo->service_type?$getCompanyInfo->service_type:'delivery'; ?>">
 <input type="hidden" name="service_amount" class="service_amount" id="service_amount" value="<?php echo isset($getCompanyInfo->service_amount) && $getCompanyInfo->service_amount?$getCompanyInfo->service_amount:'0'; ?>">
 <input type="hidden" name="delivery_amount" class="delivery_amount" id="delivery_amount" value="<?php echo isset($getCompanyInfo->delivery_amount) && $getCompanyInfo->delivery_amount?$getCompanyInfo->delivery_amount:'0'; ?>">

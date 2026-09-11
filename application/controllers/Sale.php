@@ -479,6 +479,7 @@ class Sale extends Cl_Controller {
                    $print_arr['ipvfour_address'] = $printer_info->ipvfour_address;
                    $print_arr['print_format'] = $printer_info->print_format;
                    $print_arr['inv_qr_code_enable_status'] = $printer_info->inv_qr_code_enable_status;
+                   $print_arr['browser_direct_print'] = browserDirectPrintOf($printer_info);
                  
                    //bill
                    $printer_info_bill = $this->Common_model->getPrinterInfoById($counter_details->bill_printer_id);
@@ -494,6 +495,7 @@ class Sale extends Cl_Controller {
                    $print_arr['ipvfour_address_bill'] = $printer_info_bill->ipvfour_address;
                    $print_arr['print_format_bill'] = $printer_info_bill->print_format;
                    $print_arr['inv_qr_code_enable_status_bill'] = $printer_info_bill->inv_qr_code_enable_status;
+                   $print_arr['browser_direct_print_bill'] = browserDirectPrintOf($printer_info_bill);
                     
 
                    $this->session->set_userdata($print_arr);

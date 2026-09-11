@@ -70,7 +70,7 @@
                                         <td><?php echo escape_output(getOutletNameById($usrs->outlet_id)); ?></td>
                                         <?php endif;?>
                                         <td><?php echo escape_output($usrs->title); ?></td>
-                                        <td><?php echo escape_output($usrs->printing_choice); ?></td>
+                                        <td><?php echo escape_output($usrs->printing_choice); ?><?php if(isset($usrs->browser_direct_print) && $usrs->browser_direct_print=="Yes"){ ?> <small>(<?php echo lang('browser_direct_print'); ?>)</small><?php } ?></td>
                                         <td><?php echo escape_output($usrs->print_format); ?></td>
                                         <td><?php echo escape_output($usrs->type); ?></td>
                                         <td><?php echo escape_output($usrs->printer_ip_address); ?></td>

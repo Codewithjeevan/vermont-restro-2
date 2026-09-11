@@ -1655,8 +1655,111 @@
               }
           }
       }
+      //=====================================================================
+      // Browser print target (invoice / bill / KOT)
+      //=====================================================================
+      //Every browser-side print used to be window.open("", "popup") + document.write(html)
+      //+ window.print() inside that popup. The popup is a separate top-level window and
+      //that is what kept locking the cashier out of the POS:
+      //  - it takes the focus; Windows Chrome then treats the covered POS window as hidden,
+      //    requestAnimationFrame stops, and a jQuery fadeOut of .pos__modal__overlay that
+      //    was still running froze half-transparent over the whole screen;
+      //  - the popup (with the print dialog in it) stayed open until closed by hand.
+      //
+      //tbl_printers.browser_direct_print = Yes ("Direct Print (No Popup)") renders the very
+      //same html into a hidden iframe INSIDE the POS page and prints that: no popup window,
+      //no focus change, the POS is usable the moment the dialog closes. With Chrome started
+      //as   chrome.exe --kiosk-printing   the receipt goes to the default printer with no
+      //dialog at all.
+      //
+      //opts.auto_print: the bill html has no window.print() of its own (its popup shows a
+      //Print button instead), so the in-page path has to trigger the print itself.
+      function browserPrintHtml(html, direct_print, opts) {
+          opts = opts || {};
+          //finish any overlay fade that is still running: a paused animation must never
+          //leave the overlay sitting over the POS
+          $(".pos__modal__overlay").stop(true, true);
+          if (direct_print) {
+              printHtmlInFrame(html, opts);
+          } else {
+              printHtmlInPopup(html, opts);
+          }
+      }
+
+      function printHtmlInPopup(html, opts) {
+          //"height=600" used to be passed as a 4th argument, which window.open ignores
+          var popup = window.open("", "popup", "width=420,height=600");
+          if (!popup) {
+              //popup blocked -> print in-page rather than throw and print nothing
+              printHtmlInFrame(html, opts);
+              return;
+          }
+          popup.document.write(html);
+          popup.document.close();
+          popup.focus();
+          //once the dialog is dismissed (printed or cancelled) close the popup and hand the
+          //focus back to the POS instead of leaving a stray window in front of it
+          popup.addEventListener("afterprint", function () {
+              setTimeout(function () {
+                  try { popup.close(); } catch (e) {}
+                  window.focus();
+              }, 300);
+          });
+      }
+
+      var pos_print_frame_timer = null;
+      function printHtmlInFrame(html, opts) {
+          //one frame at a time: a second print while the first dialog is still open would
+          //swap the document out from under it
+          clearTimeout(pos_print_frame_timer);
+          $("#pos_print_frame").remove();
+
+          var frame = document.createElement("iframe");
+          frame.id = "pos_print_frame";
+          frame.setAttribute("aria-hidden", "true");
+          //visibility:hidden + zero size, NOT display:none - a frame without layout prints blank
+          frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+          document.body.appendChild(frame);
+
+          var win = frame.contentWindow;
+          var doc = win.document;
+          doc.open();
+          doc.write(html);
+          doc.close();
+
+          var printed = false;
+          var finish = function () {
+              //the dialog closes before the job is fully spooled; keep the frame a moment longer
+              pos_print_frame_timer = setTimeout(function () { $(frame).remove(); }, 2000);
+              window.focus();
+          };
+          win.addEventListener("afterprint", finish);
+          if (opts.auto_print) {
+              var run_print = function () {
+                  if (printed) return;
+                  printed = true;
+                  //same grace the popup version gives its external scripts / qr code
+                  setTimeout(function () { win.focus(); win.print(); }, 500);
+              };
+              win.addEventListener("load", run_print);
+              //document.write() documents do not always raise load - do not wait forever
+              setTimeout(run_print, 1500);
+          }
+      }
+
+      //the KOT batch goes out as ONE document, so it prints in-page when any kitchen printer
+      //in the batch is set to Direct Print (No Popup)
+      function kotBrowserDirectPrint(printers) {
+          for (var key in printers) {
+              if (printers[key] && printers[key].browser_direct_print == "Yes") {
+                  return true;
+              }
+          }
+          return false;
+      }
+
       function print_kot_popup_print(order_info,ignore_kot_update=0) {
-        
+
           let need_print_popup = 1;
           let invoice_print =``;
           invoice_print+= `<!doctype html>
@@ -1833,13 +1936,10 @@
                   </html>`;
        
   
-          if(need_print_popup!=1){     
-            reset_finalize_modal();
-              var popup = window.open("", "popup","width=100","height=600");
-              popup.document.write(invoice_print);
-              popup.document.close();
-              popup.focus();
-          } 
+          if(need_print_popup!=1){
+              reset_finalize_modal();
+              browserPrintHtml(invoice_print, kotBrowserDirectPrint(order_info));
+          }
   
       }
   
@@ -2679,12 +2779,9 @@
                   </body>
                   
                   </html>`;
-          update_kot_print(order_info,order.sale_no);     
+          update_kot_print(order_info,order.sale_no);
           reset_finalize_modal();
-          var popup = window.open("", "popup","width=100","height=600");
-          popup.document.write(invoice_print);
-          popup.document.close();
-          popup.focus();
+          browserPrintHtml(invoice_print, $("#browser_direct_print_kot").val() == "Yes");
       }
       function call_print_invoice(order_info, sale_id) {
         let order = JSON.parse(order_info);
@@ -2994,10 +3091,7 @@
                 
                 </html>`;
         reset_finalize_modal();
-        var popup = window.open("", "popup","width=100","height=600");
-        popup.document.write(invoice_print);
-        popup.document.close();
-        popup.focus();
+        browserPrintHtml(invoice_print, $("#browser_direct_print").val() == "Yes");
     }
     function print_bill(order_info, sale_id) {
         let order = JSON.parse(order_info);
@@ -3241,12 +3335,9 @@
                 
                 </html>`;
         reset_finalize_modal();
-        var popup = window.open("", "popup","width=100","height=600");
-        popup.document.write(invoice_print);
-        popup.document.close();
-        popup.focus();
+        browserPrintHtml(invoice_print, $("#browser_direct_print_bill").val() == "Yes", { auto_print: true });
     }
-  
+
       $(document).on("click", ".edit_customer", function (e) {
           let title = $("#edit_profile").val();
           $(".add_customer_title").text(title);

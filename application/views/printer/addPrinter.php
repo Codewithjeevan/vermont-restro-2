@@ -95,6 +95,17 @@
                                 </select>
                             </div>
                         </div>
+                        <!-- browser print only (same toggle class as Print Format): print from a hidden iframe in the POS page instead of a popup window -->
+                        <div class="mb-3 col-lg-4 col-md-6 print_format_div_invoice">
+                            <div class="form-group">
+                                <label><?php echo lang('browser_direct_print'); ?></label>
+                                <select name="browser_direct_print" id="browser_direct_print" class="select2 form-control">
+                                    <option <?php echo set_select('browser_direct_print',"No")?> value="No"><?php echo lang('no'); ?></option>
+                                    <option <?php echo set_select('browser_direct_print',"Yes")?> value="Yes"><?php echo lang('yes'); ?></option>
+                                </select>
+                                <small class="text-muted"><?php echo lang('browser_direct_print_hint'); ?></small>
+                            </div>
+                        </div>
                         <div class="cmb-3 col-lg-4 col-md-6 inv_qr_code_status">
                             <div class="form-group">
                                 <label><?php echo lang('inv_qr_code_enable_status'); ?> <span class="required_star">*</span></label>
