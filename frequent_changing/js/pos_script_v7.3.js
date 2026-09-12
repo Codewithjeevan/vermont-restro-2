@@ -1697,14 +1697,37 @@
           popup.document.write(html);
           popup.document.close();
           popup.focus();
-          //once the dialog is dismissed (printed or cancelled) close the popup and hand the
-          //focus back to the POS instead of leaving a stray window in front of it
-          popup.addEventListener("afterprint", function () {
+          //once the dialog is dismissed (printed, saved as PDF or cancelled) close the popup
+          //and hand the focus back to the POS instead of leaving a stray window in front of
+          //it. Two independent triggers, whichever comes first:
+          //  1. afterprint - the browser dispatches it to the popup when its print dialog
+          //     goes away;
+          //  2. the html's own window.print() call - on desktop browsers it blocks until the
+          //     dialog is dismissed, so the wrapper below closes the popup as soon as the
+          //     native call returns, even if afterprint never fires.
+          var closing = false;
+          var closePopup = function () {
+              if (closing) return;
+              closing = true;
               setTimeout(function () {
                   try { popup.close(); } catch (e) {}
                   window.focus();
               }, 300);
-          });
+          };
+          popup.addEventListener("afterprint", closePopup);
+          //keep the real print() when the named popup is reused and already carries a wrapper
+          var native_print = popup.__pos_native_print || popup.print;
+          popup.__pos_native_print = native_print;
+          popup.print = function () {
+              var started = Date.now();
+              try {
+                  native_print.call(popup);
+              } finally {
+                  //a print() that returned at once did not block (Safari): leave the close
+                  //to afterprint, closing now would tear the dialog down before it shows
+                  if (Date.now() - started > 500) closePopup();
+              }
+          };
       }
 
       var pos_print_frame_timer = null;
