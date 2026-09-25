@@ -252,3 +252,219 @@
 @keyframes running_order_spin{
     to{ transform: rotate(360deg); }
 }
+
+/* ------------------------------------------------------------------
+   More menus: the POS top bar (register, reports, hold, recent sales, ...)
+   is collapsed by default and toggled by the "More menus" button that took
+   the Table button's place (and by the one in the table view header).
+   <head> applies the remembered state (localStorage pos_more_menus_open)
+   before paint. In the "open" state the bar also shows below 1300px, where
+   the stock CSS hides it in favour of the mobile toolbar.
+   ------------------------------------------------------------------ */
+html.pos_header_collapsed .top_header_part:not(.self_order_mode){
+    display: none !important;
+}
+html.pos_header_open .top_header_part:not(.self_order_mode){
+    display: flex !important;
+}
+.pos_more_menus_caret{
+    display: inline-block;
+    transition: transform .2s;
+}
+html.pos_header_open .pos_more_menus_caret{
+    transform: rotate(180deg);
+}
+/* Dine In button shows the picked table as a corner pill (the row's buttons are nowrap + ellipsis, so it must not take inline width) */
+#main_part .left_item .main_middle .button_holder .dine_in_button{
+    position: relative;
+    overflow: visible;
+}
+#main_part .left_item .main_middle .button_holder .pos_more_menus_toggle{
+    font-size: 12px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+.pos_dine_in_table{
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 2px;
+    max-width: calc(100% - 8px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background-color: #2196f3;
+    color: #fff;
+    font-size: 11px;
+    line-height: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.pos_dine_in_table.has_table{
+    display: inline-block;
+}
+
+/* ------------------------------------------------------------------
+   Table view: #show_tables_modal2 (the old centred "Tables" popup) is laid
+   over #main_part inside #pos_stage, opened when the POS loads and by
+   Dine In. Its inner markup is unchanged: the legacy close handlers walk
+   .parent() chains from the table tiles / quick actions up to the modal.
+   ------------------------------------------------------------------ */
+#pos_stage{
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+#pos_stage > #main_part{
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+}
+#show_tables_modal2{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    z-index: 50; /* under .pos__modal__overlay (99): a modal opened from a quick action still dims it */
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none;
+}
+#show_tables_modal2:not(.active){
+    display: none !important;
+}
+#show_tables_modal2.active{
+    display: flex !important;
+    flex-direction: column;
+}
+#show_tables_modal2 .modal-content{
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+#show_tables_modal2 h1.pos_table_view_head{
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 18px;
+    margin: 0;
+}
+.pos_table_view_title{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.pos_table_view_counts{
+    font-size: 12px;
+    font-weight: 400;
+    color: #77797a;
+}
+.pos_table_view_actions{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.pos_tv_btn{
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    background-color: #f2f4f5;
+    border: 1px solid #e1e5e8;
+    color: #333;
+}
+.pos_tv_btn.pos_tv_icon{
+    width: 34px;
+    padding: 0;
+}
+.pos_tv_btn.pos_tv_primary{
+    background-color: #2196f3;
+    border-color: #2196f3;
+    color: #fff;
+}
+#table_view_refresh.syncing i{
+    display: inline-block;
+    animation: running_order_spin 0.8s linear infinite;
+}
+.pos_table_view_hint{
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 6px 15px 6px;
+    font-size: 12px;
+    color: #77797a;
+}
+.pos_table_legend{
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.pos_table_legend i{
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid #cfd9db;
+    background-color: #fff;
+}
+.pos_table_legend i.pos_table_legend_running{
+    border-color: #e74c3c;
+    box-shadow: inset 0 0 0 2px #e74c3c;
+}
+.pos_table_view_hint_text{
+    margin-left: auto;
+}
+#show_tables_modal2 .select_table_modal_info_holder2{
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 !important; /* the floor runs to the edges */
+}
+#show_tables_modal2 .select_table_modal_info_holder2 .table-category-list{
+    flex: 0 0 auto;
+    border-right: 1px solid #eef1f3;
+}
+#show_tables_modal2 .select_table_modal_info_holder2 .width_86{
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+    display: flex;
+}
+#show_tables_modal2 .select_table_modal_info_holder2 .all-dineIn-table{
+    flex: 1 1 auto;
+    /* !important: frequent_changing/table_design/jquery-ui.structure.css loads after this file and sets calc(100% - 32px), which left a white strip under the floor */
+    height: 100% !important;
+    min-height: 480px;
+    margin-left: 0 !important; /* .pos_ml_10 */
+    overflow: auto; /* #canvas gets min-width/height from posTableView.fitCanvas(), so far tables scroll into view (perfect-scrollbar is attached to this pane) */
+}
+#show_tables_modal2 .get_area_table.pos_area_active{
+    background-color: #dadada !important;
+    font-weight: 600 !important;
+}
+/* running table: red ring on the tile, visible even when the area has no "ordered" colours configured */
+.table_bg .div_rectangular.pos_table_running{
+    box-shadow: inset 0 0 0 3px #e74c3c;
+    border-radius: 6px;
+}
+.table_bg .div_rectangular.div_rectangular_active{
+    box-shadow: rgba(0, 0, 0, 0.44) 0px 5px 15px, inset 0 0 0 3px #2196f3;
+}
+.table_bg .div_rectangular.pos_table_running.div_rectangular_active{
+    box-shadow: rgba(0, 0, 0, 0.44) 0px 5px 15px, inset 0 0 0 3px #e74c3c;
+}

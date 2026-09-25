@@ -594,6 +594,7 @@
                   }
                   cursor.continue();
               } else {
+                  posTableView.onRunningOrdersRendered();
                   if (keep_selection) {
                       restoreRunningOrderSelection(selected_sale_no);
                       if ($("#search_running_orders").val()) {
@@ -624,7 +625,7 @@
       let running_order_loader_html = $("#running_order_loading").length ? $("#running_order_loading")[0].outerHTML : '';
 
       function setRunningOrderLoading(on){
-          $("#refresh_order").toggleClass("syncing", !!on);
+          $("#refresh_order, #table_view_refresh").toggleClass("syncing", !!on);
           if (on) {
               if (!$("#order_details_holder .single_order").length && !$("#running_order_loading").length && running_order_loader_html) {
                   $("#order_details_holder").append(running_order_loader_html);
@@ -5389,6 +5390,7 @@
 
                         } else if (this_action.attr("data-id") == "take_away_button") {
                             $("#table_button").attr("disabled", true);
+                            posTableView.clearPickedTable();
                             $(".single_table_div[data-table-checked=checked]").attr(
                                 "data-table-checked",
                                 "unchecked"
@@ -5406,6 +5408,7 @@
                             $("#charge_type").val('delivery').change();
   
                             $("#table_button").attr("disabled", true);
+                            posTableView.clearPickedTable();
                             $(".single_table_div[data-table-checked=checked]").attr(
                                 "data-table-checked",
                                 "unchecked"
@@ -5436,6 +5439,7 @@
                     $(".get_area_table").eq(0).click(); 
                 } else if ($(this).attr("data-id") == "take_away_button") {
                     $("#table_button").attr("disabled", true);
+                            posTableView.clearPickedTable();
                     $(".single_table_div[data-table-checked=checked]").attr(
                         "data-table-checked",
                         "unchecked"
@@ -5452,6 +5456,7 @@
                     $("#charge_type").val('delivery').change();
   
                     $("#table_button").attr("disabled", true);
+                            posTableView.clearPickedTable();
                     $(".single_table_div[data-table-checked=checked]").attr(
                         "data-table-checked",
                         "unchecked"
@@ -7470,7 +7475,8 @@
                   $(".pos__modal__overlay").fadeOut(300);
                   }
               }else{
-                  toastr['error']((please_select_a_table_for_action), '');
+                  //no table selected: arm the action, the next tapped running table gets it
+                  posTableView.armQuickAction($(this));
               }
       });
       $(document).on("click", "#table_button,.dine_in_button", function (e) {
@@ -12691,6 +12697,7 @@
           });
           $("#hidden_table_id").val("");
           $("#hidden_table_name").val("");
+          posTableView.updateDineInBadge();
       }
     function add_order_table(obj,sale_id,sale_no_new){
       for(let key in obj){
@@ -15902,6 +15909,247 @@
        $("#place_edit_order").html(update_order);
         arrange_info_on_the_cart_to_modify(response);
       }
+    /**************POS table view (landing screen) *******************/
+    //#show_tables_modal2 is no longer a centred popup: custom_pos.css lays it over #main_part (inside
+    //#pos_stage) and it is opened when the POS loads, so the cashier picks a table first.
+    // - tap a blank table   -> dine-in order on that table, the cart / items show
+    // - tap a running table -> that order is opened in the cart (Running Orders row + Modify Order)
+    // - Take Away / Delivery in the header -> that order type, no table
+    //Quick actions (Invoice, Split, Modify, Bill, Transfer, Cancel) are "armed" first and applied to the
+    //next tapped running table, because tapping a running table opens it instead of only selecting it.
+    //"More menus" (here and in the cart column) expands / collapses the POS top bar.
+    const posTableView = {
+        armed: 0,
+        activeAreaId: '',
+        lastSignature: null,
+        forceRerender: false,
+        el: function () {
+            return $("#show_tables_modal2");
+        },
+        isOpen: function () {
+            return this.el().hasClass("active");
+        },
+        shouldLandOnTables: function () {
+            if ($("#is_self_order").val() === "Yes" || $("#is_online_order").val() === "Yes") {
+                return false;
+            }
+            if (Number($("#edit_sale_id").val())) {
+                //POS opened to edit one sale
+                return false;
+            }
+            return $(".get_area_table").length > 0;
+        },
+        open: function () {
+            $("#order_number_or_new_text").html("New");
+            $(".bottom_person").val("1");
+            this.el().removeClass("inActive").addClass("active");
+            this.renderActiveArea();
+            this.afterOpen();
+        },
+        afterOpen: function () {
+            //also runs after the legacy open handler (Dine In click), which shows the popup overlay
+            $(".pos__modal__overlay").stop(true, true).hide();
+            this.disarm();
+            this.lastSignature = this.signature();
+            this.forceRerender = false;
+            this.updateCounts();
+        },
+        close: function () {
+            this.disarm();
+            this.el().removeClass("active");
+            $(".pos__modal__overlay").fadeOut(300);
+            reset_table_modal();
+        },
+        renderActiveArea: function () {
+            let tab = $(".get_area_table[data-id='" + this.activeAreaId + "']");
+            if (!tab.length) {
+                tab = $(".get_area_table").eq(0);
+            }
+            tab.trigger("click");
+        },
+        fitCanvas: function () {
+            //the floor plan is absolutely positioned inside #canvas (overflow:hidden): size it to its
+            //farthest tile so a narrow screen scrolls to the far tables instead of clipping them
+            let canvas = $("#show_tables_modal2 .table_bg > #canvas");
+            if (!canvas.length) {
+                return;
+            }
+            let width = 0;
+            let height = 0;
+            canvas.children(".element").each(function () {
+                let element = $(this);
+                width = Math.max(width, (parseFloat(element.css("left")) || 0) + element.outerWidth());
+                height = Math.max(height, (parseFloat(element.css("top")) || 0) + element.outerHeight());
+            });
+            canvas.css({ "min-width": width ? (width + 20) + "px" : "", "min-height": height ? (height + 20) + "px" : "" });
+            try {
+                //perfect-scrollbar sits on .all-dineIn-table (const further down this file); tell it the content size changed
+                all_dineIn_table.update();
+            } catch (e) {}
+        },
+        signature: function () {
+            let parts = [];
+            $(".running_order_custom").each(function () {
+                parts.push($(this).attr("data-sale_id") + ":" + $(this).attr("data-table_id") + ":" + $(this).find(".running_order_order_number").text());
+            });
+            return parts.sort().join("|");
+        },
+        onRunningOrdersRendered: function () {
+            if (!this.isOpen()) {
+                return;
+            }
+            this.updateCounts();
+            let sig = this.signature();
+            if (!this.forceRerender && sig === this.lastSignature) {
+                return;
+            }
+            if ($(".table_bg .div_rectangular_active").length || Number($("#is_click_transfer_table").val())) {
+                //a selection / transfer is in progress: do not redraw under the cashier's finger
+                return;
+            }
+            this.lastSignature = sig;
+            this.forceRerender = false;
+            this.renderActiveArea();
+        },
+        updateCounts: function () {
+            let holder = $("#pos_table_view_counts");
+            if (!holder.length) {
+                return;
+            }
+            let tables = {};
+            $(".set_design .get_table_details").each(function () {
+                tables[$(this).attr("data-id")] = true;
+            });
+            let running = {};
+            $(".running_order_custom").each(function () {
+                let table_id = $(this).attr("data-table_id");
+                if (Number(table_id) && tables[table_id]) {
+                    running[table_id] = true;
+                }
+            });
+            let total = Object.keys(tables).length;
+            let busy = Object.keys(running).length;
+            holder.text(busy + " " + holder.attr("data-running") + " \u00b7 " + (total - busy) + " " + holder.attr("data-free"));
+        },
+        disarm: function () {
+            this.armed = 0;
+            $(".set_quick_action").removeClass("set_quick_action_active");
+        },
+        armQuickAction: function (button) {
+            let id = Number(button.attr("data-id"));
+            let was_armed = this.armed;
+            this.disarm();
+            if (was_armed === id) {
+                //second click disarms
+                return;
+            }
+            this.armed = id;
+            button.addClass("set_quick_action_active");
+            toastr['info']((this.el().attr("data-armed_msg")), '');
+        },
+        onRunningTableTapped: function (booked_id) {
+            if (this.armed) {
+                let id = this.armed;
+                this.armed = 0;
+                //the table is active now, the legacy quick-action handler does the rest
+                $(".set_quick_action[data-id='" + id + "']").trigger("click");
+                return;
+            }
+            if (!$(".table_bg .div_rectangular_active").length) {
+                //tapping the selected table again only deselects it
+                return;
+            }
+            this.close();
+            let row = $("#order_" + booked_id);
+            if (!row.length) {
+                toastr['error']((please_select_open_order), '');
+                return;
+            }
+            row.trigger("click");
+            $("#modify_order").trigger("click");
+        },
+        onBlankTablePicked: function () {
+            this.disarm();
+            this.ensureDineIn();
+            this.updateDineInBadge();
+        },
+        ensureDineIn: function () {
+            let button = $(".dine_in_button");
+            if (!button.length || button.attr("data-selected") === "selected") {
+                return;
+            }
+            //same state changes as the Dine In click handler, without re-opening the table view
+            $("#delivery_charge").val($("#service_amount").val());
+            $("#charge_type").val('service').change();
+            $(".main_top").find("button").attr("data-selected", "unselected");
+            button.attr("data-selected", "selected").addClass("selected__btn");
+            $(".type_temp_div").removeClass("active_tmp_btn");
+            $(".type_temp_div[data-id='1']").addClass("active_tmp_btn");
+            $("#table_button").attr("disabled", false);
+            do_addition_of_item_and_modifiers_price();
+        },
+        clearPickedTable: function () {
+            $("#hidden_table_id").val("");
+            $("#hidden_table_name").val("");
+            $("#hidden_table_capacity").val("");
+            this.updateDineInBadge();
+        },
+        updateDineInBadge: function () {
+            let name = $("#hidden_table_name").val();
+            $("#pos_dine_in_table").text(name ? name : "").toggleClass("has_table", !!name);
+        },
+        toggleMoreMenus: function () {
+            let root = document.documentElement;
+            let open = !root.classList.contains("pos_header_open");
+            root.classList.toggle("pos_header_open", open);
+            root.classList.toggle("pos_header_collapsed", !open);
+            try {
+                localStorage.setItem("pos_more_menus_open", open ? "1" : "0");
+            } catch (e) {}
+            $(window).trigger("resize");
+        }
+    };
+    $(document).on("click", ".pos_more_menus_toggle", function () {
+        posTableView.toggleMoreMenus();
+    });
+    $(document).on("click", "#table_view_back", function () {
+        posTableView.close();
+    });
+    $(document).on("click", "#table_view_refresh", function () {
+        posTableView.forceRerender = true;
+        $("#refresh_order").trigger("click");
+    });
+    $(document).on("click", "#table_view_take_away", function () {
+        posTableView.close();
+        $(".take_away_button").trigger("click");
+    });
+    $(document).on("click", "#table_view_delivery", function () {
+        posTableView.close();
+        $(".delivery_button").trigger("click");
+    });
+    //bound after the legacy handlers of the same elements, so these run second
+    $(document).on("click", ".get_area_table", function () {
+        posTableView.activeAreaId = $(this).attr("data-id");
+        $(".get_area_table").removeClass("pos_area_active");
+        $(this).addClass("pos_area_active");
+        //the legacy render handler of this tab is bound later in this file, so it runs after this one
+        setTimeout(function () {
+            posTableView.fitCanvas();
+        }, 0);
+    });
+    //a floor plan saved while a tile was selected in the designer carries div_rectangular_active; every
+    //render copies the saved markup, so strip it at the source or that tile counts as "selected" forever
+    //(a quick action would apply to it, and the running-orders refresh would never redraw the floor)
+    $(".set_design .div_rectangular").removeClass("div_rectangular_active");
+    $(document).on("click", "#table_button,.dine_in_button", function () {
+        posTableView.afterOpen();
+    });
+    if (posTableView.shouldLandOnTables()) {
+        //deferred: the area / table handlers further down this file must be bound first
+        setTimeout(function () {
+            posTableView.open();
+        }, 0);
+    }
     function reset_table_modal() {
       $(".bottom_person").val("1");
       $(".new_book_to_table").remove();
@@ -18933,12 +19181,14 @@
                   let ordered_border_color_hidden = $("#ordered_border_color_hidden").val();
                   let ordered_bg_color_hidden = $("#ordered_bg_color_hidden").val();
                   let ordered_text_color_hidden = $("#ordered_text_color_hidden").val();
+                  this_action.parent().addClass("pos_table_running");
                   this_action.parent().css("border","1px solid "+ordered_border_color_hidden);
                   this_action.parent().css("background-color",ordered_bg_color_hidden);
                   this_action.parent().css("color",ordered_text_color_hidden);
                   let tootip_content = '<div><span>'+inv_table+': '+table_number+'</span><br><hr>'+inv_waiter+': '+waiter_name+'<br>'+inv_order_number+': '+order_number+'<br>'+inv_total_payable+': '+total_payable+'</div>';
                   let split_order = order_number.split("-");
-                  let html_content = '<div class="set_tooltip" data-tippy-content="'+tootip_content+'"><span class="table_design_table_number">'+table_number+'</span><br><hr class="table_design_hr">'+waiter_name+'<br>'+split_order[1]+'</div>';
+                  //last segment: sale numbers are INV-<company>-<n> now, [1] showed the company id
+                  let html_content = '<div class="set_tooltip" data-tippy-content="'+tootip_content+'"><span class="table_design_table_number">'+table_number+'</span><br><hr class="table_design_hr">'+waiter_name+'<br>'+split_order[split_order.length - 1]+'</div>';
                   this_action.html(html_content);
                   
                   tippy(".set_tooltip", {
@@ -18999,7 +19249,8 @@
           let order_number = (is_active_action.find(".get_table_details").attr("data-order_number"));
       
           if(booked_id){
-              
+              //running table: an armed quick action is applied to it, otherwise the order is opened
+              posTableView.onRunningTableTapped(booked_id);
           }else{
               if(is_click_transfer_table){
                   updateTransferTable(table_id,table_name);
@@ -19031,6 +19282,7 @@
                   toastr['success']((you_are_ordering_now_on_your_selected_table), '');
                   $("#hidden_table_id").val(table_id);
                   $("#hidden_table_name").val(table_name);
+                  posTableView.onBlankTablePicked();
       
                   $(this)
                   .parent()
@@ -19055,6 +19307,9 @@
   
       $(document).on("click", ".get_area_table", function (e) {
           $(".get_area_table").removeAttr("style");
+          $("#ordered_border_color_hidden").val($(this).attr("data-ordered_border_color") || "");
+          $("#ordered_bg_color_hidden").val($(this).attr("data-ordered_bg_color") || "");
+          $("#ordered_text_color_hidden").val($(this).attr("data-ordered_text_color") || "");
           let id = $(this).attr('data-id');
           let this_floor_design = $(this).parent().find(".set_design").html();
           $(".table_bg").html(this_floor_design);

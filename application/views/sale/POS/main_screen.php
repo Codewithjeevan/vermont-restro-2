@@ -489,6 +489,10 @@ foreach ($notifications as $single_notification){
 <html>
 
 <head>
+    <script>
+    /* More menus: the POS top bar starts collapsed unless this browser had it open last time (see custom_pos.css). */
+    (function(){var o=false;try{o=localStorage.getItem("pos_more_menus_open")==="1";}catch(e){}document.documentElement.classList.add(o?"pos_header_open":"pos_header_collapsed");})();
+    </script>
     <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <title><?php echo escape_output($site_name); ?></title>
@@ -931,6 +935,7 @@ foreach ($notifications as $single_notification){
             </div>
             <!-- End Mobile Mode Options -->
         </div>
+        <div id="pos_stage">
         <div id="main_part">
             <div class="left_item <?php echo escape_output($is_self_order_class) ? 'self_order_mode':'' ?>">
                 <div class="main_left  <?php echo escape_output($is_self_order_class) ?>">
@@ -1056,7 +1061,7 @@ foreach ($notifications as $single_notification){
                             ?>
                             <button class="selected__btn_c  <?php echo escape_output($is_self_order_class) ?> dine_in_button" data-id="dine_in_button"
                                 data-selected="<?php echo escape_output($selected)?>">
-                                <i class="fal fa-table"></i> <?php echo lang('dine'); ?>
+                                <i class="fal fa-table"></i> <?php echo lang('dine'); ?><span id="pos_dine_in_table" class="pos_dine_in_table"></span>
                             </button>
 
                             <?php
@@ -1092,7 +1097,8 @@ foreach ($notifications as $single_notification){
                             <?php
                             endif;
                             ?>
-                            <button class="<?php echo escape_output($is_self_order_class) ?>" id="table_button"><i class="fal fa-table"></i> <?php echo lang('table'); ?></button>
+                            <!-- "More menus" took the Table button's place: it expands / collapses the POS top bar (register, reports, hold, recent sales, ...). Dine In opens the table view. -->
+                            <button type="button" class="pos_more_menus_toggle btn_tip <?php echo escape_output($is_self_order_class) ?>" data-tippy-content="<?php echo lang('more_menus'); ?>"><i class="fal fa-chevron-down pos_more_menus_caret"></i> <?php echo lang('more_menus'); ?></button>
                             
                         </div>
                         <?php if($is_self_order=="Yes" && $is_online_order!="Yes"):?>
@@ -1286,6 +1292,81 @@ foreach ($notifications as $single_notification){
 
             </div>
         </div>
+        <!-- Table view: laid over #main_part (see custom_pos.css). Opened on POS load and by Dine In. -->
+    <div id="show_tables_modal2" class="modal display_none" data-armed_msg="<?php echo lang('now_tap_a_table_for_action'); ?>">
+
+        <!-- Modal content -->
+        <div class="modal-content" id="modal_content_show_tables2">
+            <h1 class="ir_pos_relative pos_table_view_head">
+                <span class="pos_table_view_title">
+                    <i class="fal fa-th-large"></i>
+                    <span><?php echo lang('table_view'); ?></span>
+                    <small id="pos_table_view_counts" class="pos_table_view_counts" data-running="<?php echo lang('running'); ?>" data-free="<?php echo lang('free'); ?>"></small>
+                </span>
+                <span class="pos_table_view_actions">
+                    <button type="button" class="pos_tv_btn" id="table_view_back"><i class="fal fa-arrow-left"></i> <?php echo lang('back'); ?></button>
+                    <button type="button" class="pos_tv_btn pos_more_menus_toggle"><i class="fal fa-chevron-down pos_more_menus_caret"></i> <?php echo lang('more_menus'); ?></button>
+                    <button type="button" class="pos_tv_btn pos_tv_icon btn_tip" id="table_view_refresh" data-tippy-content="<?php echo lang('refresh'); ?>"><i class="fal fa-sync"></i></button>
+                    <?php if(!isFoodCourt() || $this->session->userdata('role') == 'Admin'): ?>
+                    <button type="button" class="pos_tv_btn pos_tv_primary" id="table_view_delivery"><i class="fal fa-truck"></i> <?php echo lang('delivery'); ?></button>
+                    <?php endif; ?>
+                    <button type="button" class="pos_tv_btn pos_tv_primary" id="table_view_take_away"><i class="fal fa-shopping-bag"></i> <?php echo lang('take_away'); ?></button>
+                </span>
+            </h1>
+            <div class="pos_table_view_hint">
+                <span class="pos_table_legend"><i class="pos_table_legend_blank"></i> <?php echo lang('blank_table'); ?></span>
+                <span class="pos_table_legend"><i class="pos_table_legend_running"></i> <?php echo lang('running_table'); ?></span>
+                <span class="pos_table_view_hint_text"><?php echo lang('table_view_hint'); ?></span>
+            </div>
+            
+  <?php 
+                $table_bg_color = $this->session->userdata('table_bg_color');
+                $bg_tbl = $table_bg_color;
+            ?>
+            <div class="select_table_modal_info_holder2">
+                
+                <!--This variable could not be escaped because this is html content-->
+                <div class="table-category-list bg-white pos_p_10">
+                    <h4 class="bg-white text-center pos_mb_10"><b><?php echo lang('area'); ?></b></h4>
+                    <ul class="dineIn-table-list-of-item">
+                         <?php
+                            $i = 1;
+                            foreach ($areas as $value) {
+                                $set_active = "";
+                                if($i==1){
+                                    $set_active = "#dadada;";
+                                }
+                                $i++;
+                                echo '<li><div class="set_design ir_display_none">'.$value->table_design_content.'</div><a class="get_area_table" data-floor_bg_color="'.$value->floor_bg_color.'"  data-ordered_border_color="'.$value->ordered_border_color.'"  data-ordered_bg_color="'.$value->ordered_bg_color.'"  data-ordered_text_color="'.$value->ordered_text_color.'" data-id="'.$value->id.'" href="javascript:void(0)">'.$value->area_name.'</a></li>';
+                            }
+                        ?>
+                    </ul>
+
+                    <p>&nbsp;</p>
+                        <table class="ir-width-100">
+                            <tr> <td><button data-id="1" class="set_quick_action"><i class="fas fa-file-invoice"></i> <?php echo lang('invoice'); ?></button></td> </tr>
+                            <tr> <td><button data-id="2" class="set_quick_action"><i class="fas fa-clone"></i> <?php echo lang('split_bill'); ?></button></td> </tr>
+                            <tr> <td><button data-id="3" class="set_quick_action"><i class="fas fa-edit"></i> <?php echo lang('modify_order_'); ?></button></td> </tr>
+                            <tr> <td><button data-id="4" class="set_quick_action"><i class="fas fa-file-invoice"></i> <?php echo lang('bill'); ?></button></td> </tr>
+                            <tr> <td><button data-id="44" class="set_quick_action"><i class="fas fa-exchange"></i> <?php echo lang('transfer_table'); ?></button></td> </tr>
+                            <tr> <td><button data-id="5" class="set_quick_action"><i class="fas fa-times"></i> <?php echo lang('cancel_order'); ?></button></td> </tr>
+                        </table>
+
+
+                </div>
+                <div class="width_86">
+                    <div class="all-dineIn-table bg-white pos_ml_10 table_bg <?php echo $bg_tbl?>">
+                        
+                    </div>
+                </div>
+                
+            </div>
+            <!-- <span class="btn-close">&times;</span> -->
+            <!-- <p>Some text in the Modal..</p> -->
+        </div>
+
+    </div>
+        </div><!-- /#pos_stage -->
     </div>
     <!-- Responsive mobile menu -->
     <div class="all__menus">
@@ -2019,74 +2100,6 @@ foreach ($notifications as $single_notification){
         </div>
 
     </div>
-    <!-- The Modal -->
-    <div id="show_tables_modal2" class="modal display_none">
-
-        <!-- Modal content -->
-        <div class="modal-content" id="modal_content_show_tables2">
-            <h1 class="ir_pos_relative">
-                <?php echo lang('tables'); ?>
-                <a href="javascript:void(0)" class="alertCloseIcon" id="table_modal_cancel_button2">
-                    <i class="fal fa-times"></i>
-                </a>
-            </h1>
-            
-  <?php 
-                $table_bg_color = $this->session->userdata('table_bg_color');
-                $bg_tbl = $table_bg_color;
-            ?>
-            <div class="select_table_modal_info_holder2">
-                
-                <!--This variable could not be escaped because this is html content-->
-                <div class="table-category-list bg-white pos_p_10">
-                    <h4 class="bg-white text-center pos_mb_10"><b><?php echo lang('area'); ?></b></h4>
-                    <ul class="dineIn-table-list-of-item">
-                         <?php
-                            $i = 1;
-                            foreach ($areas as $value) {
-                                $set_active = "";
-                                if($i==1){
-                                    $set_active = "#dadada;";
-                                }
-                                $i++;
-                                echo '<li><div class="set_design ir_display_none">'.$value->table_design_content.'</div><a class="get_area_table" data-floor_bg_color="'.$value->floor_bg_color.'"  data-ordered_border_color="'.$value->ordered_border_color.'"  data-ordered_bg_color="'.$value->ordered_bg_color.'"  data-ordered_text_color="'.$value->ordered_text_color.'" data-id="'.$value->id.'" href="javascript:void(0)">'.$value->area_name.'</a></li>';
-                            }
-                        ?>
-                    </ul>
-
-                    <p>&nbsp;</p>
-                        <table class="ir-width-100">
-                            <tr> <td><button data-id="1" class="set_quick_action"><i class="fas fa-file-invoice"></i> <?php echo lang('invoice'); ?></button></td> </tr>
-                            <tr> <td><button data-id="2" class="set_quick_action"><i class="fas fa-clone"></i> <?php echo lang('split_bill'); ?></button></td> </tr>
-                            <tr> <td><button data-id="3" class="set_quick_action"><i class="fas fa-edit"></i> <?php echo lang('modify_order_'); ?></button></td> </tr>
-                            <tr> <td><button data-id="4" class="set_quick_action"><i class="fas fa-file-invoice"></i> <?php echo lang('bill'); ?></button></td> </tr>
-                            <tr> <td><button data-id="44" class="set_quick_action"><i class="fas fa-exchange"></i> <?php echo lang('transfer_table'); ?></button></td> </tr>
-                            <tr> <td><button data-id="5" class="set_quick_action"><i class="fas fa-times"></i> <?php echo lang('cancel_order'); ?></button></td> </tr>
-                        </table>
-
-
-                </div>
-                <div class="width_86">
-                    <div class="all-dineIn-table bg-white pos_ml_10 table_bg <?php echo $bg_tbl?>">
-                        
-                    </div>
-                </div>
-                
-            </div>
-            <div class="bottom_button_holder_table_modal">
-                <div class="left half">
-                     
-                </div>
-                <div class="right half">
-                    <button class="floatright bg_pos_cancel" id="table_modal_cancel_button"><?php echo lang('cancel'); ?></button>
-                </div>
-            </div>
-            <!-- <span class="btn-close">&times;</span> -->
-            <!-- <p>Some text in the Modal..</p> -->
-        </div>
-
-    </div>
-    <!-- end add customer modal -->
 
     <!-- The sale hold modal -->
     <div id="show_sale_hold_modal" class="modal">
