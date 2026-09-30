@@ -39,9 +39,24 @@ all four sites route through it.
   fade is completed synchronously, so a paused animation can never leave the
   overlay over the POS.
 - **Popup mode** (`browser_direct_print = No`, the default) still opens the
-  popup (proper `width=420,height=600`) but listens for `afterprint` and then
-  closes the popup and hands focus back to the POS. If the popup is blocked it
-  falls back to in-page printing instead of throwing.
+  popup (proper `width=420,height=600`) but closes it and hands focus back to
+  the POS as soon as the print dialog is gone — printed, saved as PDF or
+  cancelled. Two independent triggers, de-duplicated, whichever fires first:
+  1. `afterprint` on the popup window (Chrome dispatches it when the preview
+     dialog closes — `PrintRenderFrameHelper::OnPrintPreviewDialogClosed`);
+  2. `popup.print` is wrapped: the receipt html's own `window.print()` call
+     resolves to the wrapper, and since `window.print()` blocks on desktop
+     browsers until the dialog is dismissed, the wrapper closes the popup when
+     the native call returns. A call that returns at once (< 500 ms, i.e. a
+     non-blocking `print()` as in Safari) is left to `afterprint`, closing
+     then would tear the dialog down before it is shown. The real `print` is
+     kept in `popup.__pos_native_print` so a reused named popup does not
+     chain wrappers.
+  Verified on the real POS (re-print + Quick Invoice → KOT + invoice) with a
+  clean Chrome profile: Cancel → popup gone in ~1 s; Save as PDF → Save As
+  dialog → save → popup gone; Save As → cancel → preview re-shown → Cancel →
+  popup gone. If the popup blocked it falls back to in-page printing instead
+  of throwing.
 - **Direct mode** (`browser_direct_print = Yes`) writes the same html into a
   hidden `<iframe id="pos_print_frame">` inside the POS page and prints that
   (`visibility:hidden` + zero size, *not* `display:none` — a frame without
@@ -100,3 +115,41 @@ tolerates a row read before the migration ran.
 
 Not touched: the ESC-POS print server path (`printing_choice = direct_print`),
 the admin sale-list print pages (`sale/print_invoice*.php`), kitchen panel.
+
+## 5. Setup flow — silent print on the counter's physical printer
+
+One POS terminal (Windows, Chrome/Edge) + one thermal printer. Kiosk mode
+prints to the *default* printer only; a separate silent kitchen printer goes
+through Printing Choice = Direct Print (ESC/POS print server) instead.
+
+1. **Windows** — install the printer, print a Windows test page, *Set as
+   default* (turn off "Let Windows manage my default printer"), driver paper
+   size 80 x 297 mm (58 x 297 for 58 mm rolls).
+2. **Printer → Edit** — Printing Choice = Browser Popup Print, Print Format =
+   Thermal 80mm / 56mm, **Direct Print (No Popup) = Yes**. Check: list shows
+   `web_browser_popup (Direct Print (No Popup))`. Migration must be applied
+   first or the field is not shown.
+3. **Counter → Edit** — Invoice Printer and Bill Printer = that printer
+   (Kitchen → Printer too if KOT prints here). **Reload the POS** (flag is
+   copied into the session on POS load). Check: a print no longer opens the
+   small `about:blank` popup; the dialog opens inside the POS tab.
+4. **Teach Chrome the print settings once** (Chrome in normal mode): print a
+   bill, in the dialog pick the thermal printer, paper 80 x 297 mm, Margins
+   None, Scale 100, Headers and footers OFF, Background graphics ON, then
+   Print. Kiosk mode reuses the last-used settings, so this dialog never
+   shows again.
+5. **Shortcut** — close every Chrome window, then create a desktop shortcut:
+   `"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing "http://<pos-url>/Sale/POS"`
+   (optional `--kiosk`, `--user-data-dir="C:\pos-chrome"`; Edge: same flag on
+   `msedge.exe`). Check: `chrome://version` → Command Line contains
+   `--kiosk-printing`.
+6. **Live test** — Place Order (KOT), Invoice, Print Last Invoice: all three
+   print with no dialog and the POS stays clickable throughout.
+
+Troubleshooting: dialog appears → Chrome started without the flag (another
+window was open); `about:blank` popup → step 2/3 or POS not reloaded; wrong
+printer / Save as PDF → Windows default printer; cut-off or A4-sized receipt
+→ redo step 4 without the flag; URL/date on top → headers and footers;
+nothing prints → Windows print queue (offline / paper).
+
+Shareable Hinglish version of this flow: Claude artifact "Trul Resto Direct Print".

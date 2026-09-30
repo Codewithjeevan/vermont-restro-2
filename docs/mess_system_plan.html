@@ -1,0 +1,835 @@
+<title>Mess Module Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F3F7F4; --surface:#FFFFFF; --surface-2:#E9F0EC; --ink:#172220; --muted:#5A6A65; --line:#D3DDD8;
+  --primary:#0F5A49; --primary-ink:#FFFFFF; --primary-soft:#DCEFE7;
+  --accent:#C4800E; --accent-soft:#FBEFD6;
+  --good:#1C7C48; --good-soft:#DAF2E3; --warn:#A96300; --warn-soft:#FCE9C6; --crit:#AE3838; --crit-soft:#F8DDDD;
+  --info:#2B5C9E; --info-soft:#E1EAF7;
+  --shadow:0 1px 2px rgba(20,40,30,.05),0 10px 28px -18px rgba(20,40,30,.28);
+  --font-display:'Sora',system-ui,sans-serif;
+  --font-body:'Source Sans 3','Segoe UI',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#101816; --surface:#17211E; --surface-2:#1E2B27; --ink:#E5ECE8; --muted:#99A9A3; --line:#2A3833;
+    --primary:#5DC9A5; --primary-ink:#0A1F19; --primary-soft:#163A31;
+    --accent:#EFB24A; --accent-soft:#382B12;
+    --good:#62D093; --good-soft:#153526; --warn:#EFB24A; --warn-soft:#382B12; --crit:#F08C8C; --crit-soft:#3D1F1F;
+    --info:#8AB4F0; --info-soft:#1C2A3B; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101816; --surface:#17211E; --surface-2:#1E2B27; --ink:#E5ECE8; --muted:#99A9A3; --line:#2A3833;
+  --primary:#5DC9A5; --primary-ink:#0A1F19; --primary-soft:#163A31;
+  --accent:#EFB24A; --accent-soft:#382B12;
+  --good:#62D093; --good-soft:#153526; --warn:#EFB24A; --warn-soft:#382B12; --crit:#F08C8C; --crit-soft:#3D1F1F;
+  --info:#8AB4F0; --info-soft:#1C2A3B; --shadow:none;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55}
+a{color:var(--primary)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.page{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 72px;display:grid;grid-template-columns:minmax(0,1fr);gap:32px}
+@media (min-width:1000px){.page{grid-template-columns:210px minmax(0,1fr);gap:44px}}
+.toc{display:none}
+@media (min-width:1000px){
+  .toc{display:block;position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;font-size:13.5px}
+  .toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+  .toc a{display:block;padding:5px 8px;border-radius:6px;color:var(--muted);text-decoration:none;border-left:2px solid transparent}
+  .toc a:hover{color:var(--ink);background:var(--surface-2)}
+  .toc .sub a{padding-left:20px;font-size:12.5px}
+  .toc .eyebrow{margin:0 0 8px 8px}
+}
+main{max-width:860px;min-width:0}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hero{padding-block:8px 28px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.hero h1{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,4.2vw,42px);line-height:1.1;margin:8px 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.hero .lede{font-size:18px;color:var(--muted);max-width:62ch;margin:0 0 16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--font-mono);font-size:12px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted)}
+section{padding-block:28px 8px;scroll-margin-top:16px}
+h2{font-family:var(--font-display);font-weight:600;font-size:25px;line-height:1.2;margin:0 0 14px;text-wrap:balance;display:flex;gap:12px;align-items:baseline}
+h2 .n{font-family:var(--font-mono);font-size:14px;color:var(--accent);font-weight:600}
+h3{font-family:var(--font-display);font-weight:600;font-size:18px;margin:28px 0 8px;text-wrap:balance}
+h4{font-family:var(--font-display);font-weight:600;font-size:15px;margin:16px 0 6px}
+p{margin:0 0 12px;max-width:68ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:70ch}
+li{margin-bottom:5px}
+strong{font-weight:600}
+code{font-family:var(--font-mono);font-size:.86em;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+pre{font-family:var(--font-mono);font-size:13px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 14px}
+pre code{background:none;padding:0;font-size:inherit}
+.note{border-left:4px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0;max-width:none}
+.note.info{border-color:var(--info);background:var(--info-soft)}
+.note p{max-width:none;margin:0}
+.tblwrap{overflow-x:auto;margin:0 0 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .num{text-align:right;font-family:var(--font-mono);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl .mono{font-family:var(--font-mono);font-size:12.5px;white-space:nowrap}
+.tbl tfoot td{font-weight:600;background:var(--surface-2)}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.6;white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.info{background:var(--info-soft);color:var(--info)}
+.pill.neutral{background:var(--surface-2);color:var(--muted)}
+.pill.primary{background:var(--primary-soft);color:var(--primary)}
+.mock{margin:18px 0;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.mock-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.mock-bar .dots{display:inline-flex;gap:4px}
+.mock-bar .dots i{width:8px;height:8px;border-radius:50%;background:var(--line);display:block}
+.mock-body{padding:14px;overflow-x:auto}
+.mock figcaption{padding:10px 14px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.mock .tblwrap{border:none;border-radius:0;margin:0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.field{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:var(--surface)}
+.field b{font-weight:600}
+.field.wide{min-width:200px;color:var(--muted)}
+.btn{display:inline-block;padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
+.btn.primary{background:var(--primary);color:var(--primary-ink);border-color:transparent}
+.btn.good{background:var(--good);color:#fff;border-color:transparent}
+.btn.ghost{background:transparent}
+.btn.sm{padding:3px 9px;font-size:12px}
+.btngrp{display:inline-flex;gap:4px;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.stat{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.stat b{display:block;font-family:var(--font-display);font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:4px;font-family:var(--font-mono)}
+.stat small{display:block;font-size:12.5px;color:var(--muted);margin-top:4px}
+.stat.hot{border-color:var(--accent);background:var(--accent-soft)}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:0;margin:0 0 16px;counter-reset:step;max-width:none}
+.flow li{list-style:none;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:0;font-size:14px}
+.flow li::before{counter-increment:step;content:"Step " counter(step);display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--primary);margin-bottom:4px}
+.flow li b{display:block;font-family:var(--font-display);font-size:14.5px;margin-bottom:4px}
+.flow li span{color:var(--muted);font-size:13.5px}
+.loop{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:8px}
+@media (min-width:700px){.loop{grid-template-columns:1fr 1fr}}
+.loop > div{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface)}
+.loop h4{margin:0 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.loop ol{padding-left:20px;margin:0;font-size:14.5px}
+.sidemock{display:grid;grid-template-columns:1fr}
+@media (min-width:640px){.sidemock{grid-template-columns:200px 1fr}}
+.sidemock .menu{background:var(--surface-2);padding:12px;font-size:14px;border-right:1px solid var(--line)}
+.sidemock .menu ul{list-style:none;padding:0;margin:0;max-width:none}
+.sidemock .menu li{padding:6px 10px;border-radius:6px;margin:0}
+.sidemock .menu li.head{font-family:var(--font-display);font-weight:600;color:var(--primary);padding-left:4px}
+.sidemock .menu li.on{background:var(--primary);color:var(--primary-ink);font-weight:600}
+.sidemock .menu li small{color:var(--muted);font-size:12px;margin-left:6px}
+.sidemock .menu li.on small{color:var(--primary-ink);opacity:.8}
+.sidemock .content{padding:14px;min-width:0}
+.form{display:grid;grid-template-columns:1fr;gap:8px 14px;font-size:14px}
+@media (min-width:620px){.form{grid-template-columns:1fr 1fr}}
+.form .row{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center}
+.form .row label{color:var(--muted);font-size:13px}
+.form .row .v{padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:var(--surface);min-height:30px}
+.form .row .v.auto{background:var(--surface-2);color:var(--muted)}
+.form .span2{grid-column:1 / -1}
+.check{display:inline-flex;align-items:center;gap:5px;margin-right:10px}
+.check i{width:14px;height:14px;border:1.5px solid var(--muted);border-radius:3px;display:inline-block;position:relative;flex:none}
+.check i.on{background:var(--primary);border-color:var(--primary)}
+.check i.on::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--primary-ink);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.sheet{font-size:13.5px;background:var(--surface);border:1px solid var(--line);padding:18px 20px;border-radius:6px;min-width:520px}
+.sheet .head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:12px}
+.sheet .head b{font-family:var(--font-display);font-size:16px}
+.sheet h5{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.sheet .box{display:inline-block;width:14px;height:14px;border:1.5px solid var(--ink);border-radius:2px;vertical-align:middle}
+.schema{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:16px}
+@media (min-width:720px){.schema{grid-template-columns:1fr 1fr}}
+.schema-card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface);font-size:14px}
+.schema-card h4{font-family:var(--font-mono);font-size:13.5px;margin:0 0 6px;color:var(--primary);font-weight:600}
+.schema-card p{margin:0 0 6px;color:var(--muted);font-size:13.5px;max-width:none}
+.schema-card .cols{font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--ink);word-break:break-word}
+.schema-card.existing{border-style:dashed}
+.schema-card.existing h4{color:var(--accent)}
+.phase{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface);margin-bottom:12px}
+.phase h4{margin:0 0 6px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.phase ul{margin:6px 0 0;font-size:14.5px}
+.two{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:720px){.two{grid-template-columns:1fr 1fr}}
+.card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface);min-width:0}
+.card.mess{border:2px solid var(--accent);background:var(--accent-soft)}
+.card .t{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.card .big{font-family:var(--font-display);font-size:26px;font-weight:700;margin:4px 0;font-variant-numeric:tabular-nums}
+.card .split{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;font-variant-numeric:tabular-nums}
+.card .split b{font-family:var(--font-mono);font-weight:600}
+.card ul{margin:8px 0 0;padding-left:18px;max-width:none}
+.muted{color:var(--muted)}
+.small{font-size:13.5px}
+.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto;margin:0 0 14px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="page">
+<nav class="toc" aria-label="Sections">
+  <p class="eyebrow">Contents</p>
+  <ol>
+    <li><a href="#today">1 · Aaj ka tareeka (Excel)</a></li>
+    <li><a href="#req">2 · Requirement to solution</a></li>
+    <li><a href="#overview">3 · How it works</a></li>
+    <li><a href="#map">4 · Module map</a></li>
+    <li><a href="#screens">5 · Screens</a></li>
+    <li class="sub"><a href="#plans">Plans</a></li>
+    <li class="sub"><a href="#members">Members and subscriptions</a></li>
+    <li class="sub"><a href="#menu">Daily menu planner</a></li>
+    <li class="sub"><a href="#register">Meal register (attendance)</a></li>
+    <li class="sub"><a href="#extras">Extras (aaj ye chahiye)</a></li>
+    <li class="sub"><a href="#sheet">Daily sheet</a></li>
+    <li class="sub"><a href="#close">Day close and inventory</a></li>
+    <li class="sub"><a href="#payments">Payments and ledger</a></li>
+    <li class="sub"><a href="#regcard">Register report card</a></li>
+    <li class="sub"><a href="#reports">Reports</a></li>
+    <li class="sub"><a href="#settings">Settings and roles</a></li>
+    <li><a href="#data">6 · Data model</a></li>
+    <li><a href="#hooks">7 · Hooks into existing code</a></li>
+    <li><a href="#phases">8 · Phases</a></li>
+    <li><a href="#decisions">9 · Decisions needed</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <p class="eyebrow">TRUL Resto · iRestora PLUS · Feature plan · v1 draft</p>
+  <h1>Mess Module Plan</h1>
+  <p class="lede">A separate "Mess" section in the admin panel for monthly tiffin members: daily menu, who got food and who did not, extras, monthly money, and ingredient stock that moves every day. POS stays untouched except one "Mess Collection" card on the register report.</p>
+  <div class="chips">
+    <span class="chip">Date: 25 Sep 2026</span>
+    <span class="chip">Source: mess for june &amp; july 2026.xls</span>
+    <span class="chip">Currency: AED</span>
+    <span class="chip">Status: plan only, nothing built</span>
+  </div>
+</header>
+
+<!-- ===================== 1. TODAY ===================== -->
+<section id="today">
+  <h2><span class="n">01</span> Aaj ka tareeka: the Excel sheet</h2>
+  <p>The client runs the mess from one Excel sheet per month-pair. Each row is one member (or one room), and the sheet is re-typed every cycle. This is what a row holds today:</p>
+
+  <div class="tblwrap">
+    <table class="tbl">
+      <thead><tr><th>Name</th><th>Meals</th><th class="num">Qty</th><th>Type</th><th>Start</th><th>End</th><th>Mode</th><th class="num">Rate</th><th class="num">Advance</th><th class="num">Balance</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Arif / Khaled</td><td>Lunch + 2 Dinner</td><td class="num">3</td><td>Non-veg</td><td class="mono">01 Aug</td><td class="mono">31 Aug</td><td>Pickup</td><td class="num">750</td><td class="num">0</td><td class="num">750</td><td>PAID (later)</td></tr>
+        <tr><td>Umar</td><td>Dinner</td><td class="num">1</td><td>Non-veg</td><td class="mono">01 Aug</td><td class="mono">31 Aug</td><td>Delivery</td><td class="num">350</td><td class="num">350</td><td class="num">0</td><td>170 card, 180 card</td></tr>
+        <tr><td>Shujath Hussain</td><td>Breakfast + Dinner</td><td class="num">2</td><td>Both</td><td class="mono">06 Aug</td><td class="mono">05 Sep</td><td>Pickup</td><td class="num">550</td><td class="num">0</td><td class="num">550</td><td>2 cool drinks 1 water = 7 pending</td></tr>
+        <tr><td>Driver</td><td>Dinner</td><td class="num">1</td><td>Veg</td><td class="mono">05 Sep</td><td class="mono">05 Oct</td><td>Pickup</td><td class="num">130</td><td class="num">130</td><td class="num">0</td><td>special rate</td></tr>
+        <tr><td>Shahroz Mumtaz</td><td>Dinner</td><td class="num">1</td><td>Non-veg</td><td class="mono">26 Jun</td><td class="mono">30 Jun</td><td>Pickup</td><td class="num">57</td><td class="num">57</td><td class="num">0</td><td>5 days only</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="7">Aug–Sep sheet totals (22 rows)</td><td class="num">8,620</td><td class="num">5,060</td><td class="num">3,010</td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <h3>What the sheet tells us about the business</h3>
+  <ul>
+    <li><strong>Rolling cycles, not calendar months.</strong> A member starts any day and runs 30 or 31 days. Renewal is a new row.</li>
+    <li><strong>Three meal slots</strong> exist (Breakfast, Lunch, Dinner) but most members take Dinner only. Some take different quantities per slot ("Lunch + 2 Dinner").</li>
+    <li><strong>Quantity is persons/tiffins</strong>, and the price is negotiated per member, not a strict rate × persons (2 persons dinner = 500 or 550, driver = 130, 5 days = 57).</li>
+    <li><strong>Diet</strong> is Veg / Non-veg / Both / "no beef", and it decides which menu the member gets.</li>
+    <li><strong>Pickup vs Delivery</strong> matters for the daily list and for phone and address.</li>
+    <li><strong>Money comes in pieces</strong>: advance, part payments, card + cash splits, and "paid" written in the notes column.</li>
+    <li><strong>Extras live in Notes</strong> ("2 cool drinks 1 water = 7 pending") and get lost.</li>
+  </ul>
+
+  <h3>What the sheet cannot do</h3>
+  <ul>
+    <li>No record of <em>which day</em> a member took or missed a meal. "Sheet1" was an attempt at this (NAME × LUNCH × DINNER) and stayed empty.</li>
+    <li>No link to the kitchen: no daily menu, no headcount for cooking, no ingredient stock movement.</li>
+    <li>No reminders for expiring members, no dues list, no cash/card total for the register.</li>
+    <li>Old cycles get overwritten; there is no history per member.</li>
+  </ul>
+</section>
+
+<!-- ===================== 2. REQUIREMENTS ===================== -->
+<section id="req">
+  <h2><span class="n">02</span> Client requirement to solution</h2>
+  <p>Requirements as noted on 24 Sep and in the follow-up chat, mapped to the feature that answers them.</p>
+  <div class="tblwrap">
+    <table class="tbl">
+      <thead><tr><th style="width:36%">Client ne kya bola</th><th>Plan me kya hai</th><th>Section</th></tr></thead>
+      <tbody>
+        <tr><td>Inventory track honi chahiye, daily manage ho</td><td>Every day the kitchen closes each meal slot. Cooked portions × recipe post ingredient consumption into the existing stock ledger. Stock screen and stock report show it automatically. Leftover goes to Waste.</td><td><a href="#close">5.7</a></td></tr>
+        <tr><td>Make a recipe one time</td><td>Recipes already live on Food Menus (<code>tbl_food_menus_ingredients</code>). Mess dishes are food menus in a "Mess Kitchen" category. Set the recipe once; the daily menu only picks dishes.</td><td><a href="#menu">5.3</a></td></tr>
+        <tr><td>Mess ka menu daily change hoga</td><td>Daily Menu Planner: date × slot × diet (Veg / Non-veg). Copy yesterday, copy last week, or load a 7-day template, then edit.</td><td><a href="#menu">5.3</a></td></tr>
+        <tr><td>Daily kitne ko khana gaya, kitne ko nahi gaya (subah, dopahar, shaam)</td><td>Meal Register: for each date and slot, a list of expected members with one-tap Served / Not taken / Skipped. Counts on top. Monthly attendance matrix report.</td><td><a href="#register">5.4</a></td></tr>
+        <tr><td>Daily sheet kaise generate hogi</td><td>Auto-generated per date from active subscriptions plus the planned menu: headcount, production plan with ingredient shortage, member checklist (printable), extras list.</td><td><a href="#sheet">5.6</a></td></tr>
+        <tr><td>Payment kaise manage ho rahi hai, sab track ho; paisa mahine me ek baar</td><td>One charge per subscription cycle, payments in any number of pieces (cash / card / bank), member ledger with balance, dues list, expiring list, renew in one click.</td><td><a href="#payments">5.8</a></td></tr>
+        <tr><td>Koi bole "mujhe aaj ye chahiye", wo bhi la paye</td><td>Extras: add any food menu item or a custom line for a member on a date and slot. Pay now (goes to register) or add to account (collected with the monthly money). Shows on the daily sheet for the kitchen.</td><td><a href="#extras">5.5</a></td></tr>
+        <tr><td>POS ke saath rakhna zaroori nahi, alag page</td><td>Own "Mess" menu group in the admin sidebar with its own pages and access rights. No change to the POS cart.</td><td><a href="#map">4</a></td></tr>
+        <tr><td>Register report me ek "Mess amount" card (cash wala)</td><td>Mess payments carry counter, outlet and time exactly like Customer Due Receive, so the register close shows one "Mess Collection" card with a Cash / Card split and cash-in-hand includes it.</td><td><a href="#regcard">5.9</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== 3. OVERVIEW ===================== -->
+<section id="overview">
+  <h2><span class="n">03</span> How it works: two loops</h2>
+  <p>The module runs on two loops. The monthly loop is about people and money. The daily loop is about food and stock. They meet on the Meal Register, where "who is expected today" comes from subscriptions and "who was served" feeds both attendance and cooking numbers.</p>
+
+  <div class="loop">
+    <div>
+      <h4><span class="pill primary">Monthly loop</span> people and money</h4>
+      <ol>
+        <li>Create the member once (name, phone, building, diet, pickup or delivery).</li>
+        <li>Start a subscription: plan, meals and persons per slot, start date, agreed price. End date fills automatically.</li>
+        <li>Collect money whenever it comes: advance, part, rest. Each payment is cash, card or bank and lands on the open register.</li>
+        <li>Three days before the end date the member appears in "Expiring". One tap on Renew makes the next cycle.</li>
+        <li>Balance and history stay on the member ledger forever.</li>
+      </ol>
+    </div>
+    <div>
+      <h4><span class="pill warn">Daily loop</span> food and stock</h4>
+      <ol>
+        <li>Set today's menu per slot and diet (or copy).</li>
+        <li>The daily sheet is generated: expected headcount, production plan, ingredient needs vs stock.</li>
+        <li>Kitchen cooks. Counter or delivery marks each member Served / Not taken as tiffins go out.</li>
+        <li>Extras are added when someone asks for something more.</li>
+        <li>Day close per slot: confirm cooked portions and leftover. Consumption posts to stock, leftover posts to waste.</li>
+      </ol>
+    </div>
+  </div>
+
+  <h3>A day in the mess, with this module</h3>
+  <ol class="flow">
+    <li><b>08:30 Menu</b><span>Manager opens Daily Menu, copies yesterday's dinner, swaps Dal for Rajma. Portion per person stays 1.</span></li>
+    <li><b>09:00 Sheet</b><span>Kitchen opens Daily Sheet: Dinner expected 26 (Non-veg 20, Veg 6). Chicken needed 5.5 kg, stock 3.2 kg. Shortage shows in red.</span></li>
+    <li><b>11:00 Purchase</b><span>Chicken bought through the existing Purchase screen. Stock updates. Sheet shows green.</span></li>
+    <li><b>17:00 Extras</b><span>Shujath calls: "aaj 2 cold drink extra". Counter adds an extra, on account, AED 7. Kitchen sees it on the sheet.</span></li>
+    <li><b>19:00 Serve</b><span>Meal Register open on the counter tablet. Each pickup gets a tap on Served. Delivery list is marked when the driver returns.</span></li>
+    <li><b>22:30 Close</b><span>Dinner closed: 24 served, 2 not taken. Cooked 26 portions, 2 leftover to waste. Consumption posted. Stock moves.</span></li>
+    <li><b>23:00 Register</b><span>Register close shows Mess Collection: Cash 1,250, Card 350. Cash in hand includes the 1,250.</span></li>
+  </ol>
+</section>
+
+<!-- ===================== 4. MODULE MAP ===================== -->
+<section id="map">
+  <h2><span class="n">04</span> Module map</h2>
+  <p>One new sidebar group. Every page is a normal admin page (same layout as Customer Due Receive or Waste), each gated by its own access id so a counter user can see Meal Register and Payments without seeing Settings.</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> trul-resto.test/Mess/today</div>
+    <div class="mock-body" style="padding:0">
+      <div class="sidemock">
+        <div class="menu">
+          <ul>
+            <li class="head">Mess</li>
+            <li class="on">Today <small>dashboard</small></li>
+            <li>Meal Register <small>attendance</small></li>
+            <li>Daily Sheet <small>print</small></li>
+            <li>Daily Menu <small>planner</small></li>
+            <li>Extras</li>
+            <li>Day Close <small>stock</small></li>
+            <li>Members</li>
+            <li>Subscriptions</li>
+            <li>Payments</li>
+            <li>Plans</li>
+            <li>Reports</li>
+            <li>Settings</li>
+          </ul>
+        </div>
+        <div class="content">
+          <div class="toolbar"><span class="field"><b>Thu 25 Sep 2026</b></span><span class="field">Outlet: Main</span></div>
+          <div class="stats">
+            <div class="stat"><b>26</b><span>Dinner expected</span><small>Non-veg 20 · Veg 6</small></div>
+            <div class="stat"><b>14 / 12</b><span>Pickup / Delivery</span><small>Route list ready</small></div>
+            <div class="stat"><b>3</b><span>Extras today</span><small>AED 19 on account</small></div>
+            <div class="stat hot"><b>4</b><span>Expiring in 3 days</span><small>kazim bhai ends tomorrow</small></div>
+            <div class="stat"><b>3,010</b><span>Total dues (AED)</span><small>9 members</small></div>
+            <div class="stat hot"><b>1</b><span>Stock shortage</span><small>Chicken short 2.3 kg</small></div>
+          </div>
+          <div class="two">
+            <div class="card"><div class="t">Tonight's menu · Non-veg</div><p class="small" style="margin:6px 0 0">Chicken Biryani · Dal Makhni · Raita</p></div>
+            <div class="card"><div class="t">Tonight's menu · Veg</div><p class="small" style="margin:6px 0 0">Veg Biryani · Dal Makhni · Raita</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption>"Today" is the landing page for the mess staff: what to cook, who is expected, what needs attention. Everything on it links to the page that fixes it.</figcaption>
+  </figure>
+</section>
+
+<!-- ===================== 5. SCREENS ===================== -->
+<section id="screens">
+  <h2><span class="n">05</span> Screens, one by one</h2>
+  <p>Each screen below has a mock, the rules it enforces, and what it writes to the database. Names and numbers in the mocks come from the client's own sheet.</p>
+
+  <!-- 5.1 PLANS -->
+  <h3 id="plans">5.1 Plans (packages)</h3>
+  <p>A plan is a price list entry, not a contract. It gives the default price per person per cycle and which meals are included. Staff can still type an agreed price on the subscription, which is how the sheet works today (driver at 130, Arif/Khaled at 750).</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> Mess › Plans</div>
+    <div class="mock-body">
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Plan</th><th>Meals</th><th>Diet</th><th class="num">Per person / cycle</th><th class="num">Per meal (pro-rata)</th><th>Cycle</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Dinner Veg</td><td>Dinner</td><td>Veg</td><td class="num">300</td><td class="num">10.00</td><td>30 days</td><td><span class="pill good">Active</span></td></tr>
+          <tr><td>Dinner Non-veg</td><td>Dinner</td><td>Non-veg</td><td class="num">350</td><td class="num">11.67</td><td>30 days</td><td><span class="pill good">Active</span></td></tr>
+          <tr><td>Lunch + Dinner Non-veg</td><td>Lunch, Dinner</td><td>Non-veg</td><td class="num">550</td><td class="num">9.17</td><td>30 days</td><td><span class="pill good">Active</span></td></tr>
+          <tr><td>Breakfast + Dinner</td><td>Breakfast, Dinner</td><td>Both</td><td class="num">550</td><td class="num">9.17</td><td>30 days</td><td><span class="pill good">Active</span></td></tr>
+          <tr><td>Staff / Driver Dinner</td><td>Dinner</td><td>Veg</td><td class="num">130</td><td class="num">4.33</td><td>30 days</td><td><span class="pill good">Active</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <figcaption>Per-meal rate = price ÷ (cycle days × meals per day). It is used for short cycles (Shahroz, 5 days = 57) and for skip credits if the client wants them.</figcaption>
+  </figure>
+
+  <!-- 5.2 MEMBERS -->
+  <h3 id="members">5.2 Members and subscriptions</h3>
+  <p>A member is created once. A subscription is one cycle for that member. Renewing copies the last subscription with new dates, so the monthly re-typing disappears.</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> Mess › Subscriptions › New</div>
+    <div class="mock-body">
+      <div class="form">
+        <div class="row"><label>Member</label><div class="v">Arif / Khaled · 055-6522706</div></div>
+        <div class="row"><label>Plan</label><div class="v">Lunch + Dinner Non-veg</div></div>
+        <div class="row span2"><label>Meals × persons</label><div class="v"><span class="check"><i></i>Breakfast × 0</span><span class="check"><i class="on"></i>Lunch × <b>1</b></span><span class="check"><i class="on"></i>Dinner × <b>2</b></span></div></div>
+        <div class="row"><label>Diet</label><div class="v">Non-veg (no beef)</div></div>
+        <div class="row"><label>Mode</label><div class="v">Pickup</div></div>
+        <div class="row"><label>Start date</label><div class="v">01 Sep 2026</div></div>
+        <div class="row"><label>End date</label><div class="v auto">30 Sep 2026 (auto, 30 days)</div></div>
+        <div class="row"><label>Suggested</label><div class="v auto">1 × 550 + 2 × 350 = 1,250</div></div>
+        <div class="row"><label>Agreed price</label><div class="v"><b>750</b> <span class="muted small">(overridden, reason: old customer)</span></div></div>
+        <div class="row span2"><label>Address</label><div class="v muted">not needed for pickup</div></div>
+        <div class="row span2"><label>Advance now</label><div class="v">AED <b>300</b> · Cash · goes to today's register</div></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px"><span class="btn primary">Save subscription</span><span class="btn">Save and print receipt</span></div>
+    </div>
+    <figcaption>Meals × persons per slot is the key detail: "Lunch + 2 Dinner" is one subscription with two meal rows. The daily sheet expects 1 lunch tiffin and 2 dinner tiffins for this member.</figcaption>
+  </figure>
+
+  <h4>Subscription rules</h4>
+  <ul>
+    <li><strong>Status is automatic</strong>: Active while today is inside the dates, Expiring when the end date is within the alert window (default 3 days), Expired after the end date. Paused and Closed are set by staff.</li>
+    <li><strong>Pause</strong> (member travelling): enter from and to dates; the end date moves forward by the same number of days. Attendance rows are not generated for paused days.</li>
+    <li><strong>Pro-rata</strong>: if the cycle is shorter than the plan's cycle, the suggested price = per-meal rate × meals × days. Staff can still override.</li>
+    <li><strong>Renew</strong>: creates the next subscription starting the day after the old end date, same meals, same price. Unpaid balance carries on the ledger, not on the new subscription.</li>
+    <li><strong>Diet drives the menu</strong>: a Veg member is counted against the Veg menu; "Both" counts against Non-veg by default and can be flipped per day from the register.</li>
+  </ul>
+
+  <!-- 5.3 MENU -->
+  <h3 id="menu">5.3 Daily menu planner</h3>
+  <p>Dishes are ordinary Food Menus, so the recipe is entered once in the existing Food Menu screen and reused every day. The planner only picks which dishes go to which slot and diet, and how many portions each person gets.</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> Mess › Daily Menu › Thu 25 Sep 2026</div>
+    <div class="mock-body">
+      <div class="toolbar"><span class="field"><b>Thu 25 Sep</b></span><span class="btn sm">Copy yesterday</span><span class="btn sm">Copy last Thursday</span><span class="btn sm">Load weekly template</span><span class="btn sm ghost">Share menu text (WhatsApp)</span></div>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Slot</th><th>Diet</th><th>Dishes (from Food Menus)</th><th class="num">Portion / person</th><th class="num">Expected persons</th><th class="num">Planned portions</th></tr></thead>
+        <tbody>
+          <tr><td>Lunch</td><td>Non-veg</td><td>Chicken Curry · Rice · Salad</td><td class="num">1 · 1 · 1</td><td class="num">9</td><td class="num">9</td></tr>
+          <tr><td>Lunch</td><td>Veg</td><td>Dal Fry · Rice · Salad</td><td class="num">1 · 1 · 1</td><td class="num">3</td><td class="num">3</td></tr>
+          <tr><td>Dinner</td><td>Non-veg</td><td>Chicken Biryani · Dal Makhni · Raita</td><td class="num">1 · 1 · 1</td><td class="num">20</td><td class="num">20 <span class="pill warn">+3 extras</span></td></tr>
+          <tr><td>Dinner</td><td>Veg</td><td>Veg Biryani · Dal Makhni · Raita</td><td class="num">1 · 1 · 1</td><td class="num">6</td><td class="num">6</td></tr>
+          <tr><td>Breakfast</td><td>Both</td><td class="muted">not set (2 members expect breakfast)</td><td></td><td class="num">2</td><td class="num"><span class="pill crit">missing</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <figcaption>Expected persons is live from subscriptions minus skips. Planned portions = expected × portion, plus extras for that dish. The kitchen may raise planned portions by hand for buffer.</figcaption>
+  </figure>
+  <ul>
+    <li>Mess dishes sit in a "Mess Kitchen" food category. A flag hides them from the POS grid if the client does not sell them à la carte.</li>
+    <li>A dish without a recipe shows an amber warning on the planner; it still works for attendance, only stock is skipped for that dish.</li>
+    <li>Weekly template: 7 days × slot × diet, saved once, loaded in one tap, then edited for the day.</li>
+  </ul>
+
+  <!-- 5.4 REGISTER -->
+  <h3 id="register">5.4 Meal register (attendance)</h3>
+  <p>This is the screen the counter keeps open during the slot. It answers "kitne ko khana gaya, kitne ko nahi gaya" for breakfast, lunch and dinner separately.</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> Mess › Meal Register › Dinner · Thu 25 Sep 2026</div>
+    <div class="mock-body">
+      <div class="toolbar"><span class="field"><b>Thu 25 Sep</b></span><span class="btngrp"><span class="btn sm">Breakfast</span><span class="btn sm">Lunch</span><span class="btn sm primary">Dinner</span></span><span class="field wide">Search name / phone / building</span><span class="btngrp"><span class="btn sm">All</span><span class="btn sm">Pickup</span><span class="btn sm">Delivery</span></span></div>
+      <div class="stats">
+        <div class="stat"><b>26</b><span>Expected</span><small>24 members</small></div>
+        <div class="stat"><b>19</b><span>Served</span></div>
+        <div class="stat"><b>5</b><span>Pending</span></div>
+        <div class="stat"><b>2</b><span>Not taken / skipped</span></div>
+      </div>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Member</th><th class="num">Persons</th><th>Diet</th><th>Mode</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>Arif / Khaled</td><td class="num">2</td><td>Non-veg</td><td>Pickup</td><td><span class="pill good">Served 19:42</span></td><td><span class="btn sm ghost">Undo</span></td></tr>
+          <tr><td>Umar</td><td class="num">1</td><td>Non-veg</td><td>Delivery</td><td><span class="pill good">Served 20:10</span></td><td><span class="btn sm ghost">Undo</span></td></tr>
+          <tr><td>Sumit Kumar</td><td class="num">1</td><td>Veg</td><td>Delivery</td><td><span class="pill neutral">Pending</span></td><td><span class="btngrp"><span class="btn sm good">Served</span><span class="btn sm">Not taken</span></span></td></tr>
+          <tr><td>Faizan (Noon)</td><td class="num">1</td><td>Non-veg</td><td>Pickup</td><td><span class="pill warn">Skipped (informed 15:00)</span></td><td><span class="btn sm ghost">Undo</span></td></tr>
+          <tr><td>Shujath Hussain</td><td class="num">2</td><td>Both</td><td>Pickup</td><td><span class="pill neutral">Pending</span> <span class="pill info">+ extra: 2 cold drink</span></td><td><span class="btngrp"><span class="btn sm good">Served</span><span class="btn sm">Not taken</span></span></td></tr>
+          <tr><td>Awad Bhai Room</td><td class="num">2</td><td>Non-veg</td><td>Pickup</td><td><span class="pill neutral">Pending</span></td><td><span class="btngrp"><span class="btn sm good">Served</span><span class="btn sm">Partial 1</span><span class="btn sm">Not taken</span></span></td></tr>
+        </tbody>
+      </table></div>
+      <div class="toolbar" style="margin-top:12px"><span class="btn">Mark all pending as Served</span><span class="btn">Mark all pending as Not taken</span><span class="btn ghost">Print tick sheet</span></div>
+    </div>
+    <figcaption>Every tap stores who marked and when. Partial serves (room of 2, only 1 came) store persons served. Bulk buttons cover the "everyone came, three did not" reality at close time.</figcaption>
+  </figure>
+  <h4>Three ways to mark</h4>
+  <ul>
+    <li><strong>Live at the counter</strong>: tap Served as the tiffin is handed over. Best for pickup.</li>
+    <li><strong>Delivery batch</strong>: filter Delivery, print the route list, mark on return or when the driver calls.</li>
+    <li><strong>Paper first</strong>: print the tick sheet, tick by hand, enter the exceptions in one minute using the bulk buttons.</li>
+  </ul>
+  <p><strong>Skips in advance</strong>: if a member says "kal nahi aaunga", staff enter a skip for that date and slot from the member page. The daily sheet then reduces the headcount, and the planner cooks less. Whether a skip earns a credit is a setting (see decisions).</p>
+
+  <!-- 5.5 EXTRAS -->
+  <h3 id="extras">5.5 Extras: "aaj mujhe ye chahiye"</h3>
+  <p>An extra is a one-off line for a member on a date and slot. It can be any Food Menu item (so price and recipe come for free) or a custom line ("1 small water"). It appears on the daily sheet so the kitchen prepares it, and it is settled in one of two ways.</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> Mess › Extras › Add</div>
+    <div class="mock-body">
+      <div class="form">
+        <div class="row"><label>Member</label><div class="v">Shujath Hussain</div></div>
+        <div class="row"><label>Date · slot</label><div class="v">25 Sep · Dinner</div></div>
+        <div class="row"><label>Item</label><div class="v">Cold Drink (Food Menu)</div></div>
+        <div class="row"><label>Qty × price</label><div class="v">2 × 3.00 = <b>6.00</b></div></div>
+        <div class="row"><label>Item</label><div class="v">Small water (custom)</div></div>
+        <div class="row"><label>Qty × price</label><div class="v">1 × 1.00 = <b>1.00</b></div></div>
+        <div class="row span2"><label>Settle</label><div class="v"><span class="check"><i></i>Pay now: Cash / Card (goes to register)</span> <span class="check"><i class="on"></i>Add to account (collect with monthly)</span></div></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px"><span class="btn primary">Save extra · AED 7.00</span></div>
+    </div>
+    <figcaption>This is the "2 cool drinks 1 water = 7 pending" note from the Excel, but now it sits on Shujath's ledger and shows in his balance until paid.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Advance requests</strong> ("kal biryani chahiye, 2 extra") are extras with tomorrow's date. The planner adds them to planned portions.</li>
+    <li>An extra for a dish with a recipe consumes stock at day close like any other portion.</li>
+    <li>Pay-now extras create a Mess payment immediately, so they reach the register card the same night.</li>
+  </ul>
+
+  <!-- 5.6 DAILY SHEET -->
+  <h3 id="sheet">5.6 Daily sheet: how it is generated</h3>
+  <p>The sheet is not typed. It is built from three sources for a date: active subscriptions (who and how many), the menu planner (what), and extras (what more). It is regenerated on every open, so a new member added at noon appears at dinner.</p>
+  <h4>Generation rules</h4>
+  <ol>
+    <li>For the chosen date, find every subscription whose start–end range covers it and which is not paused that day.</li>
+    <li>For each of its meal rows (slot, persons), create an expected attendance row if it does not exist yet, status Pending. Rows already marked are never overwritten.</li>
+    <li>Apply advance skips: matching rows become Skipped and drop out of the headcount.</li>
+    <li>Pull the planned menu for each slot and diet. If a slot has expected members but no menu, show a red "menu missing" line.</li>
+    <li>Planned portions per dish = Σ (expected persons × portion per person) + extras for that dish, plus any manual buffer.</li>
+    <li>Ingredient need per dish = planned portions × recipe consumption. Compare with current stock from the existing stock query; anything short is highlighted.</li>
+    <li>Attach the extras list and the delivery route list.</li>
+  </ol>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> Mess › Daily Sheet › Dinner · print view (A4)</div>
+    <div class="mock-body">
+      <div class="sheet">
+        <div class="head"><b>DAILY MESS SHEET · DINNER</b><span>Thu 25 Sep 2026 · Outlet Main · printed 09:05 by Manager</span></div>
+        <h5>Menu</h5>
+        <div class="two"><div>Non-veg: Chicken Biryani · Dal Makhni · Raita</div><div>Veg: Veg Biryani · Dal Makhni · Raita</div></div>
+        <h5>Headcount</h5>
+        <div class="tblwrap" style="border:none"><table class="tbl">
+          <thead><tr><th></th><th class="num">Non-veg</th><th class="num">Veg</th><th class="num">Total</th><th class="num">Pickup</th><th class="num">Delivery</th></tr></thead>
+          <tbody><tr><td>Expected persons</td><td class="num">20</td><td class="num">6</td><td class="num">26</td><td class="num">14</td><td class="num">12</td></tr>
+          <tr><td>Skipped in advance</td><td class="num">1</td><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="num">0</td></tr>
+          <tr><td>Extras (portions)</td><td class="num">3</td><td class="num">0</td><td class="num">3</td><td class="num">3</td><td class="num">0</td></tr></tbody>
+        </table></div>
+        <h5>Production plan and stock check</h5>
+        <div class="tblwrap" style="border:none"><table class="tbl">
+          <thead><tr><th>Dish</th><th class="num">Portions</th><th>Ingredient need (recipe × portions)</th><th>Stock</th></tr></thead>
+          <tbody>
+            <tr><td>Chicken Biryani</td><td class="num">22</td><td>Chicken 5.5 kg · Basmati 4.4 kg · Onion 1.1 kg · Ghee 0.6 kg</td><td><span class="pill crit">Chicken short 2.3 kg</span> <span class="pill good">rest ok</span></td></tr>
+            <tr><td>Veg Biryani</td><td class="num">6</td><td>Basmati 1.2 kg · Mixed veg 0.9 kg · Ghee 0.2 kg</td><td><span class="pill good">ok</span></td></tr>
+            <tr><td>Dal Makhni</td><td class="num">28</td><td>Urad 2.8 kg · Butter 0.7 kg · Cream 0.6 L</td><td><span class="pill warn">Cream 0.6 L, at alert level</span></td></tr>
+            <tr><td>Raita</td><td class="num">28</td><td>Curd 4.2 kg</td><td><span class="pill good">ok</span></td></tr>
+          </tbody>
+        </table></div>
+        <h5>Member checklist (tick sheet)</h5>
+        <div class="tblwrap" style="border:none"><table class="tbl">
+          <thead><tr><th>#</th><th>Member</th><th class="num">Qty</th><th>Diet</th><th>Mode · phone</th><th>Served</th><th>Not taken</th><th>Sign</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Arif / Khaled</td><td class="num">2</td><td>NV</td><td>Pickup · 055-6522706</td><td><span class="box"></span></td><td><span class="box"></span></td><td></td></tr>
+            <tr><td>2</td><td>Umar</td><td class="num">1</td><td>NV</td><td>Delivery · 052-5141205</td><td><span class="box"></span></td><td><span class="box"></span></td><td></td></tr>
+            <tr><td>3</td><td>Sumit Kumar / Hira Kumar</td><td class="num">2</td><td>V</td><td>Delivery · 055-6883857</td><td><span class="box"></span></td><td><span class="box"></span></td><td></td></tr>
+            <tr><td colspan="8" class="muted">… 21 more rows</td></tr>
+          </tbody>
+        </table></div>
+        <h5>Extras today</h5>
+        <div>Shujath Hussain: 2 × Cold Drink, 1 × Small water (on account, AED 7) · Awad Bhai Room: +1 Chicken Biryani (pay now, AED 27)</div>
+      </div>
+    </div>
+    <figcaption>Two outputs from the same data: the print view above for kitchen and counter, and a short text block ("Dinner today: Chicken Biryani, Dal Makhni, Raita") to paste into the members' WhatsApp group.</figcaption>
+  </figure>
+
+  <!-- 5.7 DAY CLOSE -->
+  <h3 id="close">5.7 Day close and inventory</h3>
+  <p>Mess food is cooked in bulk, so stock moves on <em>cooked</em> portions, not on each tiffin. Day close is where the kitchen confirms what was actually cooked and what was left, and the system posts the ingredient movement.</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> Mess › Day Close › Dinner · Thu 25 Sep 2026</div>
+    <div class="mock-body">
+      <div class="stats">
+        <div class="stat"><b>26</b><span>Expected</span></div>
+        <div class="stat"><b>24</b><span>Served</span></div>
+        <div class="stat"><b>2</b><span>Not taken</span></div>
+        <div class="stat"><b>3</b><span>Extras served</span></div>
+      </div>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Dish</th><th class="num">Planned</th><th class="num">Served</th><th class="num">Cooked (edit)</th><th class="num">Leftover</th><th>Leftover goes to</th><th class="num">Food cost</th></tr></thead>
+        <tbody>
+          <tr><td>Chicken Biryani</td><td class="num">22</td><td class="num">21</td><td class="num"><b>24</b></td><td class="num">3</td><td>Waste 2 · Staff meal 1</td><td class="num">156.00</td></tr>
+          <tr><td>Veg Biryani</td><td class="num">6</td><td class="num">6</td><td class="num"><b>6</b></td><td class="num">0</td><td>—</td><td class="num">21.60</td></tr>
+          <tr><td>Dal Makhni</td><td class="num">28</td><td class="num">27</td><td class="num"><b>30</b></td><td class="num">3</td><td>Carry to tomorrow lunch</td><td class="num">48.00</td></tr>
+          <tr><td>Raita</td><td class="num">28</td><td class="num">27</td><td class="num"><b>28</b></td><td class="num">1</td><td>Waste</td><td class="num">14.00</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="6">Food cost of this slot (recipe cost × cooked)</td><td class="num">239.60</td></tr></tfoot>
+      </table></div>
+      <div class="toolbar" style="margin-top:12px"><span class="btn primary">Close Dinner and post to stock</span><span class="btn ghost">Reopen (Admin)</span></div>
+    </div>
+    <figcaption>Posting writes one consumption row per ingredient (cooked × recipe) into the same ledger the POS uses, tagged with the mess close id. Stock screen, stock alert and stock report pick it up with no change. "Carry to tomorrow" posts nothing and adds a note on tomorrow's sheet.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Waste</strong> uses the existing Waste data (<code>tbl_wastes</code> supports a food menu and quantity), created automatically from the leftover column.</li>
+    <li><strong>Variance</strong> (planned vs cooked vs served) is stored per dish so the Consumption and Variance report can show where food is over-cooked.</li>
+    <li><strong>Dish without recipe</strong>: consumption is skipped and the row is flagged, so the manager can add the recipe later and re-post.</li>
+    <li>Reopen is Admin-only and reverses the posted rows before re-posting.</li>
+  </ul>
+
+  <!-- 5.8 PAYMENTS -->
+  <h3 id="payments">5.8 Payments and member ledger</h3>
+  <p>Money is charged once per cycle and collected in any number of pieces. The ledger replaces the Advance / Balance / Payment Status columns of the sheet and keeps the history that the sheet throws away.</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> Mess › Members › Shujath Hussain › Ledger</div>
+    <div class="mock-body">
+      <div class="stats">
+        <div class="stat"><b>557.00</b><span>Balance due (AED)</span></div>
+        <div class="stat"><b>05 Sep</b><span>Cycle ends</span><small><span class="pill crit">expired, not renewed</span></small></div>
+        <div class="stat"><b>24 / 31</b><span>Dinners taken</span><small>7 not taken</small></div>
+        <div class="stat"><b>056-7057686</b><span>Phone</span></div>
+      </div>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Date</th><th>Entry</th><th class="num">Charge</th><th class="num">Paid</th><th class="num">Balance</th><th>By</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">06 Aug</td><td>Subscription: Breakfast + Dinner × 2 persons, 06 Aug–05 Sep</td><td class="num">550.00</td><td class="num"></td><td class="num">550.00</td><td>Manager</td></tr>
+          <tr><td class="mono">25 Aug</td><td>Extra: 2 Cold Drink, 1 Small water (on account)</td><td class="num">7.00</td><td class="num"></td><td class="num">557.00</td><td>Counter</td></tr>
+          <tr><td class="mono">—</td><td class="muted">No payment received yet</td><td class="num"></td><td class="num"></td><td class="num"></td><td></td></tr>
+        </tbody>
+      </table></div>
+      <div class="toolbar" style="margin-top:12px"><span class="btn primary">Receive payment</span><span class="btn">Renew cycle</span><span class="btn">Print statement</span><span class="btn ghost">WhatsApp reminder text</span></div>
+    </div>
+    <figcaption>Umar's "170 card, 180 card" becomes two payment rows with method Credit Card. Nothing is lost in a notes column.</figcaption>
+  </figure>
+  <h4>Payment entry</h4>
+  <ul>
+    <li>Fields: member, amount, method (Cash, Credit Card, Bank Transfer from the existing payment methods), date, note, optional "against subscription".</li>
+    <li><strong>Needs an open register</strong>, same rule as Customer Due Receive. The row stores counter, outlet, user and time, which is what makes it appear on the register close.</li>
+    <li>Over-payment becomes advance credit and is used by the next cycle automatically.</li>
+    <li>Refund and manual adjustment entries exist (Admin only) with a reason.</li>
+  </ul>
+  <h4>Lists that replace the monthly chase</h4>
+  <ul>
+    <li><strong>Dues</strong>: every member with balance above zero, sorted by amount, with phone and last payment date.</li>
+    <li><strong>Expiring</strong>: end date within N days, with a Renew button on each row.</li>
+    <li><strong>Expired, not renewed</strong>: stopped taking food or still coming? The register shows if they were served after expiry, so the client can decide.</li>
+  </ul>
+
+  <!-- 5.9 REGISTER CARD -->
+  <h3 id="regcard">5.9 Register report: one "Mess Collection" card</h3>
+  <p>The register close currently builds one row per payment method with Opening + Sale + Due Receive − Purchase − Due Payment − Expense − Refund. Mess Collection is added as one more positive column in that same formula, and shown as one card on top.</p>
+  <figure class="mock">
+    <div class="mock-bar"><span class="dots"><i></i><i></i><i></i></span> POS › Register › Close register</div>
+    <div class="mock-body">
+      <div class="two" style="margin-bottom:14px">
+        <div class="card mess"><div class="t">Mess Collection (this register)</div><div class="big">AED 1,600.00</div><div class="split"><span>Cash <b>1,250.00</b></span><span>Card <b>350.00</b></span><span>Bank <b>0.00</b></span></div><p class="small muted" style="margin:6px 0 0">7 payments · 5 members · included in cash in hand</p></div>
+        <div class="card"><div class="t">Cash in hand (expected)</div><div class="big">AED 3,912.50</div><div class="split"><span>Opening <b>500</b></span><span>POS cash <b>2,462.50</b></span><span>Mess cash <b>1,250</b></span><span>Expense <b>−300</b></span></div></div>
+      </div>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Method</th><th class="num">Opening</th><th class="num">Sale</th><th class="num">Due receive</th><th class="num" style="color:var(--accent)">Mess</th><th class="num">Purchase</th><th class="num">Expense</th><th class="num">Refund</th><th class="num">Closing</th></tr></thead>
+        <tbody>
+          <tr><td>Cash</td><td class="num">500.00</td><td class="num">2,462.50</td><td class="num">0.00</td><td class="num"><b>1,250.00</b></td><td class="num">0.00</td><td class="num">300.00</td><td class="num">0.00</td><td class="num">3,912.50</td></tr>
+          <tr><td>Credit Card</td><td class="num">0.00</td><td class="num">1,890.00</td><td class="num">0.00</td><td class="num"><b>350.00</b></td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">2,240.00</td></tr>
+          <tr><td>Bank Transfer</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num"><b>0.00</b></td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <figcaption>Same card on the Register Report history page and on the Z report, read from a new column saved at close time so old registers keep their numbers.</figcaption>
+  </figure>
+
+  <!-- 5.10 REPORTS -->
+  <h3 id="reports">5.10 Reports</h3>
+  <div class="tblwrap"><table class="tbl">
+    <thead><tr><th>Report</th><th>Answers</th><th>Filters</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Attendance matrix</strong></td><td>Member × day grid for a month, one letter per slot: S served, N not taken, K skipped, blank not subscribed. Totals per member and per day.</td><td>Month, slot, diet, mode</td></tr>
+      <tr><td><strong>Daily served summary</strong></td><td>Per date and slot: expected, served, not taken, skipped, extras. Pickup and delivery split. This is the "kitne ko gaya, kitne ko nahi" report.</td><td>Date range, slot</td></tr>
+      <tr><td><strong>Collection</strong></td><td>Every mess payment by date, method, user, member. Totals by method. Source of the register card.</td><td>Date range, method, user</td></tr>
+      <tr><td><strong>Dues and expiring</strong></td><td>Who owes what, who ends when, last payment date, phone.</td><td>Days window, minimum balance</td></tr>
+      <tr><td><strong>Consumption and variance</strong></td><td>Per date: planned vs cooked vs served portions per dish, ingredient consumption, leftover, food cost per portion.</td><td>Date range, dish</td></tr>
+      <tr><td><strong>Extras</strong></td><td>All extras with settle type and payment status.</td><td>Date range, member</td></tr>
+      <tr><td><strong>Mess profit and loss</strong></td><td>Revenue recognised for the period (price ÷ cycle days × days in period) minus food cost from day closes. Per-member cost vs price.</td><td>Month</td></tr>
+      <tr><td><strong>Member statement</strong></td><td>Printable ledger and attendance for one member, for disputes ("maine to 20 din khana liya hi nahi").</td><td>Member, cycle</td></tr>
+    </tbody>
+  </table></div>
+
+  <!-- 5.11 SETTINGS -->
+  <h3 id="settings">5.11 Settings and roles</h3>
+  <div class="two">
+    <div class="card">
+      <div class="t">Settings (per company)</div>
+      <ul class="small">
+        <li>Meal slots: names and time windows (Breakfast 06:30–10:00, Lunch 12:00–15:00, Dinner 19:00–23:00). The register defaults to the slot open now.</li>
+        <li>Default cycle days (30) and expiring alert window (3 days).</li>
+        <li>Skip credit policy: none / credit if informed before slot start / always.</li>
+        <li>Require open register for mess payments (default on).</li>
+        <li>Hide mess dishes from POS grid (default on).</li>
+        <li>Auto-close slot at window end if not closed (posts consumption using planned portions, flagged for review).</li>
+        <li>WhatsApp text templates: daily menu, due reminder, expiry reminder.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="t">Roles (via tbl_access, like every module)</div>
+      <ul class="small">
+        <li><strong>Admin</strong>: everything, reopen day close, adjustments, settings.</li>
+        <li><strong>Mess Manager</strong>: members, subscriptions, menu, sheet, day close, reports.</li>
+        <li><strong>Counter</strong>: Meal Register, Extras, Payments, Today.</li>
+        <li><strong>Kitchen</strong>: Today, Daily Sheet, Daily Menu, Day Close.</li>
+        <li>Access ids continue from the current max (370): one parent "mess" with add / view / delete / close / settings / report children.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 6. DATA MODEL ===================== -->
+<section id="data">
+  <h2><span class="n">06</span> Data model</h2>
+  <p>Ten new tables, all additive, all with <code>company_id</code> or <code>outlet_id</code> and <code>del_status</code> like the rest of the app. Master data (plans, members) is company-scoped; daily and money rows are outlet-scoped, matching how purchases and wastes are stored today.</p>
+
+  <pre class="mermaid">
+erDiagram
+  tbl_mess_members ||--o{ tbl_mess_subscriptions : "has cycles"
+  tbl_mess_plans ||--o{ tbl_mess_subscriptions : "default price"
+  tbl_mess_subscriptions ||--|{ tbl_mess_subscription_meals : "slot x persons"
+  tbl_mess_subscriptions ||--o{ tbl_mess_attendance : "expected rows per day"
+  tbl_mess_members ||--o{ tbl_mess_extras : "one-off items"
+  tbl_mess_members ||--o{ tbl_mess_payments : "cash / card / bank"
+  tbl_payment_methods ||--o{ tbl_mess_payments : "method"
+  tbl_mess_menus }o--|| tbl_food_menus : "dish with recipe"
+  tbl_mess_day_close ||--o{ tbl_mess_menus : "cooked / leftover"
+  tbl_mess_day_close ||--o{ tbl_sale_consumptions_of_menus : "posts consumption"
+  tbl_mess_day_close ||--o{ tbl_wastes : "leftover"
+  </pre>
+
+  <div class="schema">
+    <div class="schema-card"><h4>tbl_mess_plans</h4><p>Price list.</p><div class="cols">id, name, diet (veg / nonveg / both), meals_json (slots included), price_per_person, cycle_days, per_meal_rate, delivery_charge, is_active, company_id, user_id, del_status</div></div>
+    <div class="schema-card"><h4>tbl_mess_members</h4><p>One row per person or room. Optional link to a POS customer.</p><div class="cols">id, member_code, name, phone, phone2, building_room, address, diet_pref, note, customer_id (nullable), status, company_id, outlet_id, user_id, added_date, del_status</div></div>
+    <div class="schema-card"><h4>tbl_mess_subscriptions</h4><p>One cycle. Status derived from dates unless paused / closed.</p><div class="cols">id, member_id, plan_id, start_date, end_date, cycle_days, diet, delivery_mode (pickup / delivery), delivery_address, persons_total, suggested_price, agreed_price, price_note, status, paused_days, renewed_from_id, note, outlet_id, company_id, user_id, del_status</div></div>
+    <div class="schema-card"><h4>tbl_mess_subscription_meals</h4><p>Which slots and how many persons. "Lunch + 2 Dinner" = 2 rows.</p><div class="cols">id, subscription_id, slot (1 breakfast, 2 lunch, 3 dinner), persons</div></div>
+    <div class="schema-card"><h4>tbl_mess_pauses</h4><p>Leave periods; end date extends by the days.</p><div class="cols">id, subscription_id, from_date, to_date, days, reason, user_id</div></div>
+    <div class="schema-card"><h4>tbl_mess_menus</h4><p>Planner rows plus the day-close numbers.</p><div class="cols">id, menu_date, slot, diet, food_menu_id, portion_per_person, planned_portions, buffer_portions, cooked_portions, served_portions, leftover_portions, leftover_action (waste / carry / staff), day_close_id (nullable), outlet_id, user_id, del_status</div></div>
+    <div class="schema-card"><h4>tbl_mess_attendance</h4><p>One row per member per slot per day. Generated, then marked.</p><div class="cols">id, att_date, slot, subscription_id, member_id, persons_expected, persons_served, status (pending / served / partial / not_taken / skipped), delivery_mode, informed_at, marked_by, marked_at, note, outlet_id</div></div>
+    <div class="schema-card"><h4>tbl_mess_extras</h4><p>"Aaj ye chahiye" lines.</p><div class="cols">id, extra_date, slot, member_id, subscription_id, food_menu_id (nullable), item_name, qty, unit_price, total, settle_type (pay_now / on_account), payment_row_id (nullable), status (requested / prepared / delivered / cancelled), note, outlet_id, user_id, del_status</div></div>
+    <div class="schema-card"><h4>tbl_mess_payments</h4><p>Money in. Same stamping as tbl_customer_due_receives so it reaches the register.</p><div class="cols">id, reference_no, member_id, subscription_id (nullable), type (payment / advance / refund / adjustment), amount, payment_id (method), payment_name, date_time, only_date, note, counter_id, user_id, outlet_id, company_id, del_status</div></div>
+    <div class="schema-card"><h4>tbl_mess_day_close</h4><p>One row per date and slot once closed.</p><div class="cols">id, close_date, slot, expected, served, not_taken, skipped, extras_count, food_cost, closed_by, closed_at, reopened_by, note, outlet_id</div></div>
+    <div class="schema-card"><h4>tbl_mess_settings</h4><p>Per-company knobs listed in 5.11.</p><div class="cols">id, company_id, slots_json, cycle_days, expiring_days, skip_credit_policy, require_open_register, hide_from_pos, auto_close, templates_json</div></div>
+    <div class="schema-card existing"><h4>Existing tables touched</h4><p>Additive columns only.</p><div class="cols">tbl_sale_consumptions_of_menus + mess_close_id (like production_id)<br>tbl_register + mess_collection_json, total_mess_collection<br>tbl_wastes rows created with food_menu_id + food_menu_waste_qty<br>tbl_food_menus + is_mess_only (hide from POS)<br>tbl_access + new rows, tbl_role_access grants<br>4 language files</div></div>
+  </div>
+
+  <h4>Ledger math (no separate ledger table)</h4>
+  <pre><code>member balance = Σ agreed_price          (subscriptions, not voided)
+               + Σ extras.total          (settle_type = on_account)
+               − Σ payments.amount       (type = payment or advance)
+               + Σ payments.amount       (type = refund)
+               ± adjustments</code></pre>
+  <p class="small muted">Per-subscription "Advance / Balance" (the columns the client is used to) = agreed_price − payments linked to that subscription.</p>
+</section>
+
+<!-- ===================== 7. HOOKS ===================== -->
+<section id="hooks">
+  <h2><span class="n">07</span> Hooks into the existing code</h2>
+  <p>Everything the mess module needs from the rest of the app already exists. These are the exact touch points, found in the current codebase, so nothing is guessed.</p>
+
+  <div class="tblwrap"><table class="tbl">
+    <thead><tr><th>Need</th><th>Existing piece</th><th>What we do</th></tr></thead>
+    <tbody>
+      <tr><td>Recipe per dish</td><td><code>tbl_food_menus_ingredients</code> (consumption per 1 serving), edited in <code>FoodMenu::addEditFoodMenu</code></td><td>Read only. Planner picks <code>food_menu_id</code>; day close multiplies by cooked portions.</td></tr>
+      <tr><td>Stock deduction</td><td>Stock is a computed sum (<code>Inventory_model::getCurrentInventory</code>): purchases − <code>tbl_sale_consumptions_of_menus</code> − waste + adjustments + production. Production already inserts consumption rows with <code>sales_id = ''</code> and <code>production_id</code>.</td><td>Insert the same kind of rows at day close with a new <code>mess_close_id</code> column. Every stock screen and the stock report pick them up with no change.</td></tr>
+      <tr><td>Stock check on the sheet</td><td><code>Inventory::getCurrentInventory</code> AJAX and the <code>getCurrentStockById()</code> helper</td><td>Call per ingredient on the daily sheet; compare with need.</td></tr>
+      <tr><td>Leftover</td><td><code>tbl_wastes</code> has <code>food_menu_id</code>, <code>food_menu_waste_qty</code>; <code>Waste::food_menus_ingredients()</code> expands a dish into ingredient waste lines</td><td>Create a waste header per day close with the leftover portions.</td></tr>
+      <tr><td>Register card</td><td>Per-method formula in <code>Sale::registerDetailCalculationToShow</code> and <code>Sale::closeRegister</code>; <code>Sale_model::getAllDueReceiveByPayment</code> sums by counter, outlet, method and opening-time window</td><td>Add <code>getAllMessByPayment()</code> beside it, add <code>+ total_mess</code> to the formula in both places, save the split into <code>tbl_register</code>, show a card in the register modal, <code>registerReport.php</code> and the Z report.</td></tr>
+      <tr><td>Open register rule</td><td><code>Customer_due_receive::addCustomerDueReceive</code> refuses without an open register and stamps <code>counter_id</code></td><td>Same guard on mess payment save.</td></tr>
+      <tr><td>Payment methods</td><td><code>tbl_payment_methods</code> (1 Cash, 2 Credit Card, 4 Bank Transfer in this DB)</td><td>Dropdown on the payment form. Cash is id 1 here, not 3 as the legacy helpers assume.</td></tr>
+      <tr><td>Menu and access</td><td><code>userHome.php</code> sidebar (declared twice, LTR and RTL), <code>tbl_access</code> + <code>tbl_role_access</code>, <code>session['function_access']</code> refreshed only at login</td><td>New treeview "Mess" in both sidebars; migration inserts access rows from id 371; users re-login once.</td></tr>
+      <tr><td>Language</td><td><code>english_lang.php</code> and the Arabic, French, Spanish files</td><td>Add <code>mess_*</code> keys to all four, as past features did.</td></tr>
+      <tr><td>Page skeleton</td><td>Controllers extend <code>Cl_Controller</code>; views load through <code>userHome</code>; <code>Common_model</code> insert / get / soft-delete helpers</td><td>One controller <code>Mess.php</code> (or three: Mess, Mess_report, Mess_setting), one <code>Mess_model.php</code>, views under <code>views/mess/</code>.</td></tr>
+      <tr><td>Migration</td><td><code>Update/*.sql</code> files per feature (e.g. staff_meal_migration.sql)</td><td><code>Update/mess_module_migration.sql</code> with tables, columns, access rows, rollback block.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note info">
+    <p><strong>Two known gaps we inherit.</strong> The consumption ledger has no date column, so the existing Consumption Report joins <code>tbl_sales</code> and will not show mess consumption. The mess module gets its own consumption report keyed on <code>tbl_mess_day_close.close_date</code>. Second, the app's clock skew (app in Asia/Dubai, MySQL in IST) means mess dates must be stored as plain <code>DATE</code> values chosen by the user, never derived from <code>NOW()</code>.</p>
+  </div>
+</section>
+
+<!-- ===================== 8. PHASES ===================== -->
+<section id="phases">
+  <h2><span class="n">08</span> Phases</h2>
+  <p>Built in the order the client can use it. Phase 1 already replaces the Excel; each later phase adds a loop. Effort is a rough size for planning, not a quote.</p>
+
+  <div class="phase">
+    <h4><span class="pill primary">Phase 1</span> Members and money <span class="pill neutral">rough 6–8 dev days</span></h4>
+    <ul>
+      <li>Plans, Members, Subscriptions (meals × persons, agreed price, pause, renew, pro-rata).</li>
+      <li>Payments with open-register guard, member ledger, dues list, expiring list.</li>
+      <li>Register close card, register report column, Z report line.</li>
+      <li>One-time import of the current Excel (three sheets) into members and subscriptions.</li>
+      <li>Access rows, sidebar, language keys, migration.</li>
+    </ul>
+  </div>
+  <div class="phase">
+    <h4><span class="pill primary">Phase 2</span> Daily operations <span class="pill neutral">rough 6–8 dev days</span></h4>
+    <ul>
+      <li>Daily Menu planner with copy and weekly template.</li>
+      <li>Sheet generation rules, Meal Register with bulk marking, advance skips.</li>
+      <li>Extras with pay-now and on-account.</li>
+      <li>Daily Sheet print view and WhatsApp menu text; Today dashboard.</li>
+      <li>Attendance matrix and Daily served summary reports.</li>
+    </ul>
+  </div>
+  <div class="phase">
+    <h4><span class="pill primary">Phase 3</span> Inventory <span class="pill neutral">rough 4–6 dev days</span></h4>
+    <ul>
+      <li>Stock check on the sheet (need vs current stock, shortage list).</li>
+      <li>Day Close: cooked, leftover, consumption posting, waste creation, reopen.</li>
+      <li>Consumption and variance report, Mess P&amp;L, member statement.</li>
+      <li>Hide mess-only dishes from POS.</li>
+    </ul>
+  </div>
+  <div class="phase">
+    <h4><span class="pill neutral">Later</span> Nice to have</h4>
+    <ul>
+      <li>Member QR card scanned at the counter to mark Served.</li>
+      <li>Delivery route list grouped by building, with a driver login.</li>
+      <li>Automatic WhatsApp reminders for dues and expiry (needs a sending provider).</li>
+      <li>Member self-service page: see menu, skip tomorrow, request extras.</li>
+    </ul>
+  </div>
+  <p class="small muted">Phase 3 depends on Phase 2 (day close needs the menu and served counts). Phase 1 stands alone and can go live first.</p>
+</section>
+
+<!-- ===================== 9. DECISIONS ===================== -->
+<section id="decisions">
+  <h2><span class="n">09</span> Decisions needed from the client</h2>
+  <p>These change the build, so they should be answered before Phase 1 starts. Each has a default we would use if there is no answer.</p>
+  <div class="tblwrap"><table class="tbl">
+    <thead><tr><th>Question</th><th>Why it matters</th><th>Default</th></tr></thead>
+    <tbody>
+      <tr><td>Agar member pehle bata de ki nahi aayega, kya us din ka paisa cut hoga?</td><td>Skip credit policy changes the ledger and the renew price.</td><td>No credit. Skips only reduce cooking.</td></tr>
+      <tr><td>Quantity = persons ya tiffins? Ek room ke 2 log ek hi tiffin me?</td><td>Decides what "persons" means on the register and the production plan.</td><td>Persons = portions cooked.</td></tr>
+      <tr><td>Veg aur Non-veg ka menu alag hota hai roz, ya sirf main dish alag?</td><td>Planner layout: two full menus vs one menu with a swap.</td><td>Two menus per slot, copy tool makes it quick.</td></tr>
+      <tr><td>Delivery ka alag charge hai?</td><td>Plan field and ledger line.</td><td>No separate charge; included in agreed price.</td></tr>
+      <tr><td>Mess ka paisa register khula hone par hi lena hai?</td><td>If money is taken before the register opens, cash in hand will not match.</td><td>Yes, open register required (same as due receive).</td></tr>
+      <tr><td>Attendance kaun mark karega: counter, kitchen, ya delivery boy?</td><td>Decides which role gets the register screen and whether a phone-sized view is needed.</td><td>Counter on the POS tablet; delivery marked on return.</td></tr>
+      <tr><td>Breakfast timing, aur kya breakfast bhi mess me rahega?</td><td>Slot window and whether to show the slot at all.</td><td>Three slots on, breakfast 06:30–10:00.</td></tr>
+      <tr><td>Purana Excel import karna hai ya fresh start?</td><td>Import saves re-typing 22 members but needs the sheet cleaned first.</td><td>Import the Aug–Sep sheet as active subscriptions.</td></tr>
+      <tr><td>Mess ke dishes POS pe bhi bikte hain?</td><td>Whether to hide the Mess Kitchen category from the POS grid.</td><td>Hidden from POS.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <p><strong>Next step.</strong> Client se ye 9 sawaal clear karo, phir Phase 1 ka migration aur Members / Subscriptions / Payments screens se shuru karenge. Register card Phase 1 me hi aa jayega.</p>
+  </div>
+</section>
+</main>
+</div>
