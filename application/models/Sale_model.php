@@ -306,6 +306,28 @@ class Sale_model extends CI_Model {
       }
     }
     /**
+     * Live tables of the company for the POS Table View, grouped by area id.
+     * Natural name order, so "2" comes before "10" and "G2" before "G10".
+     * @access public
+     * @return array
+     * @param int
+     */
+    public function getPosTablesByArea($company_id){
+        $this->db->select('id,name,area,sit_capacity');
+        $this->db->from('tbl_tables');
+        $this->db->where('company_id', $company_id);
+        $this->db->where('del_status', 'Live');
+        $tables = $this->db->get()->result();
+        usort($tables, function ($a, $b) {
+            return strnatcasecmp($a->name, $b->name);
+        });
+        $tables_by_area = array();
+        foreach ($tables as $table) {
+            $tables_by_area[$table->area][] = $table;
+        }
+        return $tables_by_area;
+    }
+    /**
      * get Waiters For This Company
      * @access public
      * @return object

@@ -554,9 +554,9 @@
 
                   if(!outlet_id || outlet_id===outlet_id_indexdb){
                       if (i == 1) {
-                          order_list_left += '<div data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix txt_5" data-selected="unselected"  order_type="'+rowData.order_type+'"  data-total_payable="'+rowData.total_payable+'" data-table_id="'+hidden_table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sales_id + '">';
+                          order_list_left += '<div data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix txt_5" data-selected="unselected"  order_type="'+rowData.order_type+'"  data-total_payable="'+rowData.total_payable+'" data-date_time="'+rowData.date_time+'" data-table_id="'+hidden_table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sales_id + '">';
                       } else {
-                          order_list_left += '<div data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix" data-selected="unselected"  order_type="'+rowData.order_type+'"  data-total_payable="'+rowData.total_payable+'" data-table_id="'+hidden_table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sales_id + '">';
+                          order_list_left += '<div data-started-cooking="0" data-done-cooking="0" class="running_order_custom single_order fix" data-selected="unselected"  order_type="'+rowData.order_type+'"  data-total_payable="'+rowData.total_payable+'" data-date_time="'+rowData.date_time+'" data-table_id="'+hidden_table_id+'" data-sale_id="'+sales_id+'"  id="order_' + sales_id + '">';
                       }
                       order_list_left += '<div class="inside_single_order_container fix">';
                       order_list_left += '<div class="single_order_content_holder_inside fix">';
@@ -579,11 +579,20 @@
                               order_type = inv_delivery;
                           }
                       }
+
+                      //The collapsed card shows three lines. Put the table on line three; for
+                      //counter/delivery orders use the order type instead of an unhelpful "None".
+                      let order_location_label = inv_table;
+                      let order_location_value = tables_booked;
+                      if (!rowData.orders_table_text) {
+                          order_location_label = inv_order_type;
+                          order_location_value = order_type;
+                      }
   
                       order_list_left += '<span id="open_orders_order_status_' + sales_id + '" class="ir_display_none">' + rowData.order_status + '</span> <p><span class="running_order_customer_name">Cust: ' + customer_name + '</span></p> <i class="far fa-chevron-right running_order_right_arrow" id="running_order_right_arrow_' + sales_id + '"></i>';
                       order_list_left += '<p class="oder_list_class">Order: <span data-added_offline_status="'+orderData.added_offline_status+'" class="running_order_order_number">' + rowData.sale_no + "</span></p>";
+                      order_list_left += '<p>' + order_location_label + ': <span class="running_order_table_name">' + order_location_value + "</span></p>";
                       order_list_left += '<p class="oder_list_class">Order Type: <span class="running_order_order_number_">' + order_type + "</span></p>";
-                      order_list_left += '<p>Table: <span class="running_order_table_name">' + tables_booked + "</span></p>";
                       order_list_left += '<p>Waiter: <span class="running_order_waiter_name">' + waiter_name + "</span></p>";
                       order_list_left += "</div>";
                       order_list_left += "</div>";
@@ -1381,7 +1390,8 @@
       }
   
       function update_transfer_table(sale_id,table_id,table_name) {
-          let res = get_all_information_from_indexeddb(sale_id).then(function(data){
+          return new Promise(function(resolve, reject) {
+          get_all_information_from_indexeddb(sale_id).then(function(data){
               let rowData = jQuery.parseJSON(data);
               //----------------------update for parent_order-------------------------
               let sub_total = (rowData.sub_total)
@@ -1448,8 +1458,8 @@
               
               let orders_table_text = table_name;
               let hidden_table_capacity = $("#hidden_table_capacity").val();
-              let person = hidden_table_capacity;
-              '{"table_id":"' + table_id + '", "persons":"' + person + '"}';
+              let person = Number(hidden_table_capacity) || Number(rowData.total_orders_table) || 1;
+              orders_table += '{"table_id":"' + table_id + '", "persons":"' + person + '"}';
            
               orders_table += "],";
               order_info += orders_table;
@@ -1553,9 +1563,22 @@
               }
               items_info += "]";
               order_info += items_info + "}";
+
+              //A table transfer must not rebuild the whole order. Rebuilding used to drop fields
+              //(and left orders_table empty), which made the target look like a brand-new table.
+              //Keep the original order/items intact and change only its table assignment.
+              rowData.orders_table = [{
+                  table_id: String(table_id),
+                  persons: String(person)
+              }];
+              rowData.total_orders_table = String(person);
+              rowData.orders_table_text = table_name;
+              rowData.id = rowData.id || Number(sale_id);
+              order_info = JSON.stringify(rowData);
   
               let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
-              objectStore.openCursor().onsuccess = function(event) {
+              let cursor_request = objectStore.openCursor();
+              cursor_request.onsuccess = function(event) {
                   let cursor = event.target.result;
   
                   if (cursor) {
@@ -1568,15 +1591,21 @@
                           updateData.hidden_table_id = table_id;
                           updateData.is_offline_system = ($("#is_offline_system").val());
                           let request = cursor.update(updateData);
-                          pushRunningOrderToServer(updateData);
                           request.onsuccess = function() {
-  
+                              pushRunningOrderToServer(updateData);
+                              resolve({order: rowData, record: updateData});
                           }
+                          request.onerror = reject;
+                          return;
                       }
   
                       cursor.continue();
+                  }else{
+                      reject(new Error("Running order not found for table transfer"));
                   }
               }
+              cursor_request.onerror = reject;
+          }).catch(reject);
           });
   
       }
@@ -3622,7 +3651,7 @@
         $(".running_order_right_arrow").addClass("rotated");
       });
       $(document).on("blur", "#search_running_orders", function () {
-        $(".running_order_right_arrow").parent().parent().css("height", "40px");
+        $(".running_order_right_arrow").parent().parent().css("height", "60px");
         $(".running_order_right_arrow").removeClass("rotated");
       });
       $(document).on("click", ".remove_table_order", function () {
@@ -5366,8 +5395,9 @@
                     },
                     function () {
                         $(".order_table_holder .order_holder").empty();
+                        $("#update_sale_id").val(""); //the cart is emptied: nothing is being modified any more
                         clearFooterCartCalculation();
-  
+
                         $("#dine_in_button").css("border", "unset");
                         $("#take_away_button").css("border", "unset");
                         $("#delivery_button").css("border", "unset");
@@ -5414,6 +5444,7 @@
                                 "unchecked"
                             );
                         }
+                        posTableView.updateDineInBadge();
                         do_addition_of_item_and_modifiers_price();
                     }
                 );
@@ -6182,7 +6213,11 @@
             }
         });
       function clearPosCartConfirmed() {
+        let order_type = posTableView.cartOrderType();
         $(".order_table_holder .order_holder").empty();
+        //a running order opened for modification is dropped from the cart too: without this the next
+        //Place Order (another table, a take away...) overwrote that running order
+        $("#update_sale_id").val("");
         clearFooterCartCalculation();
         $("#table_button").attr("disabled", false);
         $(".single_table_div[data-table-checked=checked]").attr(
@@ -6208,6 +6243,7 @@
         //focus search field
         focusSearch();
         $("#place_edit_order").html(place_order);
+        posTableView.returnAfterAction(order_type);
       }
       $(document).on("click", "#cancel_button", function (e) {
         //get total items in cart
@@ -6229,6 +6265,9 @@
           } else {
             requestAdminPassword($("#admin_verify_password_msg").attr("data-default_msg"), clearPosCartConfirmed);
           }
+        } else {
+          //a table was picked but nothing added yet: Cancel goes back to the tables
+          posTableView.returnAfterAction(posTableView.cartOrderType());
         }
       });
       /**
@@ -7003,6 +7042,7 @@
       }
   
       function cancel_order_by_click(sale_id,reason){
+          let order_type = posTableView.orderTypeOf(sale_id);
           let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
           objectStore.openCursor().onsuccess = function(event) {
               let cursor = event.target.result;
@@ -7027,6 +7067,7 @@
           displayOrderList();
   
           $(".order_table_holder .order_holder").empty();
+          $("#update_sale_id").val(""); //the cart is emptied: nothing is being modified any more
           clearFooterCartCalculation();
           $(".single_table_div[data-table-checked=checked]").attr(
               "data-table-checked",
@@ -7035,8 +7076,10 @@
   
           $("#select_walk_in_customer").val("1");
           all_time_interval_operation();
+          posTableView.returnAfterAction(order_type);
       }
       function close_order_by_click(sale_id){
+          let order_type = posTableView.orderTypeOf(sale_id);
           let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
           objectStore.openCursor().onsuccess = function(event) {
               let cursor = event.target.result;
@@ -7060,6 +7103,7 @@
           displayOrderList();
   
           $(".order_table_holder .order_holder").empty();
+          $("#update_sale_id").val(""); //the cart is emptied: nothing is being modified any more
           clearFooterCartCalculation();
           $(".single_table_div[data-table-checked=checked]").attr(
               "data-table-checked",
@@ -7071,6 +7115,7 @@
           $("#select_walk_in_customer").val("1");
           reset_time_interval();
           all_time_interval_operation();
+          posTableView.returnAfterAction(order_type);
       }
       function closeOrderForWaiter(sale_no){
           let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
@@ -7551,6 +7596,7 @@
                         },
                         function () {
                             let sale_id = $(".holder .order_details .single_order[data-selected=selected]").attr("id").substr(6);
+                            let order_type = posTableView.orderTypeOf(sale_id);
                             let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
                             objectStore.openCursor().onsuccess = function(event) {
                                 let cursor = event.target.result;
@@ -7572,6 +7618,7 @@
                             displayOrderList();
   
                             $(".order_table_holder .order_holder").empty();
+                            $("#update_sale_id").val(""); //the cart is emptied: nothing is being modified any more
                             clearFooterCartCalculation();
                             $(".single_table_div[data-table-checked=checked]").attr(
                                 "data-table-checked",
@@ -7583,7 +7630,7 @@
                             $("#select_walk_in_customer").val("1");
                             reset_time_interval();
                             all_time_interval_operation();
-  
+                            posTableView.returnAfterAction(order_type);
                         });
                 }else{
                     toastr['error']((please_select_order_to_proceed + "!"), '');
@@ -9941,8 +9988,10 @@
   
           $("#print_type").val(1);
           let sale_id = Number($("#last_future_sale_id").val());
-  
+
           if (sale_id > 0) {
+            //read before the row is removed: a paid dine-in / delivery order sends the cashier back to the tables
+            let order_type_paid = posTableView.orderTypeOf(sale_id);
             let payment_method_type = $("#finalie_order_payment_method").val();
             let paid_amount = $("#pay_amount_invoice_input").val();
             let due_amount = $("#due_amount_invoice_input").val();
@@ -9973,6 +10022,8 @@
                 print_invoice_and_close(sale_id,payment_method_type,invoice_create_type,paid_amount,due_amount,sub_total_discount_finalize);
                 removeOrderTablesBySaleId(sale_id,'');
                 reset_finalize_modal();
+                posTableView.dropFromCart(sale_id);
+                posTableView.returnAfterAction(order_type_paid);
             }else{
                 let delivery_partner_id = '';
                 let order_status = 1;
@@ -10323,7 +10374,7 @@
                     let objectStore = db.transaction(['sales'], "readwrite").objectStore("sales");
                     objectStore.openCursor().onsuccess = function(event) {
                         let cursor = event.target.result;
-  
+
                         if (cursor) {
                             if(cursor.value.sales_id == sale_id) {
                                 removeRunningOrderFromServer(runningOrderSaleNo(cursor.value));
@@ -10335,6 +10386,9 @@
                             cursor.continue();
                         }
                     }
+                    //last split paid, the order is closed
+                    posTableView.dropFromCart(sale_id);
+                    posTableView.returnAfterAction(order_type_paid);
                 }
             }
   
@@ -11024,6 +11078,8 @@
         } else {
           $("#hold_generate_input").css("border", "1px solid #a0a0a0");
         }
+        //read before the next line unselects it: a dine-in / delivery draft sends the cashier back to the tables
+        let order_type_before_hold = posTableView.cartOrderType();
         let selected_order_type_object = $(".main_top")
           .find("button[data-selected=selected]")
           .attr("data-selected", "unselected");
@@ -11285,7 +11341,7 @@
   
         let order_object = JSON.stringify(order_info);
   
-        add_hold_by_ajax(order_object, hold_number);
+        add_hold_by_ajax(order_object, hold_number, order_type_before_hold);
       });
     }
     $(".marquee").marquee({
@@ -12925,6 +12981,15 @@
         }
         //clear table
         $(".order_table_holder .order_holder").empty();
+        if (action_type == 1 || action_type == 2) {
+            //from the cart's Place / Update Order or Quick Invoice (the other callers pull waiter / online
+            //orders in the background). When the payment modal opens next (a new order with Quick Invoice or
+            //pre-payment, see the setTimeout above) the tables come back after the payment instead
+            let opens_payment = sale_id == 0 && !(sale.sale_date > getCurrentDate()) && (pre_or_post_payment == 2 || action_type == 1);
+            if (!opens_payment) {
+                posTableView.returnAfterAction(sale.order_type);
+            }
+        }
     }
     function add_sale_by_ajax_kot_print(order_object, sale_id,outlet_id='',company_id='',sale_no_new='',is_direct_sale='') {
           //reset previous update sale id
@@ -12940,7 +13005,7 @@
         }
     }
   
-    function add_hold_by_ajax(order_object, hold_number) {
+    function add_hold_by_ajax(order_object, hold_number, order_type) {
       $.ajax({
         url: base_url + "Sale/add_hold_by_ajax",
         method: "POST",
@@ -12975,6 +13040,7 @@
             "unchecked"
           );
           reset_customer_waiter_to_default();
+          posTableView.returnAfterAction(order_type);
         },
         error: function () {
           alert(a_error);
@@ -15398,6 +15464,7 @@
           }
           syncRunningOrdersFromServer();
         refresh_orders_left();
+          posTableView.tickTimes();
       }, 7000);
     }
       //waiter_order_module
@@ -15897,7 +15964,9 @@
         // $(".main_top").find("button").css("background-color", "#109ec5");
         $(".main_top").find("button").attr("data-selected", "unselected");
       }
-  
+      //the Dine In button shows this order's table
+      updateDineInBadge();
+
       //do calculation on table
       do_addition_of_item_and_modifiers_price();
     }
@@ -15967,32 +16036,81 @@
             }
             tab.trigger("click");
         },
-        fitCanvas: function () {
-            //the floor plan is absolutely positioned inside #canvas (overflow:hidden): size it to its
-            //farthest tile so a narrow screen scrolls to the far tables instead of clipping them
-            let canvas = $("#show_tables_modal2 .table_bg > #canvas");
-            if (!canvas.length) {
-                return;
-            }
-            let width = 0;
-            let height = 0;
-            canvas.children(".element").each(function () {
-                let element = $(this);
-                width = Math.max(width, (parseFloat(element.css("left")) || 0) + element.outerWidth());
-                height = Math.max(height, (parseFloat(element.css("top")) || 0) + element.outerHeight());
-            });
-            canvas.css({ "min-width": width ? (width + 20) + "px" : "", "min-height": height ? (height + 20) + "px" : "" });
+        refreshScroll: function () {
             try {
-                //perfect-scrollbar sits on .all-dineIn-table (const further down this file); tell it the content size changed
+                //perfect-scrollbar sits on .all-dineIn-table (const further down this file); tell it the grid's height changed
                 all_dineIn_table.update();
             } catch (e) {}
         },
         signature: function () {
+            //the total is part of it: items added to a running order (here or on another terminal) redraw its tile
             let parts = [];
             $(".running_order_custom").each(function () {
-                parts.push($(this).attr("data-sale_id") + ":" + $(this).attr("data-table_id") + ":" + $(this).find(".running_order_order_number").text());
+                parts.push($(this).attr("data-sale_id") + ":" + $(this).attr("data-table_id") + ":" + $(this).find(".running_order_order_number").text() + ":" + $(this).attr("data-total_payable"));
             });
             return parts.sort().join("|");
+        },
+        parseOrderTime: function (raw) {
+            //order date_time is "2026-09-11 9:04:43 PM" (POS, toLocaleTimeString) or "2026-09-11 21:04:43".
+            //Read as a wall clock, the same way serverNow() reads the server time, so the two compare
+            let m = String(raw || "").match(/(\d{4})-(\d{1,2})-(\d{1,2})\D+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp])?/);
+            if (!m) {
+                return 0;
+            }
+            let hour = Number(m[4]);
+            if (m[7]) {
+                hour = hour % 12 + (m[7].toLowerCase() === "p" ? 12 : 0);
+            }
+            return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), hour, Number(m[5]), Number(m[6] || 0)).getTime();
+        },
+        ageText: function (since) {
+            if (!since) {
+                return "";
+            }
+            let minutes = Math.max(0, Math.floor((serverNow().getTime() - since) / 60000));
+            let min_label = this.el().attr("data-min");
+            if (minutes < 60) {
+                return minutes + " " + min_label;
+            }
+            return Math.floor(minutes / 60) + " " + this.el().attr("data-hour") + " " + (minutes % 60) + " " + min_label;
+        },
+        renderRunningTile: function (tile, orders) {
+            //running tile: table name, total and age of the oldest order; one table can carry several orders
+            let total = 0;
+            let since = 0;
+            let tip = [];
+            orders.forEach(function (order) {
+                total += order.total;
+                let stamp = posTableView.parseOrderTime(order.date_time);
+                if (stamp && (!since || stamp < since)) {
+                    since = stamp;
+                }
+                tip.push(inv_order_number + ': ' + escape_output(order.order_number) + '<br>' + inv_waiter + ': ' + escape_output(order.waiter_name) + '<br>' + inv_total_payable + ': ' + getAmount(order.total));
+            });
+            let info = $('<div class="set_tooltip pos_tile_info"></div>');
+            info.attr("data-tippy-content", '<div><span>' + inv_table + ': ' + escape_output(tile.attr("data-name")) + '</span><hr>' + tip.join('<hr>') + '</div>');
+            info.append($('<span class="pos_tile_name"></span>').text(tile.attr("data-name")));
+            //the currency is in the tooltip, the tile keeps the number so a 4-digit bill fits on one line
+            let amount = String(getAmount(total)).replace(inv_currency, "").trim();
+            info.append($('<span class="pos_tile_amount"></span>').toggleClass("pos_tile_amount_long", amount.length > 8).text(amount));
+            info.append($('<span class="pos_tile_time"></span>').attr("data-since", since || "").text(this.ageText(since)));
+            if (orders.length > 1) {
+                info.append($('<span class="pos_tile_count"></span>').text(orders.length));
+            }
+            tile.empty().append(info);
+            tippy(info[0], {
+                animation: "scale",
+                allowHTML: true,
+            });
+        },
+        tickTimes: function () {
+            //runs on the POS 7s tick: only the minute labels change, no redraw
+            if (!this.isOpen()) {
+                return;
+            }
+            $("#show_tables_modal2 .pos_tile_time").each(function () {
+                $(this).text(posTableView.ageText(Number($(this).attr("data-since"))));
+            });
         },
         onRunningOrdersRendered: function () {
             if (!this.isOpen()) {
@@ -16094,9 +16212,45 @@
             $("#hidden_table_capacity").val("");
             this.updateDineInBadge();
         },
+        dropFromCart: function (sale_id) {
+            //the order just paid is still open in the cart (tap its table, then Invoice): empty the cart, or the
+            //next Place Order would try to update a sale that is gone
+            if (!Number(sale_id) || Number($("#update_sale_id").val()) !== Number(sale_id)) {
+                return;
+            }
+            $(".order_table_holder .order_holder").empty();
+            $("#update_sale_id").val("");
+            clearFooterCartCalculation();
+        },
+        orderTypeOf: function (sale_id) {
+            //1 dine in, 2 take away, 3 delivery, read from the order's Running Orders row
+            return Number($("#order_" + sale_id).attr("order_type")) || 0;
+        },
+        cartOrderType: function () {
+            let type = $(".main_top .selected__btn_c[data-selected=selected]").attr("data-id");
+            return type === "dine_in_button" ? 1 : (type === "take_away_button" ? 2 : (type === "delivery_button" ? 3 : 0));
+        },
+        returnAfterAction: function (order_type) {
+            //an order was placed / updated / paid / cancelled / saved as draft: back to the tables.
+            //Take Away stays on the cart (counter sales come one after another); Dine In brings the tables back.
+            //order_type is read before the action resets the cart to the default order type
+            order_type = Number(order_type);
+            if ((order_type !== 1 && order_type !== 3) || !this.shouldLandOnTables()) {
+                return;
+            }
+            this.clearPickedTable();
+            if (!this.isOpen()) {
+                this.open();
+            }
+            //the action's IndexedDB write / delete may land after this render: redraw on the next list render
+            //and ask for one, or a paid / cancelled table stays orange until the next sync
+            this.forceRerender = true;
+            setTimeout(function () {
+                displayOrderList();
+            }, 700);
+        },
         updateDineInBadge: function () {
-            let name = $("#hidden_table_name").val();
-            $("#pos_dine_in_table").text(name ? name : "").toggleClass("has_table", !!name);
+            updateDineInBadge();
         },
         toggleMoreMenus: function () {
             let root = document.documentElement;
@@ -16127,6 +16281,13 @@
         posTableView.close();
         $(".delivery_button").trigger("click");
     });
+    $(document).on("click", "#order_payment_modal .cancel", function () {
+        //payment skipped, e.g. after Quick Invoice (the order is placed and running by then): back to the
+        //tables. With an order still in the cart (Invoice from the left panel) the cashier stays on it
+        if (!$(".order_holder .single_order").length) {
+            posTableView.returnAfterAction(posTableView.orderTypeOf($("#last_future_sale_id").val()));
+        }
+    });
     //bound after the legacy handlers of the same elements, so these run second
     $(document).on("click", ".get_area_table", function () {
         posTableView.activeAreaId = $(this).attr("data-id");
@@ -16134,13 +16295,9 @@
         $(this).addClass("pos_area_active");
         //the legacy render handler of this tab is bound later in this file, so it runs after this one
         setTimeout(function () {
-            posTableView.fitCanvas();
+            posTableView.refreshScroll();
         }, 0);
     });
-    //a floor plan saved while a tile was selected in the designer carries div_rectangular_active; every
-    //render copies the saved markup, so strip it at the source or that tile counts as "selected" forever
-    //(a quick action would apply to it, and the running-orders refresh would never redraw the floor)
-    $(".set_design .div_rectangular").removeClass("div_rectangular_active");
     $(document).on("click", "#table_button,.dine_in_button", function () {
         posTableView.afterOpen();
     });
@@ -16149,6 +16306,17 @@
         setTimeout(function () {
             posTableView.open();
         }, 0);
+    }
+    function updateDineInBadge() {
+      //the Dine In button shows the table the cart is for: the running order's table while an order is
+      //open for modification (tapped running table, Modify Order, transfer), else the blank table just
+      //picked. A function declaration, not part of posTableView: arrange_info_on_the_cart_to_modify()
+      //also runs at start-up (#edit_sale_id), before that const exists
+      let name = "";
+      if ($(".main_top .dine_in_button").attr("data-selected") === "selected") {
+        name = Number($("#update_sale_id").val()) ? $.trim($("#update_table_text").text()) : $("#hidden_table_name").val();
+      }
+      $("#pos_dine_in_table").text(name ? name : "").toggleClass("has_table", !!name);
     }
     function reset_table_modal() {
       $(".bottom_person").val("1");
@@ -16275,12 +16443,12 @@
           clearInterval(time2);
           clearInterval(time15);
           $("#order_" + sale_id).css("backgroundColor", "white");
-          $(".main_left").toggleClass("active");
-          $(".overlayForCalculator").fadeToggle(100);
-          if ($(this).attr("data-isActive") === "false") {
-            $(this).attr("data-isActive", "true");
-          } else {
-            $(this).attr("data-isActive", "false");
+          //close the running-orders panel if it was opened to show the new order (waiter app). A toggle
+          //opened it otherwise, with the transparent full-screen .overlayForCalculator that ate the
+          //cashier's next click (e.g. the first item tapped after picking a table)
+          if ($(".main_left").hasClass("active")) {
+            $(".main_left").removeClass("active");
+            $(".overlayForCalculator").fadeOut(100);
           }
         }, 4300);
       }, 500);
@@ -19171,7 +19339,7 @@
               });
         }
   
-        function setOrderTabless(order_number,table_number,waiter_name,total_payable,sale_id,table_id){
+        function setOrderTabless(order_number,table_number,waiter_name,total_payable,sale_id,table_id,date_time){
           $(".table_bg").find(".get_table_details").each(function() {
               let design_table_id = Number($(this).attr('data-id'));
               let this_action = $(this);
@@ -19185,17 +19353,11 @@
                   this_action.parent().css("border","1px solid "+ordered_border_color_hidden);
                   this_action.parent().css("background-color",ordered_bg_color_hidden);
                   this_action.parent().css("color",ordered_text_color_hidden);
-                  let tootip_content = '<div><span>'+inv_table+': '+table_number+'</span><br><hr>'+inv_waiter+': '+waiter_name+'<br>'+inv_order_number+': '+order_number+'<br>'+inv_total_payable+': '+total_payable+'</div>';
-                  let split_order = order_number.split("-");
-                  //last segment: sale numbers are INV-<company>-<n> now, [1] showed the company id
-                  let html_content = '<div class="set_tooltip" data-tippy-content="'+tootip_content+'"><span class="table_design_table_number">'+table_number+'</span><br><hr class="table_design_hr">'+waiter_name+'<br>'+split_order[split_order.length - 1]+'</div>';
-                  this_action.html(html_content);
-                  
-                  tippy(".set_tooltip", {
-                      animation: "scale",
-                      allowHTML: true,
-                    });
-  
+                  //every running order of this table is kept on the tile, it shows their sum
+                  let tile_orders = this_action.data("pos_tile_orders") || [];
+                  tile_orders.push({order_number: order_number, waiter_name: waiter_name, total: Number(total_payable) || 0, date_time: date_time});
+                  this_action.data("pos_tile_orders", tile_orders);
+                  posTableView.renderRunningTile(this_action, tile_orders);
               }else{
                   let booked_id = this_action.attr("class");
                   let booked_i1d = this_action.attr("data-booked_id");
@@ -19206,10 +19368,22 @@
       }
       function updateTransferTable(transferred_table_id,table_name){
           let sale_id = $("#active_transfer_sale_id").val();
-          update_transfer_table(sale_id,transferred_table_id,table_name);
-          setTimeout(function () {
-              displayOrderList();
-          }, 500);
+          return update_transfer_table(sale_id,transferred_table_id,table_name).then(function(result) {
+              //Keep the transferred order selected and open it straight away. The cashier should
+              //see the target table and the same items, not an empty new-order cart.
+              let order_row = $("#order_" + sale_id);
+              if(order_row.length){
+                  order_row.trigger("click");
+              }
+              $("#update_sale_id").val(sale_id);
+              $("#hidden_table_id").val(transferred_table_id);
+              $("#hidden_table_name").val(table_name);
+              posTableView.updateDineInBadge();
+              $("#place_edit_order").html(update_order);
+              arrange_info_on_the_cart_to_modify(result.order);
+              displayOrderList(true);
+              return result;
+          });
       }
       $(document).on("click", ".div_rectangular", function (e) {
           let hidden_table_capacity = $(this).find(".get_table_details").attr("data-hidden_table_capacity");
@@ -19253,30 +19427,16 @@
               posTableView.onRunningTableTapped(booked_id);
           }else{
               if(is_click_transfer_table){
-                  updateTransferTable(table_id,table_name);
-  
-                   $("#is_click_transfer_table").val('');
-                   $("#active_transfer_table").val('');
-                   $("#active_transfer_sale_id").val('');
-                  
-                  toastr['success']((transfer_transferred_msg), '');
-      
-                  $(this)
-                  .parent()
-                  .parent()
-                  .parent()
-                  .parent()
-                  .parent()
-                  .parent()
-                  .parent()
-                  .removeClass("active")
-                  .addClass("inActive");
-                  setTimeout(function () {
-                      $(".modal").removeClass("inActive");
-                  }, 1000);
-      
-                  $("#show_tables_modal2").removeClass("active");
-                  $(".pos__modal__overlay").fadeOut(300);
+                  updateTransferTable(table_id,table_name).then(function() {
+                      $("#is_click_transfer_table").val('');
+                      $("#active_transfer_table").val('');
+                      $("#active_transfer_sale_id").val('');
+
+                      toastr['success']((transfer_transferred_msg), '');
+                      posTableView.close();
+                  }).catch(function() {
+                      toastr['error']((a_error), '');
+                  });
   
               }else{
                   toastr['success']((you_are_ordering_now_on_your_selected_table), '');
@@ -19322,10 +19482,11 @@
               let order_number = $(this).find(".running_order_order_number").text();
               let table_number = $(this).find(".running_order_table_name").text();
               let waiter_name = $(this).find(".running_order_waiter_name").text();
-              let total_payable = inv_currency + ($(this).attr("data-total_payable"));
+              let total_payable = $(this).attr("data-total_payable");
+              let date_time = $(this).attr("data-date_time");
               let sale_id = Number($(this).attr("data-sale_id"));
               let table_id = Number($(this).attr("data-table_id"));
-              setOrderTabless(order_number,table_number,waiter_name,total_payable,sale_id,table_id);
+              setOrderTabless(order_number,table_number,waiter_name,total_payable,sale_id,table_id,date_time);
           });
       });
       

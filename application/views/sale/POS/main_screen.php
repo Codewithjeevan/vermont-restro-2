@@ -1293,7 +1293,7 @@ foreach ($notifications as $single_notification){
             </div>
         </div>
         <!-- Table view: laid over #main_part (see custom_pos.css). Opened on POS load and by Dine In. -->
-    <div id="show_tables_modal2" class="modal display_none" data-armed_msg="<?php echo lang('now_tap_a_table_for_action'); ?>">
+    <div id="show_tables_modal2" class="modal display_none" data-armed_msg="<?php echo lang('now_tap_a_table_for_action'); ?>" data-min="<?php echo lang('min_short'); ?>" data-hour="<?php echo lang('hour_short'); ?>">
 
         <!-- Modal content -->
         <div class="modal-content" id="modal_content_show_tables2">
@@ -1313,12 +1313,7 @@ foreach ($notifications as $single_notification){
                     <button type="button" class="pos_tv_btn pos_tv_primary" id="table_view_take_away"><i class="fal fa-shopping-bag"></i> <?php echo lang('take_away'); ?></button>
                 </span>
             </h1>
-            <div class="pos_table_view_hint">
-                <span class="pos_table_legend"><i class="pos_table_legend_blank"></i> <?php echo lang('blank_table'); ?></span>
-                <span class="pos_table_legend"><i class="pos_table_legend_running"></i> <?php echo lang('running_table'); ?></span>
-                <span class="pos_table_view_hint_text"><?php echo lang('table_view_hint'); ?></span>
-            </div>
-            
+
   <?php 
                 $table_bg_color = $this->session->userdata('table_bg_color');
                 $bg_tbl = $table_bg_color;
@@ -1327,7 +1322,6 @@ foreach ($notifications as $single_notification){
                 
                 <!--This variable could not be escaped because this is html content-->
                 <div class="table-category-list bg-white pos_p_10">
-                    <h4 class="bg-white text-center pos_mb_10"><b><?php echo lang('area'); ?></b></h4>
                     <ul class="dineIn-table-list-of-item">
                          <?php
                             $i = 1;
@@ -1337,13 +1331,23 @@ foreach ($notifications as $single_notification){
                                     $set_active = "#dadada;";
                                 }
                                 $i++;
-                                echo '<li><div class="set_design ir_display_none">'.$value->table_design_content.'</div><a class="get_area_table" data-floor_bg_color="'.$value->floor_bg_color.'"  data-ordered_border_color="'.$value->ordered_border_color.'"  data-ordered_bg_color="'.$value->ordered_bg_color.'"  data-ordered_text_color="'.$value->ordered_text_color.'" data-id="'.$value->id.'" href="javascript:void(0)">'.$value->area_name.'</a></li>';
+                                //tiles come live from tbl_tables (natural name order), not from the floor designer's saved
+                                //layout: a table added / renamed / deleted shows here at once. Same markup depth as the
+                                //designer's tiles, the legacy handlers walk .parent() chains from .div_rectangular
+                                $area_tiles = '';
+                                if (isset($area_tables[$value->id])) {
+                                    foreach ($area_tables[$value->id] as $area_table) {
+                                        $name_length = function_exists('mb_strlen') ? mb_strlen($area_table->name, 'UTF-8') : strlen($area_table->name);
+                                        $size_class = $name_length <= 3 ? 'pos_tile_xl' : ($name_length <= 7 ? 'pos_tile_l' : ($name_length <= 10 ? 'pos_tile_m' : 'pos_tile_s'));
+                                        $area_tiles .= '<div class="element table_box"><div class="div_rectangular '.$size_class.'"><div class="trigger_to_select_other get_table_details table_data_'.$area_table->id.'" data-name="'.escape_output($area_table->name).'" data-id="'.$area_table->id.'" data-hidden_table_capacity="'.escape_output($area_table->sit_capacity).'">'.escape_output($area_table->name).'</div></div></div>';
+                                    }
+                                }
+                                echo '<li><div class="set_design ir_display_none"><div id="canvas" class="pos_table_grid">'.$area_tiles.'</div></div><a class="get_area_table" data-floor_bg_color="'.$value->floor_bg_color.'"  data-ordered_border_color="'.$value->ordered_border_color.'"  data-ordered_bg_color="'.$value->ordered_bg_color.'"  data-ordered_text_color="'.$value->ordered_text_color.'" data-id="'.$value->id.'" href="javascript:void(0)">'.$value->area_name.'</a></li>';
                             }
                         ?>
                     </ul>
-
-                    <p>&nbsp;</p>
-                        <table class="ir-width-100">
+                        <!-- quick actions: keep the button > td > tr > tbody > table depth, their handlers close the view by walking 8 parents -->
+                        <table class="ir-width-100 pos_quick_actions">
                             <tr> <td><button data-id="1" class="set_quick_action"><i class="fas fa-file-invoice"></i> <?php echo lang('invoice'); ?></button></td> </tr>
                             <tr> <td><button data-id="2" class="set_quick_action"><i class="fas fa-clone"></i> <?php echo lang('split_bill'); ?></button></td> </tr>
                             <tr> <td><button data-id="3" class="set_quick_action"><i class="fas fa-edit"></i> <?php echo lang('modify_order_'); ?></button></td> </tr>

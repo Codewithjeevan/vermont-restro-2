@@ -1762,3 +1762,5 @@ $lang['free']='libres';
 $lang['blank_table']='Mesa libre';
 $lang['running_table']='Mesa ocupada';
 $lang['now_tap_a_table_for_action']='Ahora toca una mesa ocupada para aplicar esta acción';
+$lang['min_short']='min';
+$lang['hour_short']='h';

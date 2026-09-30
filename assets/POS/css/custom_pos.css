@@ -245,6 +245,14 @@
     border-radius: 50%;
     animation: running_order_spin 0.8s linear infinite;
 }
+
+/* Keep customer, order number, and table/order type visible without expanding the card. */
+.holder .order_details .inside_single_order_container{
+    height: 60px;
+}
+.holder .order_details .inside_single_order_container.active{
+    height: 100%;
+}
 #refresh_order.syncing i{
     display: inline-block;
     animation: running_order_spin 0.8s linear infinite;
@@ -400,71 +408,225 @@ html.pos_header_open .pos_more_menus_caret{
     display: inline-block;
     animation: running_order_spin 0.8s linear infinite;
 }
-.pos_table_view_hint{
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-wrap: wrap;
-    padding: 6px 15px 6px;
-    font-size: 12px;
-    color: #77797a;
-}
-.pos_table_legend{
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-.pos_table_legend i{
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    border: 1px solid #cfd9db;
-    background-color: #fff;
-}
-.pos_table_legend i.pos_table_legend_running{
-    border-color: #e74c3c;
-    box-shadow: inset 0 0 0 2px #e74c3c;
-}
-.pos_table_view_hint_text{
-    margin-left: auto;
-}
+/* Body of the view: table grid on top, a bottom bar with the areas (left) and the quick actions (right).
+   Only the order changes on screen; the DOM depth stays, the legacy handlers walk .parent() chains. */
 #show_tables_modal2 .select_table_modal_info_holder2{
     flex: 1 1 auto;
     min-height: 0;
-    overflow: auto;
-    padding: 0 !important; /* the floor runs to the edges */
-}
-#show_tables_modal2 .select_table_modal_info_holder2 .table-category-list{
-    flex: 0 0 auto;
-    border-right: 1px solid #eef1f3;
+    overflow: hidden;
+    flex-direction: column;
+    padding: 0 !important; /* the grid runs to the edges */
 }
 #show_tables_modal2 .select_table_modal_info_holder2 .width_86{
+    order: 1;
     flex: 1 1 auto;
     width: auto !important;
     min-width: 0;
+    min-height: 0;
     display: flex;
 }
 #show_tables_modal2 .select_table_modal_info_holder2 .all-dineIn-table{
     flex: 1 1 auto;
+    display: block; /* style2.css makes it a 300px grid */
     /* !important: frequent_changing/table_design/jquery-ui.structure.css loads after this file and sets calc(100% - 32px), which left a white strip under the floor */
     height: 100% !important;
-    min-height: 480px;
+    min-height: 0;
     margin-left: 0 !important; /* .pos_ml_10 */
-    overflow: auto; /* #canvas gets min-width/height from posTableView.fitCanvas(), so far tables scroll into view (perfect-scrollbar is attached to this pane) */
+    overflow: auto; /* perfect-scrollbar is attached to this pane, posTableView.refreshScroll() after each render */
+    background-color: #f3f3f3 !important; /* .bg-white */
 }
-#show_tables_modal2 .get_area_table.pos_area_active{
-    background-color: #dadada !important;
-    font-weight: 600 !important;
+#show_tables_modal2 .table_bg:before{
+    display: none; /* the company's floor texture (table_bg_1/2) is for the old floor plan */
 }
-/* running table: red ring on the tile, visible even when the area has no "ordered" colours configured */
-.table_bg .div_rectangular.pos_table_running{
-    box-shadow: inset 0 0 0 3px #e74c3c;
-    border-radius: 6px;
+/* the grid: one flat tile per table, in name order, however the floor designer placed them */
+#show_tables_modal2 .table_bg > #canvas{
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+    grid-auto-rows: 96px;
+    gap: 6px;
+    padding: 6px;
+    width: auto;
+    height: auto;
+    border: none;
+    background: none;
+    overflow: visible !important; /* custom_card_design_zak.css: overflow-x scroll !important */
 }
-.table_bg .div_rectangular.div_rectangular_active{
-    box-shadow: rgba(0, 0, 0, 0.44) 0px 5px 15px, inset 0 0 0 3px #2196f3;
+#show_tables_modal2 .table_bg > #canvas > .table_box{
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    transform: none !important;
 }
-.table_bg .div_rectangular.pos_table_running.div_rectangular_active{
-    box-shadow: rgba(0, 0, 0, 0.44) 0px 5px 15px, inset 0 0 0 3px #e74c3c;
+#show_tables_modal2 .table_bg .div_rectangular{
+    width: 100%;
+    height: 100%;
+    padding: 4px 6px;
+    background-color: #3b3b3b;
+    color: #fff;
+    border-radius: 2px;
+    box-shadow: none;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+#show_tables_modal2 .table_bg .div_rectangular:hover{
+    filter: brightness(1.15);
+}
+#show_tables_modal2 .table_bg .div_rectangular:active{
+    filter: brightness(0.9);
+}
+#show_tables_modal2 .table_bg .div_rectangular .get_table_details{
+    width: 100%;
+    color: inherit;
+    font-weight: 400;
+    line-height: 1.1;
+    text-align: center;
+    overflow-wrap: break-word; /* wrap at spaces, cut a word only when it cannot fit */
+    transform: none !important; /* setRotatedTable() copies the designer's rotation */
+}
+/* size by name length (class set in main_screen.php) */
+#show_tables_modal2 .table_bg .div_rectangular.pos_tile_xl .get_table_details{ font-size: 40px; }
+#show_tables_modal2 .table_bg .div_rectangular.pos_tile_l .get_table_details{ font-size: 28px; }
+#show_tables_modal2 .table_bg .div_rectangular.pos_tile_m .get_table_details{ font-size: 19px; }
+#show_tables_modal2 .table_bg .div_rectangular.pos_tile_s .get_table_details{ font-size: 16px; }
+/* running table: orange tile with name, total and age (the area's "ordered" colours win when configured, they are inline) */
+#show_tables_modal2 .table_bg .div_rectangular.pos_table_running{
+    background-color: #f0913a;
+}
+#show_tables_modal2 .table_bg .div_rectangular.div_rectangular_active{
+    box-shadow: inset 0 0 0 4px #2196f3;
+}
+#show_tables_modal2 .table_bg .pos_tile_info{
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    color: inherit;
+    font-weight: 400;
+    white-space: normal; /* .set_tooltip is nowrap / 11px / red */
+    text-align: center;
+}
+#show_tables_modal2 .table_bg .div_rectangular .pos_tile_info .pos_tile_name{
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 19px;
+    line-height: 1.15;
+}
+#show_tables_modal2 .table_bg .pos_tile_amount{
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+#show_tables_modal2 .table_bg .pos_tile_amount.pos_tile_amount_long{
+    font-size: 17px;
+}
+#show_tables_modal2 .table_bg .pos_tile_time{
+    font-size: 17px;
+    line-height: 1.15;
+}
+#show_tables_modal2 .table_bg .pos_tile_count{
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.35);
+    font-size: 12px;
+    line-height: 20px;
+}
+/* bottom bar */
+#show_tables_modal2 .select_table_modal_info_holder2 .table-category-list{
+    order: 2;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px !important;
+    border-top: 1px solid #e3e3e3;
+    background-color: #fafafa !important; /* .bg-white */
+}
+#show_tables_modal2 .select_table_modal_info_holder2 .table-category-list .dineIn-table-list-of-item{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: auto;
+}
+#show_tables_modal2 .select_table_modal_info_holder2 .table-category-list .dineIn-table-list-of-item li{
+    margin: 0;
+}
+#show_tables_modal2 .select_table_modal_info_holder2 .table-category-list .dineIn-table-list-of-item li a,
+#show_tables_modal2 .pos_quick_actions .set_quick_action{
+    display: block;
+    width: auto;
+    height: 34px;
+    margin: 0;
+    padding: 0 14px;
+    font-size: 14px;
+    line-height: 32px;
+    white-space: nowrap;
+    color: #333;
+    background-color: #fff;
+    border: 1px solid #cfcfcf;
+    border-radius: 2px;
+    box-shadow: none;
+}
+#show_tables_modal2 .select_table_modal_info_holder2 .table-category-list .dineIn-table-list-of-item li a.pos_area_active{
+    background-color: #6b6b6b !important;
+    border-color: #6b6b6b;
+    color: #fff;
+}
+#show_tables_modal2 table.pos_quick_actions{
+    width: auto;
+}
+#show_tables_modal2 table.pos_quick_actions tbody{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+#show_tables_modal2 table.pos_quick_actions tr,
+#show_tables_modal2 table.pos_quick_actions td{
+    display: block;
+    padding: 0;
+    border: none;
+}
+#show_tables_modal2 .pos_quick_actions .set_quick_action{
+    font-size: 13px;
+    padding: 0 12px;
+}
+#show_tables_modal2 .pos_quick_actions .set_quick_action:hover,
+#show_tables_modal2 .pos_quick_actions .set_quick_action:focus{
+    background-color: #f0f0f0 !important; /* custom_card_design_zak.css: purple !important */
+    box-shadow: none !important;
+}
+#show_tables_modal2 .pos_quick_actions .set_quick_action.set_quick_action_active{
+    background-color: #2196f3 !important;
+    border-color: #2196f3;
+    color: #fff;
+}
+@media (max-width: 900px){
+    #show_tables_modal2 .table_bg > #canvas{
+        grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+        grid-auto-rows: 84px;
+    }
+    #show_tables_modal2 .table_bg .div_rectangular.pos_tile_xl .get_table_details{ font-size: 34px; }
+    #show_tables_modal2 .table_bg .div_rectangular.pos_tile_l .get_table_details{ font-size: 23px; }
+    #show_tables_modal2 .table_bg .div_rectangular.pos_tile_m .get_table_details{ font-size: 16px; }
+    #show_tables_modal2 .table_bg .div_rectangular.pos_tile_s .get_table_details{ font-size: 14px; }
+    #show_tables_modal2 .table_bg .div_rectangular .pos_tile_info .pos_tile_name,
+    #show_tables_modal2 .table_bg .pos_tile_amount{ font-size: 17px; }
+    #show_tables_modal2 .table_bg .pos_tile_amount.pos_tile_amount_long,
+    #show_tables_modal2 .table_bg .pos_tile_time{ font-size: 15px; }
 }

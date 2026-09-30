@@ -1761,3 +1761,5 @@ $lang['free']='libres';
 $lang['blank_table']='Table libre';
 $lang['running_table']='Table occupée';
 $lang['now_tap_a_table_for_action']='Touchez maintenant une table occupée pour appliquer cette action';
+$lang['min_short']='min';
+$lang['hour_short']='h';

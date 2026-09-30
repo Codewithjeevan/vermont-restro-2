@@ -1829,3 +1829,5 @@ $lang['free']='free';
 $lang['blank_table']='Blank Table';
 $lang['running_table']='Running Table';
 $lang['now_tap_a_table_for_action']='Now tap a running table to apply this action';
+$lang['min_short']='min.';
+$lang['hour_short']='h';

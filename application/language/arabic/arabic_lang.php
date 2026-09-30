@@ -1761,3 +1761,5 @@ $lang['free']='فارغة';
 $lang['blank_table']='طاولة فارغة';
 $lang['running_table']='طاولة مشغولة';
 $lang['now_tap_a_table_for_action']='الآن اضغط على طاولة مشغولة لتطبيق هذا الإجراء';
+$lang['min_short']='د';
+$lang['hour_short']='س';
