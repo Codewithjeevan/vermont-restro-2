@@ -2,6 +2,8 @@
 <?php
 
     $show_register_report = "";
+    //Mess module: column exists once Update/mess_module_migration.sql ran
+    $show_mess_collection = $this->db->field_exists('total_mess_collection', 'tbl_register');
     if(isset($register_info) && count($register_info)>0){
         
         $i = 1;
@@ -45,6 +47,18 @@
             $show_register_report .= '<td>'.getAmtPCustom($single_register_info->sale_paid_amount).'</td>';
             $show_register_report .= '<td>'.getAmtP($single_register_info->refund_amount).'</td>';
             $show_register_report .= '<td>'.getAmtPCustom($single_register_info->customer_due_receive).'</td>';
+            if($show_mess_collection){
+                $mess_split = '';
+                $mess_json = json_decode((string)$single_register_info->mess_collection_json, true);
+                if($mess_json){
+                    $mess_parts = array();
+                    foreach ($mess_json as $mess_method=>$mess_amount){
+                        $mess_parts[] = $mess_method.": ".getAmtPCustom($mess_amount);
+                    }
+                    $mess_split = '<br><small>'.implode(", ", $mess_parts).'</small>';
+                }
+                $show_register_report .= '<td>'.getAmtPCustom($single_register_info->total_mess_collection).$mess_split.'</td>';
+            }
             $show_register_report .= '<td>'.getAmtPCustom($single_register_info->total_purchase).'</td>';
             $show_register_report .= '<td>'.getAmtPCustom($single_register_info->total_expense).'</td>';
             $show_register_report .= '<td>'.getAmtPCustom($single_register_info->total_due_payment).'</td>';
@@ -158,6 +172,9 @@
                                     (<?php echo lang('paid_amount'); ?>)</th>
                                 <th class="title" class="ir_w_15"><?php echo lang('refund_amount'); ?></th>
                                 <th class="title" class="ir_w_15"><?php echo lang('customer_due_receive'); ?></th>
+                                <?php if($show_mess_collection): ?>
+                                <th class="title" class="ir_w_15"><?php echo lang('mess_collection'); ?></th>
+                                <?php endif; ?>
                                 <th class="title" class="ir_w_15"><?php echo lang('purchase'); ?></th>
                                 <th class="title" class="ir_w_15"><?php echo lang('expense'); ?></th>
                                 <th class="title" class="ir_w_15"><?php echo lang('due_payment'); ?></th>

@@ -1,0 +1,699 @@
+/* =====================================================================
+   Mess module (monthly tiffin). Admin pages only, scoped with .mess-*
+   Follows the admin theme: white boxes, #7367f0 accent, #6e6b7b text.
+   ===================================================================== */
+:root {
+  --mess-accent: #7367f0;
+  --mess-accent-soft: rgba(115, 103, 240, 0.12);
+  --mess-text: #5e5873;
+  --mess-muted: #8a8698;
+  --mess-line: #ebe9f1;
+  --mess-bg-soft: #f8f7fa;
+  --mess-green: #1f9d55;
+  --mess-green-soft: #e3f6ea;
+  --mess-amber: #b7791f;
+  --mess-amber-soft: #fdf3dc;
+  --mess-red: #d63939;
+  --mess-red-soft: #fce8e8;
+  --mess-blue: #2b7bb9;
+  --mess-blue-soft: #e4f0fa;
+  --mess-grey-soft: #eeedf2;
+}
+
+/* ---------- page header + module tabs ---------- */
+.mess-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.mess-head h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--mess-text);
+}
+.mess-head .mess-sub {
+  color: var(--mess-muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.mess-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mess-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+  padding: 4px;
+  margin: 0 0 14px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.05);
+}
+.mess-tabs li a {
+  display: inline-block;
+  padding: 7px 12px;
+  border-radius: 6px;
+  color: var(--mess-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mess-tabs li a:hover {
+  background: var(--mess-bg-soft);
+}
+.mess-tabs li.active a {
+  background: var(--mess-accent);
+  color: #fff;
+}
+
+/* ---------- buttons ---------- */
+.mess-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--mess-line);
+  background: #fff;
+  color: var(--mess-text);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mess-btn:hover {
+  border-color: var(--mess-accent);
+  color: var(--mess-accent);
+}
+.mess-btn.primary {
+  background: var(--mess-accent);
+  border-color: var(--mess-accent);
+  color: #fff;
+}
+.mess-btn.primary:hover {
+  box-shadow: 0 8px 25px -8px var(--mess-accent);
+  color: #fff;
+}
+.mess-btn.success {
+  background: var(--mess-green);
+  border-color: var(--mess-green);
+  color: #fff;
+}
+.mess-btn.danger {
+  color: var(--mess-red);
+  border-color: #f3c7c7;
+}
+.mess-btn.whatsapp {
+  color: #128c4b;
+  border-color: #bfe8cf;
+}
+.mess-btn.sm {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.mess-btn[disabled],
+.mess-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ---------- tiles ---------- */
+.mess-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.mess-tile {
+  display: block;
+  background: #fff;
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.06);
+  color: var(--mess-text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+a.mess-tile:hover {
+  color: var(--mess-text);
+  border-left-color: var(--mess-accent);
+}
+.mess-tile .num {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.mess-tile .lbl {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.mess-tile .hint {
+  font-size: 12px;
+  color: var(--mess-muted);
+  margin-top: 2px;
+}
+.mess-tile.warn {
+  border-left-color: var(--mess-amber);
+}
+.mess-tile.bad {
+  border-left-color: var(--mess-red);
+}
+.mess-tile.good {
+  border-left-color: var(--mess-green);
+}
+
+/* ---------- cards ---------- */
+.mess-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.06);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.mess-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--mess-text);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mess-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+.mess-muted {
+  color: var(--mess-muted);
+  font-size: 12px;
+}
+.mess-hint {
+  background: var(--mess-bg-soft);
+  border-radius: 6px;
+  padding: 9px 12px;
+  color: var(--mess-muted);
+  font-size: 12.5px;
+  margin: 8px 0 12px;
+}
+.mess-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.mess-due {
+  color: var(--mess-red);
+  font-weight: 600;
+}
+.mess-credit {
+  color: var(--mess-green);
+  font-weight: 600;
+}
+
+/* ---------- badges ---------- */
+.mess-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--mess-grey-soft);
+  color: var(--mess-text);
+}
+.mess-badge.active,
+.mess-badge.served,
+.mess-badge.delivered {
+  background: var(--mess-green-soft);
+  color: var(--mess-green);
+}
+.mess-badge.expiring,
+.mess-badge.partial,
+.mess-badge.pending,
+.mess-badge.requested {
+  background: var(--mess-amber-soft);
+  color: var(--mess-amber);
+}
+.mess-badge.expired,
+.mess-badge.not_taken {
+  background: var(--mess-red-soft);
+  color: var(--mess-red);
+}
+.mess-badge.upcoming,
+.mess-badge.skipped {
+  background: var(--mess-blue-soft);
+  color: var(--mess-blue);
+}
+.mess-badge.cancelled,
+.mess-badge.inactive {
+  background: var(--mess-grey-soft);
+  color: var(--mess-muted);
+  text-decoration: line-through;
+}
+.mess-badge.veg {
+  background: var(--mess-green-soft);
+  color: var(--mess-green);
+}
+.mess-badge.nonveg {
+  background: var(--mess-red-soft);
+  color: var(--mess-red);
+}
+.mess-badge.both {
+  background: var(--mess-amber-soft);
+  color: var(--mess-amber);
+}
+
+/* ---------- tables ---------- */
+.mess-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #6e6b7b;
+  font-size: 13px;
+}
+.mess-table th {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: rgba(47, 43, 61, 0.78);
+  border-bottom: 1px solid var(--mess-line);
+  padding: 9px 8px;
+  white-space: nowrap;
+  text-align: left;
+}
+.mess-table td {
+  border-bottom: 1px solid var(--mess-line);
+  padding: 8px;
+  vertical-align: middle;
+}
+.mess-table th.mess-num,
+.mess-table th.text-end {
+  text-align: right;
+}
+.mess-table tr:last-child td {
+  border-bottom: 0;
+}
+.mess-table tfoot td,
+.mess-table tfoot th {
+  border-top: 2px solid var(--mess-line);
+  font-weight: 700;
+}
+.mess-table .name {
+  font-weight: 600;
+  color: var(--mess-text);
+}
+.mess-table a.name {
+  text-decoration: none;
+}
+.mess-table a.name:hover {
+  color: var(--mess-accent);
+}
+
+/* ---------- forms ---------- */
+.mess-form .form-group {
+  margin-bottom: 12px;
+}
+.mess-form label {
+  font-weight: 500;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.mess-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mess-muted);
+  margin: 6px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--mess-line);
+}
+.mess-slot-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.mess-slot-input {
+  flex: 1 1 130px;
+  border: 1px solid var(--mess-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--mess-bg-soft);
+}
+.mess-slot-input label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.mess-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mess-stepper button {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--mess-line);
+  background: #fff;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--mess-text);
+}
+.mess-stepper input {
+  width: 56px;
+  text-align: center;
+  font-weight: 700;
+}
+.mess-price-box {
+  border: 1px dashed var(--mess-accent);
+  background: var(--mess-accent-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--mess-text);
+}
+.mess-price-box b {
+  font-variant-numeric: tabular-nums;
+}
+.mess-errors {
+  background: var(--mess-red-soft);
+  color: var(--mess-red);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.mess-errors ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.mess-warning {
+  background: var(--mess-amber-soft);
+  color: var(--mess-amber);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.mess-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 14px;
+}
+.mess-check input {
+  width: 16px;
+  height: 16px;
+}
+.mess-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.mess-filter .mess-btn.on {
+  background: var(--mess-accent);
+  border-color: var(--mess-accent);
+  color: #fff;
+}
+
+/* ---------- member profile ---------- */
+.mess-profile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.mess-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--mess-accent-soft);
+  color: var(--mess-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 20px;
+  flex: 0 0 52px;
+}
+.mess-profile .who {
+  flex: 1 1 220px;
+}
+.mess-profile .who .nm {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--mess-text);
+}
+.mess-profile .kv {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+  color: var(--mess-muted);
+  margin-top: 4px;
+}
+.mess-balance {
+  text-align: right;
+}
+.mess-balance .amt {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mess-cycle {
+  border: 1px solid var(--mess-line);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.mess-cycle-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.mess-cycle-head .dates {
+  font-weight: 600;
+  color: var(--mess-text);
+}
+.mess-cycle-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12.5px;
+  color: var(--mess-muted);
+  margin: 6px 0;
+}
+.mess-cycle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.mess-pause-form {
+  display: none;
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--mess-bg-soft);
+  border-radius: 6px;
+}
+.mess-pause-form.open {
+  display: block;
+}
+.mess-progress {
+  height: 6px;
+  background: var(--mess-grey-soft);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.mess-progress span {
+  display: block;
+  height: 100%;
+  background: var(--mess-accent);
+}
+
+/* ---------- meal register ---------- */
+.mess-daybar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.mess-daybar input[type="text"],
+.mess-daybar input[type="search"] {
+  max-width: 260px;
+}
+.mess-slot-tabs {
+  display: inline-flex;
+  border: 1px solid var(--mess-line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.mess-slot-tabs a {
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--mess-text);
+  text-decoration: none;
+  border-right: 1px solid var(--mess-line);
+}
+.mess-slot-tabs a:last-child {
+  border-right: 0;
+}
+.mess-slot-tabs a.on {
+  background: var(--mess-accent);
+  color: #fff;
+}
+.mess-reg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--mess-line);
+}
+.mess-reg-row:last-child {
+  border-bottom: 0;
+}
+.mess-reg-row.done {
+  background: #fbfbfc;
+}
+.mess-reg-row .who {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.mess-reg-row .who .nm {
+  font-weight: 600;
+  color: var(--mess-text);
+}
+.mess-reg-row .who .meta {
+  font-size: 12px;
+  color: var(--mess-muted);
+}
+.mess-reg-row .qty {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 40px;
+  text-align: center;
+  color: var(--mess-text);
+}
+.mess-reg-row .state {
+  min-width: 120px;
+}
+.mess-reg-row .acts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mess-reg-row .acts .mess-btn {
+  min-height: 38px;
+  padding: 8px 14px;
+}
+.mess-reg-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--mess-line);
+}
+
+/* ---------- daily menu planner ---------- */
+.mess-menu-cell {
+  border: 1px solid var(--mess-line);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.mess-menu-cell-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.mess-menu-cell-head .ttl {
+  font-weight: 700;
+  color: var(--mess-text);
+}
+.mess-dish-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 3fr) 90px 90px 110px 34px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.mess-dish-row .x {
+  border: 0;
+  background: transparent;
+  color: var(--mess-red);
+  font-size: 18px;
+}
+.mess-dish-head {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mess-muted);
+  text-transform: uppercase;
+}
+@media (max-width: 700px) {
+  .mess-dish-row {
+    grid-template-columns: 1fr 70px 70px 34px;
+  }
+  .mess-dish-row .planned {
+    display: none;
+  }
+}
+
+/* ---------- attendance matrix ---------- */
+.mess-matrix {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mess-matrix th,
+.mess-matrix td {
+  border: 1px solid var(--mess-line);
+  padding: 3px 4px;
+  text-align: center;
+  min-width: 22px;
+}
+.mess-matrix td.nm {
+  text-align: left;
+  white-space: nowrap;
+  font-weight: 600;
+  position: sticky;
+  left: 0;
+  background: #fff;
+}
+.mess-matrix .S { background: var(--mess-green-soft); color: var(--mess-green); font-weight: 700; }
+.mess-matrix .P { background: var(--mess-amber-soft); color: var(--mess-amber); font-weight: 700; }
+.mess-matrix .N { background: var(--mess-red-soft); color: var(--mess-red); font-weight: 700; }
+.mess-matrix .K { background: var(--mess-blue-soft); color: var(--mess-blue); font-weight: 700; }
+.mess-matrix .W { color: var(--mess-muted); }
+
+@media (max-width: 575px) {
+  .mess-balance {
+    text-align: left;
+  }
+  .mess-reg-row .state {
+    min-width: 0;
+  }
+}

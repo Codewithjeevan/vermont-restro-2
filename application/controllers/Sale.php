@@ -3581,6 +3581,7 @@ We hope to see you again!";
                         </tr>';
         $array_p_name = array();
         $array_p_amount = array();
+        $mess_by_method = array();
         if(isset($opening_details_decode) && $opening_details_decode){
             foreach ($opening_details_decode as $key=>$value){
                 $key++;
@@ -3591,10 +3592,14 @@ We hope to see you again!";
                 $total_due_payment = $this->Sale_model->getAllDuePaymentByPayment($opening_date_time,$payments[0]);
                 $total_expense = $this->Sale_model->getAllExpenseByPayment($opening_date_time,$payments[0]);
                 $refund_amount = $this->Sale_model->getAllRefundByPayment($opening_date_time,$payments[0]);
-                 
+                $total_mess = $this->Sale_model->getAllMessByPayment($opening_date_time,$payments[0]);
+                if($total_mess){
+                    $mess_by_method[$payments[1]] = $total_mess;
+                }
+
                 $total_sale =  $this->Sale_model->getAllSaleByPayment($opening_date_time,$payments[0]);
 
-                $inline_total = $payments[2] - $total_purchase + $total_sale  + $total_due_receive - $total_due_payment - $total_expense - $refund_amount;
+                $inline_total = $payments[2] - $total_purchase + $total_sale  + $total_due_receive + $total_mess - $total_due_payment - $total_expense - $refund_amount;
 
                 $array_p_name[] = $payments[1];
                 $array_p_amount[] = $inline_total;
@@ -3639,8 +3644,16 @@ We hope to see you again!";
                             <td></td>
                             <td>'.lang('register_detail_5').'</td>
                             <td class="text_right">'.getAmtPCustom($total_due_receive).'</td>
-                        </tr>
-                        <tr>
+                        </tr>';
+                if($this->Sale_model->messInstalled()):
+                    $html_content .= '<tr>
+                            <td></td>
+                            <td></td>
+                            <td>'.lang('mess_collection_plus').'</td>
+                            <td class="text_right">'.getAmtPCustom($total_mess).'</td>
+                        </tr>';
+                endif;
+                $html_content .= '<tr>
                             <td></td>
                             <td></td>
                             <td>'.lang('register_detail_6').'</td>
@@ -3692,6 +3705,29 @@ We hope to see you again!";
                                 <th>'.$value.'</th>
                                 <th class="text_right">'.getAmtPCustom($array_p_amount[$key]).'</th>
                         </tr>';
+        }
+        //Mess Collection card: mess payments of this register, already included in the lines above
+        if($mess_by_method){
+            $html_content .= '<tr>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <th>&nbsp;</th>
+                                <th class="text_right">&nbsp;</th>
+                        </tr>
+                        <tr>
+                                <th></th>
+                                <th></th>
+                                <th>'.lang('mess_collection').'</th>
+                                <th class="text_right">'.getAmtPCustom(array_sum($mess_by_method)).'</th>
+                        </tr>';
+            foreach ($mess_by_method as $mess_method=>$mess_amount){
+                $html_content .= '<tr>
+                                <td></td>
+                                <td></td>
+                                <td>&nbsp;&nbsp;&nbsp;&nbsp;'.$mess_method.'</td>
+                                <td class="text_right">'.getAmtPCustom($mess_amount).'</td>
+                        </tr>';
+            }
         }
 
 
@@ -3833,19 +3869,22 @@ We hope to see you again!";
         $total_due_receive_all = 0;
         $total_due_payment_all = 0;
         $total_expense_all = 0;
+        $total_mess_all = 0;
+        $mess_by_method = array();
 
         $payment_details = array();
         $others_currency = array();
         foreach ($opening_details_decode as $key=>$value){
             $payments = explode("||",$value);
 
-            
+
             $total_sale =  $this->Sale_model->getAllSaleByPayment($opening_date_time,$payments[0]);
             $total_purchase = $this->Sale_model->getAllPurchaseByPayment($opening_date_time,$payments[0]);
             $total_due_receive = $this->Sale_model->getAllDueReceiveByPayment($opening_date_time,$payments[0]);
             $total_due_payment = $this->Sale_model->getAllDuePaymentByPayment($opening_date_time,$payments[0]);
             $total_expense = $this->Sale_model->getAllExpenseByPayment($opening_date_time,$payments[0]);
             $refund_amount = $this->Sale_model->getAllRefundByPayment($opening_date_time,$payments[0]);
+            $total_mess = $this->Sale_model->getAllMessByPayment($opening_date_time,$payments[0]);
 
             $total_sale_all += $total_sale;
             $total_purchase_all += $total_purchase;
@@ -3853,7 +3892,11 @@ We hope to see you again!";
             $total_due_receive_all += $total_due_receive;
             $total_due_payment_all += $total_due_payment;
             $total_expense_all += $total_expense;
-            $inline_closing = ($payments[2] - $total_purchase + $total_sale  + $total_due_receive - $total_due_payment - $total_expense - $refund_amount);
+            $total_mess_all += $total_mess;
+            if($total_mess){
+                $mess_by_method[$payments[1]] = getAmtP($total_mess);
+            }
+            $inline_closing = ($payments[2] - $total_purchase + $total_sale  + $total_due_receive + $total_mess - $total_due_payment - $total_expense - $refund_amount);
             $total_closing += $inline_closing;
 
             $preview_amount = isset($payment_details[$payments[1]]) && $payment_details[$payments[1]]?$payment_details[$payments[1]]:0;
@@ -3886,6 +3929,10 @@ We hope to see you again!";
             'payment_methods_sale' => json_encode($payment_details),
             'register_status' => 2
         );
+        if($this->Sale_model->messInstalled()){
+            $changes['total_mess_collection'] = $total_mess_all;
+            $changes['mess_collection_json'] = json_encode($mess_by_method);
+        }
 
         $this->db->where('outlet_id', $outlet_id);
         $this->db->where('counter_id', $counter_id);

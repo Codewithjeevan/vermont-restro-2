@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Mess / Meal Plan — How to use</title>
+  <style>
+    :root { --ink:#243044; --muted:#59677b; --purple:#6658ca; --purple-light:#f1efff; --teal:#087c77; --teal-light:#e8f7f4; --line:#dfe5ec; --paper:#fff; --bg:#f5f7fb; --amber:#9a5a08; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    a { color:var(--purple); }
+    a:focus-visible { outline:3px solid var(--teal); outline-offset:3px; }
+    .wrap { width:min(1120px,calc(100% - 32px)); margin:auto; }
+    .hero { background:linear-gradient(125deg,#392c86 0%,#6658ca 62%,#8a78e5 100%); color:white; padding:44px 0 38px; }
+    .hero .eyebrow { text-transform:uppercase; letter-spacing:.13em; font-size:12px; font-weight:800; opacity:.8; }
+    h1 { margin:9px 0 10px; font-size:clamp(30px,5vw,52px); line-height:1.12; letter-spacing:-.03em; }
+    .hero p { max-width:740px; margin:0 0 22px; color:#eeeaff; font-size:18px; }
+    .hero-actions { display:flex; flex-wrap:wrap; gap:10px; }
+    .button { display:inline-flex; align-items:center; gap:7px; padding:10px 16px; border-radius:10px; font-weight:700; text-decoration:none; background:white; color:#3d318d; }
+    .button.alt { background:#ffffff1b; color:white; border:1px solid #ffffff7a; }
+    nav { background:white; border-bottom:1px solid var(--line); }
+    nav .wrap { display:flex; flex-wrap:wrap; gap:2px 24px; padding:11px 0; }
+    nav a { font-size:14px; font-weight:700; text-decoration:none; }
+    main { padding:28px 0 56px; }
+    section { scroll-margin-top:20px; margin-bottom:30px; }
+    h2 { margin:0 0 11px; font-size:26px; letter-spacing:-.02em; }
+    h3 { margin:0 0 7px; font-size:18px; }
+    p { margin:0 0 12px; }
+    .muted { color:var(--muted); }
+    .panel { background:var(--paper); border:1px solid var(--line); border-radius:17px; padding:24px; box-shadow:0 5px 18px #263b5b0a; }
+    .notice { border-left:4px solid var(--teal); background:var(--teal-light); padding:13px 16px; border-radius:0 10px 10px 0; }
+    .notice.warn { border-color:#d89632; background:#fff6e8; }
+    .diagram-scroll { overflow-x:auto; padding:7px 0; }
+    .diagram { min-width:850px; width:100%; height:auto; display:block; }
+    .diagram text { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+    .legend { display:flex; flex-wrap:wrap; gap:16px; margin-top:4px; color:var(--muted); font-size:13px; }
+    .legend b { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+    .cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+    .card { background:white; border:1px solid var(--line); border-radius:15px; padding:20px; }
+    .card .num { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:9px; background:var(--purple-light); color:var(--purple); font-weight:800; margin-bottom:12px; }
+    .card p:last-child { margin-bottom:0; }
+    .path { display:block; color:var(--teal); font-size:13px; font-weight:800; margin-bottom:8px; }
+    .example { display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:start; }
+    .example dl { margin:0; display:grid; grid-template-columns:150px 1fr; gap:8px 12px; }
+    .example dt { font-weight:750; }
+    .example dd { margin:0; }
+    .mini-flow { display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-top:16px; }
+    .mini-flow span { background:var(--purple-light); color:#433a88; border-radius:9px; padding:8px 12px; font-weight:700; }
+    .mini-flow i { color:var(--teal); font-style:normal; font-weight:800; }
+    .checks { margin:0; padding-left:22px; }
+    .checks li { margin:8px 0; }
+    .tip-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; }
+    .tip { background:white; border:1px solid var(--line); border-radius:14px; padding:18px; }
+    footer { padding:21px 0 36px; color:var(--muted); font-size:13px; }
+    @media (max-width:760px) { .cards,.example,.tip-grid { grid-template-columns:1fr; } .panel { padding:18px; } .hero { padding:32px 0; } }
+    @media print { body { background:white; font-size:12px; } .hero { color:#243044; background:white; padding:0 0 15px; } .hero p { color:#243044; } .hero-actions,nav { display:none; } main { padding:0; } .panel,.card,.tip { box-shadow:none; break-inside:avoid; } a { color:inherit; } .diagram { min-width:0; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Trul Resto · Mess module guide</div>
+      <h1>Meal plan kaise use karein</h1>
+      <p>Plan banane se lekar meal serve, payment aur day close tak ka simple workflow. Fresh data se manual check karne ke liye neeche ek chhota example bhi hai.</p>
+      <div class="hero-actions">
+        <a class="button" href="../Mess/today">Mess dashboard kholein →</a>
+        <a class="button alt" href="#workflow">Workflow dekhein</a>
+      </div>
+    </div>
+  </header>
+  <nav aria-label="Guide sections"><div class="wrap">
+    <a href="#workflow">Diagram</a><a href="#setup">Shuru kaise karein</a><a href="#example">Example</a><a href="#daily">Roz ka kaam</a><a href="#checks">Manual check</a>
+  </div></nav>
+  <main class="wrap">
+    <section id="workflow" class="panel">
+      <h2>Poora flow, ek nazar mein</h2>
+      <p class="muted">Pehli line setup hai. Dusri line roz ka kaam hai. Payment subscription ke baad kabhi bhi record kar sakte hain.</p>
+      <div class="diagram-scroll">
+        <svg class="diagram" viewBox="0 0 1060 380" role="img" aria-labelledby="flow-title flow-desc">
+          <title id="flow-title">Mess module workflow diagram</title>
+          <desc id="flow-desc">Settings, Plan, Member, Subscription; then Daily Menu, Daily Sheet, Meal Register, Day Close, Reports. Payment branches from Subscription.</desc>
+          <defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M1 1 L7 4.5 L1 8" fill="none" stroke="#7b88a0" stroke-width="1.6"/></marker></defs>
+          <g fill="none" stroke="#7b88a0" stroke-width="2.4" marker-end="url(#arrow)">
+            <path d="M185 61 H235"/><path d="M445 61 H495"/><path d="M705 61 H755"/>
+            <path d="M860 103 V155 H175 V185"/>
+            <path d="M185 227 H235"/><path d="M445 227 H495"/><path d="M705 227 H755"/>
+            <path d="M860 103 V130 H950 V185"/><path d="M860 267 V298"/>
+          </g>
+          <g font-size="17" font-weight="800" text-anchor="middle">
+            <rect x="5" y="20" width="180" height="82" rx="14" fill="#f1efff" stroke="#c7c0f4"/><text x="95" y="57" fill="#3d318d">1 · Settings</text><text x="95" y="80" font-size="12" font-weight="500" fill="#59677b">Slots &amp; rules</text>
+            <rect x="235" y="20" width="210" height="82" rx="14" fill="#f1efff" stroke="#c7c0f4"/><text x="340" y="57" fill="#3d318d">2 · Plans</text><text x="340" y="80" font-size="12" font-weight="500" fill="#59677b">Price per person / cycle</text>
+            <rect x="495" y="20" width="210" height="82" rx="14" fill="#f1efff" stroke="#c7c0f4"/><text x="600" y="57" fill="#3d318d">3 · Members</text><text x="600" y="80" font-size="12" font-weight="500" fill="#59677b">Customer profile</text>
+            <rect x="755" y="20" width="210" height="82" rx="14" fill="#f1efff" stroke="#c7c0f4"/><text x="860" y="57" fill="#3d318d">4 · Subscriptions</text><text x="860" y="80" font-size="12" font-weight="500" fill="#59677b">Dates, meals &amp; agreed price</text>
+            <rect x="5" y="185" width="180" height="82" rx="14" fill="#e8f7f4" stroke="#9bd5ca"/><text x="95" y="222" fill="#08635f">5 · Daily Menu</text><text x="95" y="245" font-size="12" font-weight="500" fill="#59677b">Dishes by slot &amp; diet</text>
+            <rect x="235" y="185" width="210" height="82" rx="14" fill="#e8f7f4" stroke="#9bd5ca"/><text x="340" y="222" fill="#08635f">6 · Daily Sheet</text><text x="340" y="245" font-size="12" font-weight="500" fill="#59677b">Prep &amp; stock check</text>
+            <rect x="495" y="185" width="210" height="82" rx="14" fill="#e8f7f4" stroke="#9bd5ca"/><text x="600" y="222" fill="#08635f">7 · Meal Register</text><text x="600" y="245" font-size="12" font-weight="500" fill="#59677b">Served / skipped / absent</text>
+            <rect x="755" y="185" width="210" height="82" rx="14" fill="#e8f7f4" stroke="#9bd5ca"/><text x="860" y="222" fill="#08635f">8 · Day Close</text><text x="860" y="245" font-size="12" font-weight="500" fill="#59677b">Cooked &amp; leftover</text>
+            <rect x="920" y="185" width="135" height="82" rx="14" fill="#fff2df" stroke="#e7bf80"/><text x="987" y="222" fill="#81500c">Payment</text><text x="987" y="245" font-size="12" font-weight="500" fill="#59677b">Collect dues</text>
+            <rect x="755" y="298" width="210" height="65" rx="14" fill="#eef3ff" stroke="#b5c6ec"/><text x="860" y="326" fill="#304c86">9 · Reports</text><text x="860" y="347" font-size="12" font-weight="500" fill="#59677b">Attendance, collection, cost</text>
+          </g>
+        </svg>
+      </div>
+      <div class="legend"><span><b style="background:#b8aef0"></b>Ek baar setup</span><span><b style="background:#86cbbd"></b>Har din / har meal</span><span><b style="background:#e7bf80"></b>Jab paisa mile</span></div>
+      <p style="margin-top:14px;margin-bottom:0"><strong>Reports:</strong> Day Close aur Payments ke baad <a href="../Mess_report/index">Mess → Reports</a> mein attendance, collection aur food cost check karein.</p>
+    </section>
+
+    <section id="setup">
+      <h2>Shuru kaise karein</h2>
+      <div class="cards">
+        <article class="card"><span class="num">1</span><h3>Settings set karein</h3><span class="path">Mess → Settings</span><p>Breakfast, lunch, dinner mein jo slots chalane hain unhein on karein; timings, default cycle days aur alert window set karein. Payment ke liye open register required hai ya nahi, ye bhi yahin hota hai.</p></article>
+        <article class="card"><span class="num">2</span><h3>Plan banayein</h3><span class="path">Mess → Plans → Add Plan</span><p>Naam, Veg / Non-veg / Both, included meals, <strong>price per person per full cycle</strong> aur cycle days bharein. Plan price list ka template hai; actual charge subscription mein final hota hai.</p></article>
+        <article class="card"><span class="num">3</span><h3>Member add karein</h3><span class="path">Mess → Members → Add Member</span><p>Naam, phone, room/address, diet preference aur pickup/delivery bharein. Member code apne aap banta hai. Ek member ke multiple cycles ho sakte hain.</p></article>
+        <article class="card"><span class="num">4</span><h3>Subscription shuru karein</h3><span class="path">Mess → Subscriptions → New Subscription</span><p>Member aur plan select karein. Har meal slot mein persons ki sankhya, start/end date aur agreed price check karke save karein. Suggested price sirf calculation hai; <strong>Agreed Price</strong> bill mein jata hai.</p></article>
+      </div>
+    </section>
+
+    <section id="example" class="panel">
+      <h2>Ek simple example</h2>
+      <div class="example">
+        <div><h3>Plan</h3><dl><dt>Naam</dt><dd>Dinner Veg</dd><dt>Diet</dt><dd>Veg</dd><dt>Included meal</dt><dd>Dinner</dd><dt>Cycle</dt><dd>30 din</dd><dt>Price</dt><dd>300 per person / 30 din (apni app currency mein)</dd></dl></div>
+        <div><h3>Subscription</h3><dl><dt>Member</dt><dd>Ek test member</dd><dt>Dinner persons</dt><dd>2</dd><dt>Dates</dt><dd>1–30 October (example)</dd><dt>Suggested</dt><dd>300 × 2 = 600</dd><dt>Agreed price</dt><dd>600, ya customer ke saath jo tay hua</dd></dl></div>
+      </div>
+      <div class="mini-flow" aria-label="Example calculation"><span>1 person × 1 dinner/day</span><i>→</i><span>30 days = 300</span><i>→</i><span>2 persons = 600</span></div>
+      <p class="muted" style="margin:14px 0 0">Agar plan mein ek se zyada slots included hain, app plan price ko cycle days × included slots se per-meal rate mein badal kar selected persons aur days ke hisaab se suggested amount nikalti hai. Save karne se pehle agreed price zaroor dekhein.</p>
+    </section>
+
+    <section id="daily">
+      <h2>Roz ka kaam</h2>
+      <div class="cards">
+        <article class="card"><span class="num">5</span><h3>Menu aur quantity plan karein</h3><span class="path">Mess → Daily Menu</span><p>Date, slot aur Veg/Non-veg ke liye dishes set karein. Food Menu dish select karne par recipe se stock calculation ho sakti hai; free-text dish mein recipe-based stock movement nahi hoga. Portion per person aur buffer bharein.</p></article>
+        <article class="card"><span class="num">6</span><h3>Kitchen sheet dekhein</h3><span class="path">Mess → Daily Sheet</span><p>Expected headcount, planned portions aur stock shortage dekhein. Print sheet se kitchen ko preparation list milti hai.</p></article>
+        <article class="card"><span class="num">7</span><h3>Meal mark karein</h3><span class="path">Mess → Meal Register</span><p>Date aur breakfast/lunch/dinner slot chun kar member ko Served, Partial, Not Taken ya Skipped mark karein. Advance skip bhi yahin record hota hai; extra item ke liye <strong>Add Extra</strong> use karein.</p></article>
+        <article class="card"><span class="num">8</span><h3>Slot close karein</h3><span class="path">Mess → Day Close</span><p>Pending meals check karein. Har dish ki cooked aur leftover quantity bharein, phir leftover ka Waste / Carry / Staff action chun kar close karein. Recipe wali dishes ka consumption aur waste stock ledger mein post hota hai.</p></article>
+      </div>
+    </section>
+
+    <section class="tip-grid" aria-label="Payments and follow-up">
+      <div class="tip"><h3>Payment</h3><p><strong>Mess → Payments → Receive Payment</strong> mein member, amount aur method bharein. Default setting par paisa lene se pehle POS register open hona chahiye. Payment register collection mein dikhega.</p></div>
+      <div class="tip"><h3>Renew / pause</h3><p><strong>Mess → Subscriptions</strong> ya <strong>Expiring</strong> se next cycle renew karein. Member ki leave ko pause karne par subscription ki end date aage badhti hai.</p></div>
+      <div class="tip"><h3>Reports</h3><p><strong>Mess → Reports</strong> mein Daily Summary, Attendance Matrix, Collection aur Day Close / Food Cost dekhein. <strong>Dues</strong> tab mein unpaid balance milega.</p></div>
+    </section>
+
+    <section id="checks" class="panel">
+      <h2>Fresh data par manual check</h2>
+      <ol class="checks">
+        <li>Settings aur ek test plan save karein; Plans list mein price, slots aur cycle days dekhein.</li>
+        <li>Ek test member add karke subscription banayein; agreed price aur dates verify karein.</li>
+        <li>Aaj ke dinner ke liye Daily Menu set karein; Daily Sheet mein expected portions dekhein.</li>
+        <li>Meal Register mein member ko Served mark karein; counts badalne chahiye.</li>
+        <li>Register open karke payment record karein; member balance aur collection check karein.</li>
+        <li>Day Close karke Reports mein served count aur food cost dekhein.</li>
+      </ol>
+      <div class="notice warn" style="margin-top:18px"><strong>Dhyan dein:</strong> Test payment register close mein aata hai; Day Close recipe-based stock ko affect karta hai. Manual testing ke liye test member, test payment aur test dish use karein.</div>
+    </section>
+  </main>
+  <footer><div class="wrap">Mess / Meal Plan guide · Trul Resto</div></footer>
+</body>
+</html>

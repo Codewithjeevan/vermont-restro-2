@@ -647,6 +647,43 @@ $user_id = $this->session->userdata('user_id');
                             </ul>
                         </li>
 
+                        <li class="treeview menu__cidirp_mess">
+                            <a href="#">
+                                <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-coffee"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                                <span> <?php echo lang('mess'); ?></span>
+                            </a>
+                            <ul class="treeview-menu">
+                                <li data-access="view-371" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/today">
+                                        <?php echo lang('mess_today'); ?></a></li>
+                                <li data-access="view-395" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/register">
+                                        <?php echo lang('mess_meal_register'); ?></a></li>
+                                <li data-access="view-392" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/menu">
+                                        <?php echo lang('mess_daily_menu'); ?></a></li>
+                                <li data-access="view-402" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/sheet">
+                                        <?php echo lang('mess_daily_sheet'); ?></a></li>
+                                <li data-access="view-398" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/extras">
+                                        <?php echo lang('mess_extras'); ?></a></li>
+                                <li data-access="view-404" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/dayClose">
+                                        <?php echo lang('mess_day_close'); ?></a></li>
+                                <li data-access="view-378" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/members">
+                                        <?php echo lang('mess_members'); ?></a></li>
+                                <li data-access="view-383" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/subscriptions">
+                                        <?php echo lang('mess_subscriptions'); ?></a></li>
+                                <li data-access="add-388" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/addPayment">
+                                        <?php echo lang('mess_receive_payment'); ?></a></li>
+                                <li data-access="view-388" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/payments">
+                                        <?php echo lang('mess_payments'); ?></a></li>
+                                <li data-access="view-388" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/dues">
+                                        <?php echo lang('mess_dues'); ?></a></li>
+                                <li data-access="view-373" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/plans">
+                                        <?php echo lang('mess_plans'); ?></a></li>
+                                <li data-access="view-408" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_report/index">
+                                        <?php echo lang('mess_reports'); ?></a></li>
+                                <li data-access="update-410" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/settings">
+                                        <?php echo lang('mess_settings'); ?></a></li>
+                            </ul>
+                        </li>
+
                         <li class="treeview menu__cidirp_14">
                             <a href="#">
                                 <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
@@ -1122,6 +1159,43 @@ $user_id = $this->session->userdata('user_id');
                             </ul>
                         </li>
 
+                        <li class="treeview menu__cidirp_mess">
+                            <a href="#">
+                                <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-coffee"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                                <span> <?php echo lang('mess'); ?></span>
+                            </a>
+                            <ul class="treeview-menu">
+                                <li data-access="view-371" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/today">
+                                        <?php echo lang('mess_today'); ?></a></li>
+                                <li data-access="view-395" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/register">
+                                        <?php echo lang('mess_meal_register'); ?></a></li>
+                                <li data-access="view-392" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/menu">
+                                        <?php echo lang('mess_daily_menu'); ?></a></li>
+                                <li data-access="view-402" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/sheet">
+                                        <?php echo lang('mess_daily_sheet'); ?></a></li>
+                                <li data-access="view-398" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/extras">
+                                        <?php echo lang('mess_extras'); ?></a></li>
+                                <li data-access="view-404" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/dayClose">
+                                        <?php echo lang('mess_day_close'); ?></a></li>
+                                <li data-access="view-378" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/members">
+                                        <?php echo lang('mess_members'); ?></a></li>
+                                <li data-access="view-383" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/subscriptions">
+                                        <?php echo lang('mess_subscriptions'); ?></a></li>
+                                <li data-access="add-388" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/addPayment">
+                                        <?php echo lang('mess_receive_payment'); ?></a></li>
+                                <li data-access="view-388" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/payments">
+                                        <?php echo lang('mess_payments'); ?></a></li>
+                                <li data-access="view-388" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/dues">
+                                        <?php echo lang('mess_dues'); ?></a></li>
+                                <li data-access="view-373" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/plans">
+                                        <?php echo lang('mess_plans'); ?></a></li>
+                                <li data-access="view-408" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_report/index">
+                                        <?php echo lang('mess_reports'); ?></a></li>
+                                <li data-access="update-410" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/settings">
+                                        <?php echo lang('mess_settings'); ?></a></li>
+                            </ul>
+                        </li>
+
                         <li class="treeview menu__cidirp_14">
                             <a href="#">
                                 <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
@@ -1321,6 +1395,14 @@ $user_id = $this->session->userdata('user_id');
 $j = 1;
 $menu_objects = "";
 $access = $this->session->userdata('function_access');
+//Admin may open everything (checkAccess returns true for role Admin), so build the Admin
+//menu from tbl_access itself. Menus added by a migration then show up without a re-login.
+if($this->session->userdata('role')=="Admin"){
+    $access = array();
+    foreach($this->db->query("SELECT function_name, parent_id FROM tbl_access WHERE del_status='Live'")->result() as $access_row){
+        $access[] = $access_row->function_name."-".$access_row->parent_id;
+    }
+}
 
 if(isset($access) && $access):
     foreach($access as $value){

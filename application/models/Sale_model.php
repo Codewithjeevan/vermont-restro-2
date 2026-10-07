@@ -1232,6 +1232,47 @@ class Sale_model extends CI_Model {
       $data =  $this->db->get()->row();
       return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
+    /**
+     * Mess module payments taken on this register (refunds negative, adjustments excluded).
+     * Stamped exactly like tbl_customer_due_receives, see Update/mess_module_migration.sql.
+     * Returns 0 when the mess tables are not installed so the register close never breaks.
+     * @access public
+     * @return float
+     * @param string opening date time of the register
+     * @param int payment method id
+     */
+    public function getAllMessByPayment($date,$payment_id)
+    {
+      if(!$this->messInstalled()){
+        return 0;
+      }
+      $counter_id = $this->session->userdata('counter_id');
+      $outlet_id = $this->session->userdata('outlet_id');
+      $this->db->select("SUM(CASE WHEN type='refund' THEN -amount ELSE amount END) as total_amount");
+      $this->db->from('tbl_mess_payments');
+      $this->db->where("counter_id", $counter_id);
+      $this->db->where("outlet_id", $outlet_id);
+      $this->db->where("payment_id", $payment_id);
+      $this->db->where_in("type", array('payment','refund'));
+      $this->db->where("date_time>=", $date);
+      $this->db->where("date_time<=", $this->registerRangeEnd());
+      $this->db->where('del_status', 'Live');
+      $data =  $this->db->get()->row();
+      return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
+    }
+    /**
+     * is the mess module migration applied on this database
+     * @access public
+     * @return bool
+     */
+    public function messInstalled()
+    {
+      static $installed = null;
+      if($installed === null){
+        $installed = $this->db->table_exists('tbl_mess_payments');
+      }
+      return $installed;
+    }
     public function getAllDuePaymentByPayment($date,$payment_id)
     {
       $counter_id = $this->session->userdata('counter_id');

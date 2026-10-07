@@ -4183,6 +4183,27 @@ foreach ($notifications as $single_notification){
             </li>
             <li class="have_sub_menu">
                 <a class="open-trigger" href="javascript:void(0)">
+                    <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-coffee"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                    <span> &nbsp;<?php echo lang('mess'); ?></span>
+                    <span class="pull-right-container">
+                        <i class="far fa-chevron-left"></i>
+                    </span>
+                </a>
+                <ul class="sub__menu__list">
+                    <li data-access="view-371" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/today">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_today'); ?></a></li>
+                    <li data-access="view-395" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/register">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_meal_register'); ?></a></li>
+                    <li data-access="add-388" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/addPayment">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_receive_payment'); ?></a></li>
+                    <li data-access="add-398" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/addExtra">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_add_extra'); ?></a></li>
+                    <li data-access="view-378" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/members">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_tab_members'); ?></a></li>
+                </ul>
+            </li>
+            <li class="have_sub_menu">
+                <a class="open-trigger" href="javascript:void(0)">
                     <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     <span> &nbsp;<?php echo lang('attendance'); ?></span>
                     <span class="pull-right-container">
