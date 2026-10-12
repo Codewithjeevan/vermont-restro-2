@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -62,21 +62,21 @@
   <header class="hero">
     <div class="wrap">
       <div class="eyebrow">Trul Resto · Mess module guide</div>
-      <h1>Meal plan kaise use karein</h1>
-      <p>Plan banane se lekar meal serve, payment aur day close tak ka simple workflow. Fresh data se manual check karne ke liye neeche ek chhota example bhi hai.</p>
+      <h1>How to use the meal plan</h1>
+      <p>A simple workflow, from creating a plan to serving meals, taking payments and closing the day. There is also a short example below for a manual check on fresh data.</p>
       <div class="hero-actions">
-        <a class="button" href="../Mess/today">Mess dashboard kholein →</a>
-        <a class="button alt" href="#workflow">Workflow dekhein</a>
+        <a class="button" href="../Mess/today">Open the Mess dashboard →</a>
+        <a class="button alt" href="#workflow">See the workflow</a>
       </div>
     </div>
   </header>
   <nav aria-label="Guide sections"><div class="wrap">
-    <a href="#workflow">Diagram</a><a href="#setup">Shuru kaise karein</a><a href="#example">Example</a><a href="#daily">Roz ka kaam</a><a href="#checks">Manual check</a>
+    <a href="#workflow">Diagram</a><a href="#setup">Getting started</a><a href="#example">Example</a><a href="#daily">Daily work</a><a href="#checks">Manual check</a>
   </div></nav>
   <main class="wrap">
     <section id="workflow" class="panel">
-      <h2>Poora flow, ek nazar mein</h2>
-      <p class="muted">Pehli line setup hai. Dusri line roz ka kaam hai. Payment subscription ke baad kabhi bhi record kar sakte hain.</p>
+      <h2>The whole flow at a glance</h2>
+      <p class="muted">The first row is setup. The second row is daily work. A payment can be recorded any time after the subscription is created.</p>
       <div class="diagram-scroll">
         <svg class="diagram" viewBox="0 0 1060 380" role="img" aria-labelledby="flow-title flow-desc">
           <title id="flow-title">Mess module workflow diagram</title>
@@ -102,57 +102,57 @@
           </g>
         </svg>
       </div>
-      <div class="legend"><span><b style="background:#b8aef0"></b>Ek baar setup</span><span><b style="background:#86cbbd"></b>Har din / har meal</span><span><b style="background:#e7bf80"></b>Jab paisa mile</span></div>
-      <p style="margin-top:14px;margin-bottom:0"><strong>Reports:</strong> Day Close aur Payments ke baad <a href="../Mess_report/index">Mess → Reports</a> mein attendance, collection aur food cost check karein.</p>
+      <div class="legend"><span><b style="background:#b8aef0"></b>One-time setup</span><span><b style="background:#86cbbd"></b>Every day / every meal</span><span><b style="background:#e7bf80"></b>When money is received</span></div>
+      <p style="margin-top:14px;margin-bottom:0"><strong>Reports:</strong> After Day Close and Payments, check attendance, collection and food cost in <a href="../Mess_report/index">Mess → Reports</a>.</p>
     </section>
 
     <section id="setup">
-      <h2>Shuru kaise karein</h2>
+      <h2>Getting started</h2>
       <div class="cards">
-        <article class="card"><span class="num">1</span><h3>Settings set karein</h3><span class="path">Mess → Settings</span><p>Breakfast, lunch, dinner mein jo slots chalane hain unhein on karein; timings, default cycle days aur alert window set karein. Payment ke liye open register required hai ya nahi, ye bhi yahin hota hai.</p></article>
-        <article class="card"><span class="num">2</span><h3>Plan banayein</h3><span class="path">Mess → Plans → Add Plan</span><p>Naam, Veg / Non-veg / Both, included meals, <strong>price per person per full cycle</strong> aur cycle days bharein. Plan price list ka template hai; actual charge subscription mein final hota hai.</p></article>
-        <article class="card"><span class="num">3</span><h3>Member add karein</h3><span class="path">Mess → Members → Add Member</span><p>Naam, phone, room/address, diet preference aur pickup/delivery bharein. Member code apne aap banta hai. Ek member ke multiple cycles ho sakte hain.</p></article>
-        <article class="card"><span class="num">4</span><h3>Subscription shuru karein</h3><span class="path">Mess → Subscriptions → New Subscription</span><p>Member aur plan select karein. Har meal slot mein persons ki sankhya, start/end date aur agreed price check karke save karein. Suggested price sirf calculation hai; <strong>Agreed Price</strong> bill mein jata hai.</p></article>
+        <article class="card"><span class="num">1</span><h3>Set up Settings</h3><span class="path">Mess → Settings</span><p>Turn on the slots you serve (breakfast, lunch, dinner), then set their timings, the default cycle days and the alert window. This is also where you choose whether an open register is required to take payments.</p></article>
+        <article class="card"><span class="num">2</span><h3>Create a plan</h3><span class="path">Mess → Plans → Add Plan</span><p>Enter the name, Veg / Non-veg / Both, included meals, the <strong>price per person per full cycle</strong> and the cycle days. A plan is a price-list template; the actual charge is fixed on the subscription.</p></article>
+        <article class="card"><span class="num">3</span><h3>Add a member</h3><span class="path">Mess → Members → Add Member</span><p>Enter the name, phone, room/address, diet preference and pickup/delivery. The member code is generated automatically. One member can have many cycles.</p></article>
+        <article class="card"><span class="num">4</span><h3>Start a subscription</h3><span class="path">Mess → Subscriptions → New Subscription</span><p>Select the member and the plan. Check the number of persons for each meal slot, the start/end dates and the agreed price, then save. The suggested price is only a calculation; the <strong>Agreed Price</strong> is what gets billed.</p></article>
       </div>
     </section>
 
     <section id="example" class="panel">
-      <h2>Ek simple example</h2>
+      <h2>A simple example</h2>
       <div class="example">
-        <div><h3>Plan</h3><dl><dt>Naam</dt><dd>Dinner Veg</dd><dt>Diet</dt><dd>Veg</dd><dt>Included meal</dt><dd>Dinner</dd><dt>Cycle</dt><dd>30 din</dd><dt>Price</dt><dd>300 per person / 30 din (apni app currency mein)</dd></dl></div>
-        <div><h3>Subscription</h3><dl><dt>Member</dt><dd>Ek test member</dd><dt>Dinner persons</dt><dd>2</dd><dt>Dates</dt><dd>1–30 October (example)</dd><dt>Suggested</dt><dd>300 × 2 = 600</dd><dt>Agreed price</dt><dd>600, ya customer ke saath jo tay hua</dd></dl></div>
+        <div><h3>Plan</h3><dl><dt>Name</dt><dd>Dinner Veg</dd><dt>Diet</dt><dd>Veg</dd><dt>Included meal</dt><dd>Dinner</dd><dt>Cycle</dt><dd>30 days</dd><dt>Price</dt><dd>300 per person / 30 days (in your app currency)</dd></dl></div>
+        <div><h3>Subscription</h3><dl><dt>Member</dt><dd>A test member</dd><dt>Dinner persons</dt><dd>2</dd><dt>Dates</dt><dd>1–30 October (example)</dd><dt>Suggested</dt><dd>300 × 2 = 600</dd><dt>Agreed price</dt><dd>600, or whatever was agreed with the customer</dd></dl></div>
       </div>
       <div class="mini-flow" aria-label="Example calculation"><span>1 person × 1 dinner/day</span><i>→</i><span>30 days = 300</span><i>→</i><span>2 persons = 600</span></div>
-      <p class="muted" style="margin:14px 0 0">Agar plan mein ek se zyada slots included hain, app plan price ko cycle days × included slots se per-meal rate mein badal kar selected persons aur days ke hisaab se suggested amount nikalti hai. Save karne se pehle agreed price zaroor dekhein.</p>
+      <p class="muted" style="margin:14px 0 0">If a plan includes more than one slot, the app divides the plan price by cycle days × included slots to get a per-meal rate, then works out the suggested amount from the selected persons and days. Always check the agreed price before saving.</p>
     </section>
 
     <section id="daily">
-      <h2>Roz ka kaam</h2>
+      <h2>Daily work</h2>
       <div class="cards">
-        <article class="card"><span class="num">5</span><h3>Menu aur quantity plan karein</h3><span class="path">Mess → Daily Menu</span><p>Date, slot aur Veg/Non-veg ke liye dishes set karein. Food Menu dish select karne par recipe se stock calculation ho sakti hai; free-text dish mein recipe-based stock movement nahi hoga. Portion per person aur buffer bharein.</p></article>
-        <article class="card"><span class="num">6</span><h3>Kitchen sheet dekhein</h3><span class="path">Mess → Daily Sheet</span><p>Expected headcount, planned portions aur stock shortage dekhein. Print sheet se kitchen ko preparation list milti hai.</p></article>
-        <article class="card"><span class="num">7</span><h3>Meal mark karein</h3><span class="path">Mess → Meal Register</span><p>Date aur breakfast/lunch/dinner slot chun kar member ko Served, Partial, Not Taken ya Skipped mark karein. Advance skip bhi yahin record hota hai; extra item ke liye <strong>Add Extra</strong> use karein.</p></article>
-        <article class="card"><span class="num">8</span><h3>Slot close karein</h3><span class="path">Mess → Day Close</span><p>Pending meals check karein. Har dish ki cooked aur leftover quantity bharein, phir leftover ka Waste / Carry / Staff action chun kar close karein. Recipe wali dishes ka consumption aur waste stock ledger mein post hota hai.</p></article>
+        <article class="card"><span class="num">5</span><h3>Plan the menu and quantities</h3><span class="path">Mess → Daily Menu</span><p>Set the dishes for each date, slot and Veg/Non-veg. Picking a Food Menu dish lets stock be calculated from its recipe; a free-text dish has no recipe-based stock movement. Enter the portion per person and the buffer.</p></article>
+        <article class="card"><span class="num">6</span><h3>Check the kitchen sheet</h3><span class="path">Mess → Daily Sheet</span><p>See the expected headcount, planned portions and any stock shortage. Print the sheet to give the kitchen its preparation list.</p></article>
+        <article class="card"><span class="num">7</span><h3>Mark meals</h3><span class="path">Mess → Meal Register</span><p>Pick the date and the breakfast/lunch/dinner slot, then mark each member as Served, Partial, Not taken or Skipped. Advance skips are recorded here too; use <strong>Add Extra</strong> for extra items.</p></article>
+        <article class="card"><span class="num">8</span><h3>Close the slot</h3><span class="path">Mess → Day Close</span><p>Check for pending meals. Enter the cooked and leftover quantity for each dish, choose what happens to the leftover (Waste / Carry to next meal / Staff meal), then close. Consumption and waste for recipe dishes are posted to the stock ledger.</p></article>
       </div>
     </section>
 
     <section class="tip-grid" aria-label="Payments and follow-up">
-      <div class="tip"><h3>Payment</h3><p><strong>Mess → Payments → Receive Payment</strong> mein member, amount aur method bharein. Default setting par paisa lene se pehle POS register open hona chahiye. Payment register collection mein dikhega.</p></div>
-      <div class="tip"><h3>Renew / pause</h3><p><strong>Mess → Subscriptions</strong> ya <strong>Expiring</strong> se next cycle renew karein. Member ki leave ko pause karne par subscription ki end date aage badhti hai.</p></div>
-      <div class="tip"><h3>Reports</h3><p><strong>Mess → Reports</strong> mein Daily Summary, Attendance Matrix, Collection aur Day Close / Food Cost dekhein. <strong>Dues</strong> tab mein unpaid balance milega.</p></div>
+      <div class="tip"><h3>Payment</h3><p>In <strong>Mess → Payments → Receive Payment</strong>, enter the member, amount and method. With the default setting, the POS register must be open before you take money. The payment shows up in the register collection.</p></div>
+      <div class="tip"><h3>Renew / pause</h3><p>Renew the next cycle from <strong>Mess → Subscriptions</strong> or <strong>Renewals</strong>. Pausing a subscription for a member's leave pushes its end date forward.</p></div>
+      <div class="tip"><h3>Reports</h3><p>See Daily Summary, Attendance Matrix, Collection and Day Close / Food Cost in <strong>Mess → Reports</strong>. Unpaid balances are on the <strong>Dues</strong> tab.</p></div>
     </section>
 
     <section id="checks" class="panel">
-      <h2>Fresh data par manual check</h2>
+      <h2>Manual check on fresh data</h2>
       <ol class="checks">
-        <li>Settings aur ek test plan save karein; Plans list mein price, slots aur cycle days dekhein.</li>
-        <li>Ek test member add karke subscription banayein; agreed price aur dates verify karein.</li>
-        <li>Aaj ke dinner ke liye Daily Menu set karein; Daily Sheet mein expected portions dekhein.</li>
-        <li>Meal Register mein member ko Served mark karein; counts badalne chahiye.</li>
-        <li>Register open karke payment record karein; member balance aur collection check karein.</li>
-        <li>Day Close karke Reports mein served count aur food cost dekhein.</li>
+        <li>Save Settings and a test plan; check the price, slots and cycle days in the Plans list.</li>
+        <li>Add a test member and create a subscription; verify the agreed price and dates.</li>
+        <li>Set the Daily Menu for today's dinner; check the expected portions in the Daily Sheet.</li>
+        <li>Mark the member as Served in the Meal Register; the counts should change.</li>
+        <li>Open the register and record a payment; check the member balance and the collection.</li>
+        <li>Run Day Close, then check the served count and food cost in Reports.</li>
       </ol>
-      <div class="notice warn" style="margin-top:18px"><strong>Dhyan dein:</strong> Test payment register close mein aata hai; Day Close recipe-based stock ko affect karta hai. Manual testing ke liye test member, test payment aur test dish use karein.</div>
+      <div class="notice warn" style="margin-top:18px"><strong>Note:</strong> A test payment is counted in the register close, and Day Close changes recipe-based stock. Use a test member, a test payment and a test dish for manual testing.</div>
     </section>
   </main>
   <footer><div class="wrap">Mess / Meal Plan guide · Trul Resto</div></footer>

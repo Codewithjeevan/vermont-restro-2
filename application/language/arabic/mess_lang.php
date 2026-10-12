@@ -34,6 +34,9 @@ $lang['mess_tab_payments'] = 'المدفوعات';
 $lang['mess_tab_plans'] = 'الباقات';
 $lang['mess_tab_reports'] = 'التقارير';
 $lang['mess_tab_settings'] = 'الإعدادات';
+$lang['mess_tab_group_daily'] = 'يومي';
+$lang['mess_tab_group_accounts'] = 'الأعضاء والحسابات';
+$lang['mess_tab_group_setup'] = 'إعداد لمرة واحدة';
 
 // slots, diet, mode
 $lang['mess_slot'] = 'الوجبة';

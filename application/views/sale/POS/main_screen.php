@@ -758,6 +758,24 @@ foreach ($notifications as $single_notification){
                                 <i class="fal fa-tachometer-alt-fast"></i>
                             </a>
                         </li>
+                        <?php
+                        // Mess shortcut: the Today dashboard, or the Meal Register for staff who only have that
+                        $pos_mess_url = '';
+                        if ($this->Sale_model->messInstalled()) {
+                            if (checkAccess(371, 'view')) {
+                                $pos_mess_url = 'Mess/today';
+                            } elseif (checkAccess(395, 'view')) {
+                                $pos_mess_url = 'Mess_daily/register';
+                            }
+                        }
+                        ?>
+                        <?php if($pos_mess_url):?>
+                        <li>
+                            <a href="<?php echo base_url() . $pos_mess_url; ?>" id="go_to_mess" class="header_menu_icon <?php echo escape_output($is_self_order_class) ?>" data-tippy-content="<?php echo lang('mess'); ?>">
+                                <i class="fal fa-utensils"></i>
+                            </a>
+                        </li>
+                        <?php endif?>
                         <li>
                             <a href="<?php echo base_url()?>customer-panel" class="header_menu_icon  <?php echo escape_output($is_self_order_class) ?>" target="_blank"  data-tippy-content="<?php
                             echo lang('customer_panel');
@@ -1483,6 +1501,13 @@ foreach ($notifications as $single_notification){
                                     ?>
                     </a>
                 </li>
+                <?php if($pos_mess_url):?>
+                <li class="no-need-for-waiter">
+                    <a href="<?php echo base_url() . $pos_mess_url; ?>">
+                        <i class="fal fa-utensils"></i> <?php echo lang('mess'); ?>
+                    </a>
+                </li>
+                <?php endif?>
                 <li>
                     <a href="<?php echo base_url()?>customer-panel" class="header_menu_icon" target="_blank"  data-tippy-content="<?php
                     echo lang('customer_panel');

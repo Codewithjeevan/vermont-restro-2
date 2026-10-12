@@ -34,6 +34,9 @@ $lang['mess_tab_payments'] = 'Payments';
 $lang['mess_tab_plans'] = 'Plans';
 $lang['mess_tab_reports'] = 'Reports';
 $lang['mess_tab_settings'] = 'Settings';
+$lang['mess_tab_group_daily'] = 'Daily';
+$lang['mess_tab_group_accounts'] = 'Members & accounts';
+$lang['mess_tab_group_setup'] = 'One-time setup';
 
 // slots, diet, mode
 $lang['mess_slot'] = 'Slot';

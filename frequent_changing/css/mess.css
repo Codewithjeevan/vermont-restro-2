@@ -45,18 +45,54 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+/* three groups: daily work (green), members & money (grey), one-time setup
+   (lavender, dashed, always last). Same colours as docs/mess_how_to_use.html. */
 .mess-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  list-style: none;
-  padding: 4px;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px;
   margin: 0 0 14px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.05);
 }
-.mess-tabs li a {
+.mess-tab-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--mess-bg-soft);
+}
+.mess-tab-group.is-daily {
+  background: var(--mess-green-soft);
+}
+.mess-tab-group.is-setup {
+  background: var(--mess-accent-soft);
+  border: 1px dashed rgba(115, 103, 240, 0.45);
+}
+.mess-tab-label {
+  padding: 0 8px 0 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--mess-muted);
+}
+.is-daily .mess-tab-label {
+  color: var(--mess-green);
+}
+.is-setup .mess-tab-label {
+  color: var(--mess-accent);
+}
+.mess-tab-group li a {
   display: inline-block;
   padding: 7px 12px;
   border-radius: 6px;
@@ -66,12 +102,30 @@
   text-decoration: none;
   white-space: nowrap;
 }
-.mess-tabs li a:hover {
-  background: var(--mess-bg-soft);
+.mess-tab-group li a:hover {
+  background: #fff;
 }
-.mess-tabs li.active a {
+.mess-tab-group li.active a {
   background: var(--mess-accent);
   color: #fff;
+}
+.mess-tab-group.is-daily li.active a {
+  background: var(--mess-green);
+}
+.mess-tab-help {
+  align-self: center;
+  margin-inline-start: auto;
+  padding: 7px 12px;
+  border-radius: 6px;
+  color: var(--mess-muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mess-tab-help:hover {
+  background: var(--mess-bg-soft);
+  color: var(--mess-text);
 }
 
 /* ---------- buttons ---------- */
