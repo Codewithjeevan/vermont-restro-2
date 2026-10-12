@@ -137,6 +137,14 @@
                         <td class="ir_w_35"></td>
                         <td class="ir_w_31"><?php echo escape_output(getAmtPCustom($totalDueReceived));$total_amount+=$totalDueReceived?></td>
                     </tr>
+                    <?php if (!empty($mess_installed)): ?>
+                    <tr>
+                        <td class="ir_w2_txt_center"></td>
+                        <td class="ir_w_31"><?php echo lang('mess_collection'); ?> (+)</td>
+                        <td class="ir_w_35"></td>
+                        <td class="ir_w_31"><?php echo escape_output(getAmtPCustom($totalMessCollection));$total_amount+=$totalMessCollection?></td>
+                    </tr>
+                    <?php endif; ?>
                     <tr>
                         <td class="ir_w2_txt_center"></td>
                         <td class="ir_w_31"><?php echo lang('discount'); ?> (-)</td>
@@ -402,6 +410,28 @@
                     <?php
                     endif;
                     ?>
+                    <?php if (!empty($getAllMessPaymentZreport)): ?>
+                      <tr>
+                          <td class="ir_w2_txt_center"></td>
+                          <td class="ir_w_31"></td>
+                          <td class="ir_w_35"></td>
+                          <td class="ir_w_31"></td>
+                      </tr>
+                    <tr>
+                        <th class="ir_w2_txt_center"></th>
+                        <th class="ir_w_31"><h5 class="pull-left"><?php echo lang('mess_collection'); ?></h5></th>
+                        <th class="ir_w_35"></th>
+                        <th class="ir_w_31"></th>
+                    </tr>
+                    <?php foreach ($getAllMessPaymentZreport as $val_1): ?>
+                        <tr>
+                            <td class="ir_w2_txt_center"></td>
+                            <td class="ir_w_35"><?php echo escape_output($val_1->name)?></td>
+                            <td class="ir_w_35"></td>
+                            <td class="ir_w_31"><?php echo escape_output(getAmtPCustom($val_1->total_amount))?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
                     <tr>
                         <td class="ir_w2_txt_center"></td>
                         <td class="ir_w_31"></td>
@@ -478,7 +508,13 @@
                             <td></td>
                             <td>'.lang('register_detail_5').'</td>
                             <td class="text_right">'.getAmtPCustom($value->due_receive).'</td>
-                        </tr>
+                        </tr>'.(!empty($mess_installed) ? '
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td>'.lang('mess_collection_plus').'</td>
+                            <td class="text_right">'.getAmtPCustom($value->mess).'</td>
+                        </tr>' : '').'
                         <tr>
                             <td></td>
                             <td></td>

@@ -2263,6 +2263,63 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
         $data =  $this->db->get()->row();
         return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
     }
+    /**
+     * Mess module money of one payment method on a day (only_date), refunds negative
+     * @access public
+     * @return float
+     */
+    public function getAllMessByPayment($date,$payment_id,$outlet_id='')
+    {
+        if(!$this->db->table_exists('tbl_mess_payments')){
+            return 0;
+        }
+        $this->db->select("SUM(CASE WHEN type='refund' THEN -amount ELSE amount END) as total_amount");
+        $this->db->from('tbl_mess_payments');
+        $this->db->where("outlet_id", $outlet_id);
+        $this->db->where("payment_id", $payment_id);
+        $this->db->where_in("type", array('payment','refund'));
+        $this->db->where("only_date", $date);
+        $this->db->where('del_status','Live');
+        $data =  $this->db->get()->row();
+        return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
+    }
+    /**
+     * Mess module money of a day, all methods
+     * @access public
+     * @return float
+     */
+    public function totalMessCollection($startMonth = '',$outlet_id='') {
+        if(!$this->db->table_exists('tbl_mess_payments')){
+            return 0;
+        }
+        $this->db->select("SUM(CASE WHEN type='refund' THEN -amount ELSE amount END) as total_amount");
+        $this->db->from('tbl_mess_payments');
+        $this->db->where("outlet_id", $outlet_id);
+        $this->db->where_in("type", array('payment','refund'));
+        $this->db->where('only_date', $startMonth);
+        $this->db->where('del_status', 'Live');
+        $data =  $this->db->get()->row();
+        return (isset($data->total_amount) && $data->total_amount?$data->total_amount:0);
+    }
+    /**
+     * Mess module money of a day grouped by payment method
+     * @access public
+     * @return array
+     */
+    public function getAllMessPaymentZreport($startMonth = '',$outlet_id='') {
+        if(!$this->db->table_exists('tbl_mess_payments')){
+            return array();
+        }
+        $this->db->select("SUM(CASE WHEN tbl_mess_payments.type='refund' THEN -tbl_mess_payments.amount ELSE tbl_mess_payments.amount END) as total_amount,tbl_payment_methods.name,payment_id");
+        $this->db->from('tbl_mess_payments');
+        $this->db->join('tbl_payment_methods', 'tbl_payment_methods.id = tbl_mess_payments.payment_id', 'left');
+        $this->db->where('only_date', $startMonth);
+        $this->db->where('tbl_mess_payments.outlet_id', $outlet_id);
+        $this->db->where_in('tbl_mess_payments.type', array('payment','refund'));
+        $this->db->where('tbl_mess_payments.del_status', 'Live');
+        $this->db->group_by('payment_id');
+        return $this->db->get()->result();
+    }
     public function getAllDueReceiveByPayment($date,$payment_id,$outlet_id='')
     {
         $this->db->select("sum(amount) as total_amount");

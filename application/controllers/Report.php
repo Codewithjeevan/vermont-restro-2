@@ -221,6 +221,10 @@ class Report extends Cl_Controller {
         $data['getAllExpensePaymentZreport'] = $this->Report_model->getAllExpensePaymentZreport($selectedDate,$outlet_id);
         $data['getAllSupplierPaymentZreport'] = $this->Report_model->getAllSupplierPaymentZreport($selectedDate,$outlet_id);
         $data['getAllCustomerDueReceiveZreport'] = $this->Report_model->getAllCustomerDueReceiveZreport($selectedDate,$outlet_id);
+        //Mess module collection of the day (0 / empty when the module is not installed)
+        $data['mess_installed'] = $this->Sale_model->messInstalled();
+        $data['totalMessCollection'] = $this->Report_model->totalMessCollection($selectedDate,$outlet_id);
+        $data['getAllMessPaymentZreport'] = $this->Report_model->getAllMessPaymentZreport($selectedDate,$outlet_id);
 
 
         $data['registers'] = getAllPaymentMethods('no');
@@ -234,8 +238,9 @@ class Report extends Cl_Controller {
             $data['registers'][$ky]->due_receive = $this->Report_model->getAllDueReceiveByPayment($selectedDate,$vl->id,$outlet_id);
             $data['registers'][$ky]->due_payment = $this->Report_model->getAllDuePaymentByPayment($selectedDate,$vl->id,$outlet_id);
             $data['registers'][$ky]->expense = $this->Report_model->getAllExpenseByPayment($selectedDate,$vl->id,$outlet_id);
+            $data['registers'][$ky]->mess = $this->Report_model->getAllMessByPayment($selectedDate,$vl->id,$outlet_id);
 
-            $inline_total = $data['registers'][$ky]->paid_sales - $data['registers'][$ky]->return_sales -  $data['registers'][$ky]->purchase + $data['registers'][$ky]->due_receive - $data['registers'][$ky]->due_payment - $data['registers'][$ky]->expense;
+            $inline_total = $data['registers'][$ky]->paid_sales - $data['registers'][$ky]->return_sales -  $data['registers'][$ky]->purchase + $data['registers'][$ky]->due_receive + $data['registers'][$ky]->mess - $data['registers'][$ky]->due_payment - $data['registers'][$ky]->expense;
             $data['registers'][$ky]->inline_total = $inline_total;
 
             $array_p_name[] = $vl->name."||".$inline_total;

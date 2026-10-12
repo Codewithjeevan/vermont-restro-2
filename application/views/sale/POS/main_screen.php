@@ -758,6 +758,24 @@ foreach ($notifications as $single_notification){
                                 <i class="fal fa-tachometer-alt-fast"></i>
                             </a>
                         </li>
+                        <?php
+                        // Mess shortcut: the Today dashboard, or the Meal Register for staff who only have that
+                        $pos_mess_url = '';
+                        if ($this->Sale_model->messInstalled()) {
+                            if (checkAccess(371, 'view')) {
+                                $pos_mess_url = 'Mess/today';
+                            } elseif (checkAccess(395, 'view')) {
+                                $pos_mess_url = 'Mess_daily/register';
+                            }
+                        }
+                        ?>
+                        <?php if($pos_mess_url):?>
+                        <li>
+                            <a href="<?php echo base_url() . $pos_mess_url; ?>" id="go_to_mess" class="header_menu_icon <?php echo escape_output($is_self_order_class) ?>" data-tippy-content="<?php echo lang('mess'); ?>">
+                                <i class="fal fa-utensils"></i>
+                            </a>
+                        </li>
+                        <?php endif?>
                         <li>
                             <a href="<?php echo base_url()?>customer-panel" class="header_menu_icon  <?php echo escape_output($is_self_order_class) ?>" target="_blank"  data-tippy-content="<?php
                             echo lang('customer_panel');
@@ -1483,6 +1501,13 @@ foreach ($notifications as $single_notification){
                                     ?>
                     </a>
                 </li>
+                <?php if($pos_mess_url):?>
+                <li class="no-need-for-waiter">
+                    <a href="<?php echo base_url() . $pos_mess_url; ?>">
+                        <i class="fal fa-utensils"></i> <?php echo lang('mess'); ?>
+                    </a>
+                </li>
+                <?php endif?>
                 <li>
                     <a href="<?php echo base_url()?>customer-panel" class="header_menu_icon" target="_blank"  data-tippy-content="<?php
                     echo lang('customer_panel');
@@ -4179,6 +4204,27 @@ foreach ($notifications as $single_notification){
                     <li data-access="view-151" class="menu_assign_class" data-menu__cid="irp_13"><a href="<?php echo base_url()?>Customer_due_receive/customerDueReceives">
                              <i class="fa fa-angle-double-right"></i> <?php echo lang('List'); ?> <?php echo lang('customer_due_receive'); ?></a></li> ?></a></li>
 
+                </ul>
+            </li>
+            <li class="have_sub_menu">
+                <a class="open-trigger" href="javascript:void(0)">
+                    <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-coffee"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                    <span> &nbsp;<?php echo lang('mess'); ?></span>
+                    <span class="pull-right-container">
+                        <i class="far fa-chevron-left"></i>
+                    </span>
+                </a>
+                <ul class="sub__menu__list">
+                    <li data-access="view-371" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/today">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_today'); ?></a></li>
+                    <li data-access="view-395" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/register">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_meal_register'); ?></a></li>
+                    <li data-access="add-388" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/addPayment">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_receive_payment'); ?></a></li>
+                    <li data-access="add-398" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess_daily/addExtra">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_add_extra'); ?></a></li>
+                    <li data-access="view-378" class="menu_assign_class" data-menu__cid="irp_mess"><a href="<?php echo base_url()?>Mess/members">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('mess_tab_members'); ?></a></li>
                 </ul>
             </li>
             <li class="have_sub_menu">
