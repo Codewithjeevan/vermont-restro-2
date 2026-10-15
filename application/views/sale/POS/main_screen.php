@@ -4244,6 +4244,30 @@ foreach ($notifications as $single_notification){
             </li>
             <li class="have_sub_menu">
                 <a class="open-trigger" href="javascript:void(0)">
+                    <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-credit-card"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                    <span> &nbsp;<?php echo lang('payroll'); ?></span>
+                    <span class="pull-right-container">
+                        <i class="far fa-chevron-left"></i>
+                    </span>
+                </a>
+                <ul class="sub__menu__list">
+                    <li data-access="view-412" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll/runs">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('payroll_runs'); ?></a></li>
+                    <li data-access="view-418" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/salaries">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('payroll_salary_setup'); ?></a></li>
+                    <?php $payroll_on = (array) $this->config->item('payroll_screens'); /* config/payroll.php */ ?>
+                    <?php if (in_array('adjustments', $payroll_on)): ?>
+                    <li data-access="view-421" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/adjustments">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('payroll_adjustments'); ?></a></li>
+                    <?php endif; ?>
+                    <?php if (in_array('reports', $payroll_on)): ?>
+                    <li data-access="view-433" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll/attendanceSheet">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('payroll_attendance_sheet'); ?></a></li>
+                    <?php endif; ?>
+                </ul>
+            </li>
+            <li class="have_sub_menu">
+                <a class="open-trigger" href="javascript:void(0)">
                     <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                     <span>&nbsp;<?php echo lang('report'); ?></span>
                     <span class="pull-right-container">

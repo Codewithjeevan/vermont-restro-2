@@ -1,0 +1,642 @@
+/* =====================================================================
+   Payroll module. Admin pages only, scoped with .pay-*
+   Same look as the Mess module: white boxes, #7367f0 accent.
+   ===================================================================== */
+:root {
+  --pay-accent: #7367f0;
+  --pay-accent-soft: rgba(115, 103, 240, 0.12);
+  --pay-text: #5e5873;
+  --pay-muted: #8a8698;
+  --pay-line: #ebe9f1;
+  --pay-bg-soft: #f8f7fa;
+  --pay-green: #1f9d55;
+  --pay-green-soft: #e3f6ea;
+  --pay-amber: #b7791f;
+  --pay-amber-soft: #fdf3dc;
+  --pay-red: #d63939;
+  --pay-red-soft: #fce8e8;
+  --pay-blue: #2b7bb9;
+  --pay-blue-soft: #e4f0fa;
+  --pay-grey-soft: #eeedf2;
+}
+
+/* ---------- page header + module tabs ---------- */
+.pay-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pay-head h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--pay-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pay-head .pay-sub {
+  color: var(--pay-muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.pay-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pay-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px;
+  margin: 0 0 14px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.05);
+}
+.pay-tab-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--pay-bg-soft);
+}
+.pay-tab-group.is-work {
+  background: var(--pay-green-soft);
+}
+.pay-tab-group.is-setup {
+  background: var(--pay-accent-soft);
+  border: 1px dashed rgba(115, 103, 240, 0.45);
+}
+.pay-tab-label {
+  padding: 0 8px 0 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--pay-muted);
+}
+.is-work .pay-tab-label {
+  color: var(--pay-green);
+}
+.is-setup .pay-tab-label {
+  color: var(--pay-accent);
+}
+.pay-tab-group li a {
+  display: inline-block;
+  padding: 7px 12px;
+  border-radius: 6px;
+  color: var(--pay-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pay-tab-group li a:hover {
+  background: #fff;
+}
+.pay-tab-group li.active a {
+  background: var(--pay-accent);
+  color: #fff;
+}
+.pay-tab-group.is-work li.active a {
+  background: var(--pay-green);
+}
+
+/* ---------- buttons ---------- */
+.pay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pay-line);
+  background: #fff;
+  color: var(--pay-text);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pay-btn:hover {
+  border-color: var(--pay-accent);
+  color: var(--pay-accent);
+}
+.pay-btn.primary {
+  background: var(--pay-accent);
+  border-color: var(--pay-accent);
+  color: #fff;
+}
+.pay-btn.primary:hover {
+  box-shadow: 0 8px 25px -8px var(--pay-accent);
+  color: #fff;
+}
+.pay-btn.success {
+  background: var(--pay-green);
+  border-color: var(--pay-green);
+  color: #fff;
+}
+.pay-btn.success:hover {
+  color: #fff;
+  box-shadow: 0 8px 25px -8px var(--pay-green);
+}
+.pay-btn.danger {
+  color: var(--pay-red);
+  border-color: #f3c7c7;
+}
+.pay-btn.sm {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.pay-btn[disabled],
+.pay-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+form.pay-inline {
+  display: inline;
+}
+
+/* ---------- tiles ---------- */
+.pay-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pay-tile {
+  display: block;
+  background: #fff;
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.06);
+  color: var(--pay-text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+a.pay-tile:hover {
+  color: var(--pay-text);
+  border-left-color: var(--pay-accent);
+}
+.pay-tile .num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.pay-tile .lbl {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.pay-tile .hint {
+  font-size: 12px;
+  color: var(--pay-muted);
+  margin-top: 2px;
+}
+.pay-tile.warn {
+  border-left-color: var(--pay-amber);
+}
+.pay-tile.bad {
+  border-left-color: var(--pay-red);
+}
+.pay-tile.good {
+  border-left-color: var(--pay-green);
+}
+
+/* ---------- cards ---------- */
+.pay-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.06);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.pay-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pay-text);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pay-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+.pay-muted {
+  color: var(--pay-muted);
+  font-size: 12px;
+}
+.pay-hint {
+  background: var(--pay-bg-soft);
+  border-radius: 6px;
+  padding: 9px 12px;
+  color: var(--pay-muted);
+  font-size: 12.5px;
+  margin: 8px 0 12px;
+}
+.pay-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.pay-neg {
+  color: var(--pay-red);
+  font-weight: 600;
+}
+.pay-pos {
+  color: var(--pay-green);
+  font-weight: 600;
+}
+.pay-warning,
+.pay-errors,
+.pay-info {
+  border-radius: 6px;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.pay-warning {
+  background: var(--pay-amber-soft);
+  color: var(--pay-amber);
+}
+.pay-errors {
+  background: var(--pay-red-soft);
+  color: var(--pay-red);
+}
+.pay-errors ul,
+.pay-errors p {
+  margin: 0;
+}
+.pay-info {
+  background: var(--pay-blue-soft);
+  color: var(--pay-blue);
+}
+.pay-warning a,
+.pay-info a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* ---------- badges ---------- */
+.pay-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--pay-grey-soft);
+  color: var(--pay-text);
+}
+.pay-badge.approved,
+.pay-badge.paid,
+.pay-badge.active {
+  background: var(--pay-green-soft);
+  color: var(--pay-green);
+}
+.pay-badge.draft,
+.pay-badge.partial,
+.pay-badge.override {
+  background: var(--pay-amber-soft);
+  color: var(--pay-amber);
+}
+.pay-badge.unpaid,
+.pay-badge.notset {
+  background: var(--pay-red-soft);
+  color: var(--pay-red);
+}
+.pay-badge.monthly,
+.pay-badge.daily,
+.pay-badge.hourly {
+  background: var(--pay-blue-soft);
+  color: var(--pay-blue);
+}
+.pay-badge.inactive {
+  background: var(--pay-grey-soft);
+  color: var(--pay-muted);
+  text-decoration: line-through;
+}
+.pay-badge.advance {
+  background: var(--pay-blue-soft);
+  color: var(--pay-blue);
+}
+.pay-badge.bonus,
+.pay-badge.allowance {
+  background: var(--pay-green-soft);
+  color: var(--pay-green);
+}
+.pay-badge.deduction {
+  background: var(--pay-red-soft);
+  color: var(--pay-red);
+}
+
+/* ---------- tables ---------- */
+.pay-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #6e6b7b;
+  font-size: 13px;
+}
+.pay-table th {
+  font-weight: 700;
+  font-size: 12px;
+  color: rgba(47, 43, 61, 0.78);
+  border-bottom: 1px solid var(--pay-line);
+  padding: 9px 8px;
+  white-space: nowrap;
+  text-align: left;
+  vertical-align: bottom;
+}
+.pay-table td {
+  border-bottom: 1px solid var(--pay-line);
+  padding: 8px;
+  vertical-align: middle;
+}
+.pay-table th.pay-num {
+  text-align: right;
+}
+.pay-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.pay-table tfoot td,
+.pay-table tfoot th {
+  border-top: 2px solid var(--pay-line);
+  font-weight: 700;
+  padding: 9px 8px;
+}
+.pay-table .name {
+  font-weight: 600;
+  color: var(--pay-text);
+}
+.pay-table tr:target td {
+  background: var(--pay-accent-soft);
+}
+.pay-table .sub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--pay-muted);
+  font-weight: 400;
+}
+.pay-table .grp {
+  text-align: center;
+  border-bottom: 2px solid var(--pay-line);
+}
+/* list pages (DataTables): keep right-aligned headers clear of the sort arrows */
+#datatable th.text-end {
+  padding-right: 30px !important;
+}
+a.pay-link {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--pay-text);
+  text-decoration: none;
+}
+a.pay-link:hover {
+  color: var(--pay-accent);
+}
+.pay-days-cell {
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.pay-days-cell b {
+  font-variant-numeric: tabular-nums;
+}
+.pay-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ---------- forms ---------- */
+.pay-form .form-group {
+  margin-bottom: 12px;
+}
+.pay-form label {
+  font-weight: 500;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.pay-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pay-muted);
+  margin: 10px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--pay-line);
+}
+.pay-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 14px 6px 0;
+  font-weight: 500;
+  cursor: pointer;
+}
+.pay-check input {
+  width: 16px;
+  height: 16px;
+}
+.pay-weekdays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pay-weekdays label {
+  margin: 0;
+}
+.pay-weekdays input {
+  display: none;
+}
+.pay-weekdays span {
+  display: inline-block;
+  min-width: 46px;
+  text-align: center;
+  padding: 6px 8px;
+  border: 1px solid var(--pay-line);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12.5px;
+  user-select: none;
+}
+.pay-weekdays input:checked + span {
+  background: var(--pay-accent);
+  border-color: var(--pay-accent);
+  color: #fff;
+}
+.pay-preview {
+  border: 1px dashed var(--pay-accent);
+  background: var(--pay-accent-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--pay-text);
+}
+.pay-preview b {
+  font-variant-numeric: tabular-nums;
+}
+.pay-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pay-filter label {
+  display: block;
+  font-size: 12px;
+  color: var(--pay-muted);
+  margin-bottom: 2px;
+}
+.pay-filter .form-control,
+.pay-filter select {
+  min-width: 150px;
+}
+
+/* ---------- attendance sheet ---------- */
+.pay-att-wrap {
+  overflow-x: auto;
+}
+.pay-att {
+  border-collapse: collapse;
+  font-size: 11.5px;
+  min-width: 100%;
+}
+.pay-att th,
+.pay-att td {
+  border: 1px solid var(--pay-line);
+  padding: 3px 2px;
+  text-align: center;
+  white-space: nowrap;
+}
+.pay-att th {
+  background: var(--pay-bg-soft);
+  font-weight: 700;
+  color: var(--pay-text);
+}
+.pay-att th.we {
+  background: #efeef6;
+}
+.pay-att td.emp,
+.pay-att th.emp {
+  text-align: left;
+  padding: 3px 8px;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+  min-width: 150px;
+}
+.pay-att td.tot {
+  font-weight: 700;
+  min-width: 34px;
+}
+.pay-att .d {
+  display: inline-block;
+  min-width: 22px;
+  border-radius: 4px;
+  padding: 1px 2px;
+  font-weight: 700;
+}
+.d-P,
+.d-W {
+  background: var(--pay-green-soft);
+  color: var(--pay-green);
+}
+.d-M {
+  background: #d9f2e3;
+  color: #187a43;
+  outline: 1px dashed #1f9d55;
+}
+.d-H {
+  background: var(--pay-amber-soft);
+  color: var(--pay-amber);
+}
+.d-A,
+.d-U {
+  background: var(--pay-red-soft);
+  color: var(--pay-red);
+}
+.d-O,
+.d-HO {
+  background: var(--pay-grey-soft);
+  color: var(--pay-muted);
+}
+.d-L {
+  background: var(--pay-blue-soft);
+  color: var(--pay-blue);
+}
+.d-X,
+.d-F {
+  color: #c4c1d0;
+}
+.pay-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  margin: 8px 0 12px;
+  color: var(--pay-muted);
+}
+.pay-legend .d {
+  display: inline-block;
+  min-width: 22px;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 700;
+  margin-right: 3px;
+}
+
+/* ---------- modal ---------- */
+.pay-modal .modal-header h5 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.pay-modal .form-group {
+  margin-bottom: 10px;
+}
+.pay-modal label {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+.pay-modal .pay-computed {
+  font-size: 11.5px;
+  color: var(--pay-muted);
+}
+
+@media print {
+  .pay-tabs,
+  .pay-head-actions,
+  .pay-filter,
+  .main-header,
+  .main-sidebar,
+  .main-footer {
+    display: none !important;
+  }
+}

@@ -697,6 +697,42 @@ $user_id = $this->session->userdata('user_id');
                             </ul>
                         </li>
 
+                        <li class="treeview menu__cidirp_payroll">
+                            <a href="#">
+                                <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-credit-card"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                                <span> <?php echo lang('payroll'); ?></span>
+                            </a>
+                            <?php $payroll_on = (array) $this->config->item('payroll_screens'); /* config/payroll.php */ ?>
+                            <ul class="treeview-menu">
+                                <li data-access="view-412" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll/runs">
+                                        <?php echo lang('payroll_runs'); ?></a></li>
+                                <li data-access="view-418" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/salaries">
+                                        <?php echo lang('payroll_salary_setup'); ?></a></li>
+                                <?php if (in_array('adjustments', $payroll_on)): ?>
+                                <li data-access="view-421" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/adjustments">
+                                        <?php echo lang('payroll_adjustments'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (in_array('leaves', $payroll_on)): ?>
+                                <li data-access="view-425" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/leaves">
+                                        <?php echo lang('payroll_leaves'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (in_array('holidays', $payroll_on)): ?>
+                                <li data-access="view-429" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/holidays">
+                                        <?php echo lang('payroll_holidays'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (in_array('reports', $payroll_on)): ?>
+                                <li data-access="view-433" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll/attendanceSheet">
+                                        <?php echo lang('payroll_attendance_sheet'); ?></a></li>
+                                <li data-access="view-433" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll/salaryHistory">
+                                        <?php echo lang('payroll_salary_history'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (in_array('settings', $payroll_on)): ?>
+                                <li data-access="update-435" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/settings">
+                                        <?php echo lang('payroll_settings'); ?></a></li>
+                                <?php endif; ?>
+                            </ul>
+                        </li>
+
 
                         <li class="treeview menu__cidirp_12irp_12irp_15">
                             <a href="#">
@@ -1206,6 +1242,42 @@ $user_id = $this->session->userdata('user_id');
                                         <?php echo lang('Add'); ?> <?php echo lang('attendance'); ?></a></li>
                                 <li data-access="view-155" class="menu_assign_class" data-menu__cid="irp_14"><a href="<?php echo base_url()?>Attendance/attendances">
                                         <?php echo lang('List'); ?> <?php echo lang('attendance'); ?></a></li>
+                            </ul>
+                        </li>
+
+                        <li class="treeview menu__cidirp_payroll">
+                            <a href="#">
+                                <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-credit-card"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                                <span> <?php echo lang('payroll'); ?></span>
+                            </a>
+                            <?php $payroll_on = (array) $this->config->item('payroll_screens'); /* config/payroll.php */ ?>
+                            <ul class="treeview-menu">
+                                <li data-access="view-412" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll/runs">
+                                        <?php echo lang('payroll_runs'); ?></a></li>
+                                <li data-access="view-418" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/salaries">
+                                        <?php echo lang('payroll_salary_setup'); ?></a></li>
+                                <?php if (in_array('adjustments', $payroll_on)): ?>
+                                <li data-access="view-421" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/adjustments">
+                                        <?php echo lang('payroll_adjustments'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (in_array('leaves', $payroll_on)): ?>
+                                <li data-access="view-425" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/leaves">
+                                        <?php echo lang('payroll_leaves'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (in_array('holidays', $payroll_on)): ?>
+                                <li data-access="view-429" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/holidays">
+                                        <?php echo lang('payroll_holidays'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (in_array('reports', $payroll_on)): ?>
+                                <li data-access="view-433" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll/attendanceSheet">
+                                        <?php echo lang('payroll_attendance_sheet'); ?></a></li>
+                                <li data-access="view-433" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll/salaryHistory">
+                                        <?php echo lang('payroll_salary_history'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (in_array('settings', $payroll_on)): ?>
+                                <li data-access="update-435" class="menu_assign_class" data-menu__cid="irp_payroll"><a href="<?php echo base_url()?>Payroll_setup/settings">
+                                        <?php echo lang('payroll_settings'); ?></a></li>
+                                <?php endif; ?>
                             </ul>
                         </li>
 
