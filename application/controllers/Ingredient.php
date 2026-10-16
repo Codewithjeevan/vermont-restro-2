@@ -241,7 +241,7 @@ class Ingredient extends Cl_Controller {
                     $totalrows = $objPHPExcel->setActiveSheetIndex(0)->getHighestRow();   //Count Numbe of rows avalable in excel
                     $objWorksheet = $objPHPExcel->setActiveSheetIndex(0);
                     //loop from first data untill last data
-                    if ($totalrows > 2 && $totalrows < 54) {
+                    if ($totalrows > 2 && $totalrows < 1004) {
                         $arrayerror = '';
                         for ($i = 4; $i <= $totalrows; $i++) {
                             $ingredint_name = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(0, $i)->getValue()));
@@ -360,7 +360,7 @@ class Ingredient extends Cl_Controller {
                         }
                     } else {
                         unlink(FCPATH . 'asset/excel/' . $file_name); //File Deleted After uploading in database .
-                        $this->session->set_flashdata('exception_err', "Entry is more than 50 or No entry found.");
+                        $this->session->set_flashdata('exception_err', "Entry is more than 1000 or No entry found.");
                     }
                 } else {
                     $error = $this->upload->display_errors();

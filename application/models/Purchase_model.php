@@ -28,6 +28,39 @@ class Purchase_model extends CI_Model {
         return $ingredient_code;
     }
  /**
+     * is Update/purchase_tax_migration.sql applied; without it purchases work as before, no tax
+     * @access public
+     * @return bool
+     */
+    public function taxEnabled() {
+        return $this->db->field_exists('tax_amount', 'tbl_purchase');
+    }
+ /**
+     * default purchase tax from the company tax settings: the global tax type and the sum of
+     * the rates that apply, the way the POS picks them (GST: CGST + SGST without IGST,
+     * no GST: none of the three). Zero when the company does not collect tax.
+     * @access public
+     * @return array
+     * @param int
+     */
+    public function getDefaultPurchaseTax($company_id) {
+        $company = $this->db->query("SELECT collect_tax, tax_is_gst, tax_type, tax_setting FROM tbl_companies WHERE id=?", array($company_id))->row();
+        $tax_percent = 0;
+        if ($company && $company->collect_tax == "Yes") {
+            foreach ((array)json_decode($company->tax_setting) as $tax) {
+                $is_gst_tax = in_array($tax->tax, array("CGST", "SGST", "IGST"));
+                if ($is_gst_tax && ($company->tax_is_gst != "Yes" || $tax->tax == "IGST")) {
+                    continue;
+                }
+                $tax_percent += (float)$tax->tax_rate;
+            }
+        }
+        return array(
+            'tax_type' => $company && $company->tax_type == 2 ? 2 : 1,
+            'tax_percent' => $tax_percent,
+        );
+    }
+ /**
      * get Ingredient List With Unit And Price
      * @access public
      * @return object

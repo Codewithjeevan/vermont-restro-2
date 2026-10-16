@@ -11,7 +11,7 @@
 <input type="hidden" id="are_you_sure" value="<?php echo lang('are_you_sure'); ?>">
 <input type="hidden" id="alert" value="<?php echo lang('alert'); ?>">
 
-<script type="text/javascript" src="<?php echo base_url('frequent_changing/js/add_purchase.js'); ?>"></script>
+<script type="text/javascript" src="<?php echo base_url('frequent_changing/js/add_purchase.js'); ?>?v=<?php echo @filemtime(FCPATH . 'frequent_changing/js/add_purchase.js'); ?>"></script>
 
 
 
@@ -161,6 +161,7 @@
 
 
                     <div class="row">
+                        <?php $this->load->view('purchase/_tax_fields'); ?>
                         <div class="col-md-8"></div>
                         <div class="col-md-3">
                             <div class="form-group">
@@ -226,12 +227,6 @@
                             </div>
                         </div>
                         <div class="col-md-1"></div>
-                    </div>
-
-                    <div class="row">
-
-                        <input class="form-control" readonly type="hidden" name="subtotal" id="subtotal">
-
                     </div>
                 </div>
             <p>&nbsp;</p>

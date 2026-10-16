@@ -78,6 +78,7 @@
                                     <th class="ir_w_10"><?php echo lang('ref_no'); ?></th>
                                     <th class="ir_w_5"><?php echo lang('date'); ?></th>
                                     <th class="ir_w_10"><?php echo lang('supplier'); ?></th>
+                                    <th class="ir_w_7"><?php echo lang('vat'); ?></th>
                                     <th class="ir_w_12"><?php echo lang('grand_total'); ?></th>
                                     <th class="ir_w_7"><?php echo lang('paid'); ?></th>
                                     <th class="ir_w_7"><?php echo lang('due'); ?></th>
@@ -87,12 +88,15 @@
                             </thead>
                             <tbody>
                                 <?php
+                                $sum_of_tax = 0;
                                 $sum_of_grand_total = 0;
                                 $sum_of_paid = 0;
                                 $sum_of_due = 0;
 
                                 if (isset($purchaseReportByDate)):
-                                    foreach ($purchaseReportByDate as $key => $value) { 
+                                    foreach ($purchaseReportByDate as $key => $value) {
+                                        $tax_amount = isset($value->tax_amount) ? $value->tax_amount : 0;
+                                        $sum_of_tax += $tax_amount;
                                         $sum_of_grand_total += $value->grand_total;
                                         $sum_of_paid += $value->paid;
                                         $sum_of_due += $value->due;
@@ -103,6 +107,7 @@
                                     <td><?php echo escape_output($value->reference_no) ?></td>
                                     <td><?= escape_output(date($this->session->userdata('date_format'), strtotime($value->date))) ?></td>
                                     <td><?php echo escape_output(getSupplierNameById($value->supplier_id)); ?></td>
+                                    <td><?php echo escape_output(getAmtCustom($tax_amount)) ?></td>
                                     <td><?php echo escape_output(getAmtCustom($value->grand_total)) ?></td>
                                     <td><?php echo escape_output(getAmtCustom($value->paid)) ?></td>
                                     <td><?php echo escape_output(getAmtCustom($value->due)) ?></td>
@@ -118,6 +123,7 @@
                                     <td>&nbsp;</td>
                                     <td>&nbsp;</td>
                                     <td class="ir_txt_right"><?php echo lang('total'); ?> </td>
+                                    <td><?php echo escape_output(getAmtCustom($sum_of_tax)); ?></td>
                                     <td><?php echo escape_output(getAmtCustom($sum_of_grand_total)); ?></td>
                                     <td><?php echo escape_output(getAmtCustom($sum_of_paid)); ?></td>
                                     <td><?php echo escape_output(getAmtCustom($sum_of_due)); ?></td>
