@@ -82,6 +82,20 @@
 
                         </div>
                         <div class="col-md-3 pull-right">
+                            <?php if (isset($purchase_details->tax_amount)) { ?>
+                            <div class="form-group">
+                                <h5><?php echo lang('subtotal'); ?></h5>
+                                <p class="">
+                                    <?php echo escape_output(getAmtPCustom($purchase_details->subtotal)) ?>
+                                </p>
+                            </div>
+                            <div class="form-group">
+                                <h5><?php echo lang('vat'); ?> (<?php echo escape_output((float)$purchase_details->tax_percent); ?>%, <?php echo lang($purchase_details->tax_type == 2 ? 'inclusive_tax' : 'exclusive_tax'); ?>)</h5>
+                                <p class="">
+                                    <?php echo escape_output(getAmtPCustom($purchase_details->tax_amount)) ?>
+                                </p>
+                            </div>
+                            <?php } ?>
                             <div class="form-group">
                                 <h5><?php echo lang('g_total'); ?></h5>
                                 <p class="">
