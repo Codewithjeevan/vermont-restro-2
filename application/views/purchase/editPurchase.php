@@ -9,7 +9,7 @@
 <input type="hidden" id="alert" value="<?php echo lang('alert'); ?>">
 <link rel="stylesheet" href="<?php echo base_url(); ?>frequent_changing/css/add_purchase.css">
 <script type="text/javascript" src="<?php echo base_url('frequent_changing/supplier.js'); ?>"></script>
-<script type="text/javascript" src="<?php echo base_url('frequent_changing/js/edit_purchase.js'); ?>"></script>
+<script type="text/javascript" src="<?php echo base_url('frequent_changing/js/edit_purchase.js'); ?>?v=<?php echo @filemtime(FCPATH . 'frequent_changing/js/edit_purchase.js'); ?>"></script>
 
 
 <section class="main-content-wrapper">
@@ -173,6 +173,7 @@
                     </div>
                     
                     <div class="row">
+                        <?php $this->load->view('purchase/_tax_fields'); ?>
                         <div class="col-md-8"></div>
                         <div class="col-md-3">
                             <div class="form-group">

@@ -1023,7 +1023,8 @@ class FoodMenu extends Cl_Controller {
                                 $totalFoodMenuToUpload++;
                             }
                         }
-                        if($totalFoodMenuToUpload<10){
+                        if($totalFoodMenuToUpload<=1000){
+                            $totalFoodMenuToUpload = 0;
                             for ($i = 3; $i <= $totalrows; $i++) {
                                 $menuOrIngredient = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(0, $i)->getValue()));
                                 $menuOrIngredientName = htmlspecialcharscustom(trim_checker($objWorksheet->getCellByColumnAndRow(1, $i)->getValue()));
@@ -1082,12 +1083,12 @@ class FoodMenu extends Cl_Controller {
                                     }
                                 }
 
-                                //it sets message when food menu number is greater than 10
-                                if ($totalFoodMenuToUpload>10) {
+                                //it sets message when food menu number is greater than 1000
+                                if ($totalFoodMenuToUpload>1000) {
                                     if ($arrayerror == '') {
-                                        $arrayerror.="You can not upload more than 10 food menus at a time.";
+                                        $arrayerror.="You can not upload more than 1000 food menus at a time.";
                                     } else {
-                                        $arrayerror.="<br>You can not upload more than 10 food menus at a time.";
+                                        $arrayerror.="<br>You can not upload more than 1000 food menus at a time.";
                                     }
                                 }
 
@@ -1136,7 +1137,7 @@ class FoodMenu extends Cl_Controller {
                             }
                         }else{
                             unlink(FCPATH . 'asset/excel/' . $file_name); //File Deleted After uploading in database .
-                            $this->session->set_flashdata('exception_err', "You can not upload more than 10 food menus at a time.");
+                            $this->session->set_flashdata('exception_err', "You can not upload more than 1000 food menus at a time.");
                         }
                     } else {
                         unlink(FCPATH . 'asset/excel/' . $file_name); //File Deleted After uploading in database .

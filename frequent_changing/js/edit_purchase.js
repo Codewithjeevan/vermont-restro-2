@@ -65,7 +65,7 @@ $(function() {
                 '" name="total[]" class="form-control aligning" placeholder="Total" readonly /><span class="label_aligning">' +
                 currency + '</span></td>' +
                 '<td><input type="text" id="expiration_date_' + suffix +
-                '" name="total[]" class="form-control customDatepicker" placeholder="Expiration Date" /></td>' +
+                '" name="expiration_date[]" class="form-control customDatepicker" placeholder="Expiration Date" /></td>' +
                 '<td><a class="btn btn-danger btn-xs" style="margin-left: 5px; margin-top: 10px;" onclick="return deleter(' +
                 suffix + ',' + ingredient_details_array[0] +
                 ');" ><i style="color:white" class="fa fa-trash"></i> </a></td>' +
@@ -139,14 +139,30 @@ $(function() {
             }
         });
 
+        let tax_percent = $("#tax_percent");
+        if (tax_percent.length && !($.isNumeric(tax_percent.val()) && tax_percent.val() >= 0 && tax_percent.val() <= 100)) {
+            tax_percent.css({"border-color": "red"});
+            error = true;
+        }
+
         if (error == true) {
             return false;
         }
     });
 
-
+    //overall purchase tax inputs
+    $(document).on('change keyup', '#tax_type, #tax_percent', function() {
+        $(this).css({"border-color": ""});
+        calculateAll();
+    });
 
 })
+
+//round money to 2 decimals the way PHP round() does in Purchase::purchaseTotals, so 210.5 x 35.05
+//shows 7378.03 like the saved purchase, not 7378.02 that toFixed() gives on the float
+function roundAmount(amount) {
+    return Math.round(parseFloat((amount * 100).toPrecision(15))) / 100;
+}
 
 function calculateAll() {
     let subtotal = 0;
@@ -168,7 +184,7 @@ function calculateAll() {
         let quantity_amount_and_unit_price = parseFloat($.trim(unit_price)) * parseFloat($.trim(
             quantity_amount));
 
-        $("#total_" + id).val(quantity_amount_and_unit_price.toFixed(2));
+        $("#total_" + id).val(roundAmount(quantity_amount_and_unit_price).toFixed(2));
         subtotal += parseFloat($.trim($("#total_" + id).val()));
     });
 
@@ -178,7 +194,8 @@ function calculateAll() {
     }
 
 
-    $("#subtotal").val(subtotal);
+    subtotal = roundAmount(subtotal);
+    $("#subtotal").val(subtotal.toFixed(2));
 
     let other = parseFloat($.trim($("#other").val()));
 
@@ -186,9 +203,20 @@ function calculateAll() {
         other = 0;
     }
 
-    let grand_total = parseFloat(subtotal) + parseFloat(other);
+    //overall purchase tax (same math as Purchase::purchaseTotals): exclusive is added on top
+    //of the subtotal, inclusive is already inside it and only shown
+    let tax_percent = parseFloat($("#tax_percent").val());
+    if (isNaN(tax_percent) || tax_percent < 0) {
+        tax_percent = 0;
+    }
+    let tax_inclusive = $("#tax_type").val() == 2;
+    let tax_amount = tax_inclusive ? subtotal * tax_percent / (100 + tax_percent) : subtotal * tax_percent / 100;
+    tax_amount = roundAmount(tax_amount);
+    $("#tax_amount").val(tax_amount.toFixed(2));
 
-    grand_total = grand_total.toFixed(2);
+    let grand_total = parseFloat(subtotal) + parseFloat(other) + (tax_inclusive ? 0 : tax_amount);
+
+    grand_total = roundAmount(grand_total).toFixed(2);
 
     $("#grand_total").val(grand_total);
 
@@ -199,7 +227,7 @@ function calculateAll() {
     }
 
     let due = parseFloat(grand_total) - parseFloat(paid);
-    $("#due").val(due.toFixed(2));
+    $("#due").val(roundAmount(due).toFixed(2));
 }
 
 function deleter(suffix, ingredient_id) {

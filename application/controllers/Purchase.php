@@ -161,6 +161,11 @@ class Purchase extends Cl_Controller {
         $id = $this->custom->encrypt_decrypt($encrypted_id, 'decrypt');
         $outlet_id = $this->session->userdata('outlet_id');
         $company_id = $this->session->userdata('company_id');
+        $tax_enabled = $this->Purchase_model->taxEnabled();
+        //every purchase form view gets the overall tax inputs and their defaults
+        $form_data = array();
+        $form_data['tax_enabled'] = $tax_enabled;
+        $form_data['default_tax'] = $this->Purchase_model->getDefaultPurchaseTax($company_id);
 
         $purchase_info = array();
 
@@ -178,16 +183,27 @@ class Purchase extends Cl_Controller {
             $this->form_validation->set_rules('note', lang('note'), 'max_length[200]');
             $this->form_validation->set_rules('paid', lang('paid_amount'), 'required|numeric|max_length[50]');
             $this->form_validation->set_rules('payment_id', lang('payment_method'), 'required|numeric|max_length[50]');
-           
+            if ($tax_enabled) {
+                $this->form_validation->set_rules('tax_type', lang('tax_type'), 'required|in_list[1,2]');
+                $this->form_validation->set_rules('tax_percent', lang('vat'), 'required|numeric|greater_than_equal_to[0]|less_than_equal_to[100]');
+            }
 
             if ($this->form_validation->run() == TRUE) {
                 $purchase_info['reference_no'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('reference_no')));
                 $purchase_info['supplier_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('supplier_id')));
                 $purchase_info['date'] = date('Y-m-d', strtotime($this->input->post($this->security->xss_clean('date'))));
                 $purchase_info['note'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('note')));
-                $purchase_info['grand_total'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('grand_total')));
+                //totals are worked out again here from the lines, not taken from the form
+                $totals = $this->purchaseTotals($tax_enabled);
+                $purchase_info['subtotal'] = $totals['subtotal'];
+                if ($tax_enabled) {
+                    $purchase_info['tax_type'] = $totals['tax_type'];
+                    $purchase_info['tax_percent'] = $totals['tax_percent'];
+                    $purchase_info['tax_amount'] = $totals['tax_amount'];
+                }
+                $purchase_info['grand_total'] = $totals['grand_total'];
                 $purchase_info['paid'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('paid')));
-                $purchase_info['due'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('due')));
+                $purchase_info['due'] = round($totals['grand_total'] - $purchase_info['paid'], 2);
                 $purchase_info['payment_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('payment_id')));
                 $purchase_info['counter_id'] = $this->session->userdata('counter_id');
                 $purchase_info['user_id'] = $this->session->userdata('user_id');
@@ -208,7 +224,7 @@ class Purchase extends Cl_Controller {
                 redirect('Purchase/purchases');
             } else {
                 if ($id == "") {
-                    $data = array();
+                    $data = $form_data;
                     $data['payment_methods'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_payment_methods");
                     $data['pur_ref_no'] = $this->Purchase_model->generatePurRefNo($outlet_id);
                     $data['suppliers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_suppliers');
@@ -216,7 +232,7 @@ class Purchase extends Cl_Controller {
                     $data['main_content'] = $this->load->view('purchase/addPurchase', $data, TRUE);
                     $this->load->view('userHome', $data);
                 } else {
-                    $data = array();
+                    $data = $form_data;
                     $data['payment_methods'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_payment_methods");
                     $data['encrypted_id'] = $encrypted_id;
                     $data['purchase_details'] = $this->Common_model->getDataById($id, "tbl_purchase");
@@ -229,7 +245,7 @@ class Purchase extends Cl_Controller {
             }
         } else {
             if ($id == "") {
-                $data = array();
+                $data = $form_data;
                 $data['payment_methods'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_payment_methods");
                 $data['pur_ref_no'] = $this->Purchase_model->generatePurRefNo($outlet_id);
                 $data['suppliers'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_suppliers');
@@ -237,7 +253,7 @@ class Purchase extends Cl_Controller {
                 $data['main_content'] = $this->load->view('purchase/addPurchase', $data, TRUE);
                 $this->load->view('userHome', $data);
             } else {
-                $data = array();
+                $data = $form_data;
                 $data['encrypted_id'] = $encrypted_id;
                 $data['payment_methods'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, "tbl_payment_methods");
                 $data['purchase_details'] = $this->Common_model->getDataById($id, "tbl_purchase");
@@ -267,14 +283,83 @@ class Purchase extends Cl_Controller {
             $fmi['ingredient_id'] = $_POST['ingredient_id'][$row];
             $fmi['unit_price'] = $_POST['unit_price'][$row];
             $fmi['quantity_amount'] = $_POST['quantity_amount'][$row];
-            $fmi['total'] = $_POST['total'][$row];
+            $fmi['total'] = $this->lineTotal($row);
             $fmi['cost_per_unit'] = getAmtP($inline_cost);
             $fmi['purchase_id'] = $purchase_id;
             $fmi['outlet_id'] = $this->session->userdata('outlet_id');
             $this->Common_model->insertInformation($fmi, "tbl_purchase_ingredients");
             //set average cost for profit loss report
             setAverageCost($_POST['ingredient_id'][$row]);
+            //keep the ingredient's own price in step with the latest purchase
+            $this->syncIngredientPrice($_POST['ingredient_id'][$row], $purchase_id, $_POST['unit_price'][$row], $conversion_rate);
         endforeach;
+    }
+     /**
+     * total of one posted purchase line, unit price x quantity, rounded like the form does
+     * @access private
+     * @return float
+     * @param int
+     */
+    private function lineTotal($row) {
+        return round((float)$_POST['unit_price'][$row] * (float)$_POST['quantity_amount'][$row], 2);
+    }
+     /**
+     * subtotal, overall tax and grand total of the posted purchase, same math as calculateAll()
+     * in add_purchase.js / edit_purchase.js. Exclusive adds the tax on top of the subtotal,
+     * inclusive takes it out of the subtotal and the grand total stays the subtotal.
+     * @access private
+     * @return array
+     * @param bool
+     */
+    private function purchaseTotals($tax_enabled) {
+        $subtotal = 0;
+        foreach ((array)$this->input->post('ingredient_id') as $row => $ingredient_id) {
+            $subtotal += $this->lineTotal($row);
+        }
+        $subtotal = round($subtotal, 2);
+        $tax_type = $tax_enabled && $this->input->post('tax_type') == 2 ? 2 : 1;
+        $tax_percent = $tax_enabled ? (float)$this->input->post('tax_percent') : 0;
+        if ($tax_type == 2) {
+            $tax_amount = round($subtotal * $tax_percent / (100 + $tax_percent), 2);
+            $grand_total = $subtotal;
+        } else {
+            $tax_amount = round($subtotal * $tax_percent / 100, 2);
+            $grand_total = round($subtotal + $tax_amount, 2);
+        }
+        return array(
+            'subtotal' => $subtotal,
+            'tax_type' => $tax_type,
+            'tax_percent' => $tax_percent,
+            'tax_amount' => $tax_amount,
+            'grand_total' => $grand_total,
+        );
+    }
+     /**
+     * copy a purchase unit price to the ingredient (purchase price and consumption cost),
+     * only when this is the newest purchase of that ingredient, so editing an old purchase
+     * does not roll the price back
+     * @access private
+     * @return void
+     * @param int
+     * @param int
+     * @param float
+     * @param float
+     */
+    private function syncIngredientPrice($ingredient_id, $purchase_id, $unit_price, $conversion_rate) {
+        if (!is_numeric($unit_price) || $unit_price <= 0) {
+            return;
+        }
+        $latest_purchase_id = $this->db->query("SELECT MAX(pi.purchase_id) AS purchase_id FROM tbl_purchase_ingredients pi
+            JOIN tbl_purchase p ON p.id = pi.purchase_id
+            WHERE pi.ingredient_id = ? AND pi.del_status = 'Live' AND p.del_status = 'Live'", array($ingredient_id))->row('purchase_id');
+        if ($latest_purchase_id != $purchase_id) {
+            return;
+        }
+        $this->db->where('id', $ingredient_id);
+        $this->db->update('tbl_ingredients', array(
+            'purchase_price' => $unit_price,
+            'consumption_unit_cost' => getAmtP($unit_price / $conversion_rate),
+        ));
     }
      /**
      * purchase Details
