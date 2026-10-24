@@ -2,16 +2,20 @@
 
 Monthly salary calculated from employee attendance. Sidebar menu **Payroll** (after Attendance).
 
-## Simple mode (current)
+## Screens on / off
 
-For now only **Monthly Payroll** and **Salary Setup** are switched on. Monthly
-Payroll covers generate, correcting a line, approve, pay, payslips and the register.
+All screens are switched on (Oct 2026): Monthly Payroll, Salary Setup, Advances &
+Adjustments, Leaves, Holidays, Reports (attendance sheet, salary history, advance
+balances) and Payroll Settings. Before that, a "simple mode" showed only Monthly
+Payroll and Salary Setup.
+
 The switch is `application/config/payroll.php` (`$config['payroll_screens']`).
 Sidebar, POS menu, module tabs and routes all follow it, and a hidden screen is
-closed even for Admin. The migration also sets the hidden screens' `tbl_access`
-rows (421-436) to `Deleted`, so they are not on the Role screen either.
+closed even for Admin. To hide a screen, take its key out of that list and set its
+`tbl_access` rows to `'Deleted'` so it leaves the Role screen too. The keys and ids
+are listed in that file. The migration sets rows 412-436 to `'Live'`.
 
-While hidden:
+If a screen is hidden:
 - **Advances & Adjustments, Leaves, Holidays**: nothing is recorded, so nothing
   is added or deducted. For a one-off bonus or fine, use the pencil on the payroll
   line (sheet bonus / sheet deduction).
@@ -24,9 +28,6 @@ While hidden:
   - Work on a weekly off is paid as an extra day.
 - **Reports** (attendance sheet, salary history, advance balances): not shown.
   The Advance column is left out of the sheet and the register.
-
-To switch a screen back on, add its key to `config/payroll.php` and set its
-`tbl_access` rows back to `'Live'`. The keys and ids are listed in that file.
 
 ## Deploy
 

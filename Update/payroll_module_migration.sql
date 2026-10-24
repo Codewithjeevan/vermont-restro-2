@@ -38,11 +38,10 @@ INSERT IGNORE INTO tbl_access (id, module_name, function_name, label_name, paren
   (435, 'payroll_settings',     '',        'payroll_settings',     0,   13,   'Live'),
   (436, '',                     'update',  'update',               435, NULL, 'Live');
 
--- Kept simple for now: application/config/payroll.php switches on only Monthly Payroll
--- and Salary Setup. The other screens (421-436: advances & adjustments, leaves,
--- holidays, reports, settings) are hidden from the Role screen as well. To bring one
--- back, add its key in config/payroll.php and set its rows to 'Live' again.
-UPDATE tbl_access SET del_status = 'Deleted' WHERE id BETWEEN 421 AND 436;
+-- All payroll screens are on (application/config/payroll.php). An earlier version of
+-- this file hid 421-436 (advances & adjustments, leaves, holidays, reports, settings);
+-- INSERT IGNORE does not touch existing rows, so bring them back to the Role screen here.
+UPDATE tbl_access SET del_status = 'Live' WHERE id BETWEEN 412 AND 436;
 
 -- one row per company, created with defaults on first use
 CREATE TABLE IF NOT EXISTS tbl_payroll_settings (
