@@ -32,7 +32,8 @@
             <div class="table-box">
                 <!-- /.box-header -->
                 <!-- form start -->
-                <?php echo form_open(base_url('Outlet/addEditOutlet/' . $encrypted_id)); ?>
+                <?php echo form_open(base_url('Outlet/addEditOutlet/' . $encrypted_id), array('class' => 'outlet-form')); ?>
+                <input type="hidden" name="outlet_menu_data" value="">
                 <div class="box-body">
                     <div class="row">
                         <?php
@@ -45,7 +46,7 @@
                                     <input tabindex="1" autocomplete="off" type="text" name="outlet_code"
                                            class="form-control" onfocus="select();"
                                            placeholder="<?php echo lang('outlet_code'); ?>"
-                                           value="<?php echo escape_output($outlet_information->outlet_code) ?>"/>
+                                           value="<?php echo set_value('outlet_code', $outlet_information->outlet_code); ?>"/>
                                 </div>
                                 <?php if (form_error('outlet_code')) { ?>
                                     <div class="callout callout-danger my-2">
@@ -59,7 +60,7 @@
                         <div class="col-sm-12 mb-2 col-md-3">
                             <div class="form-group">
                                 <label><?php echo lang('outlet_name'); ?> <span class="required_star">*</span></label>
-                                <input tabindex="1" autocomplete="off" type="text" name="outlet_name" class="form-control" placeholder="<?php echo lang('outlet_name'); ?>" value="<?php echo escape_output($outlet_information->outlet_name); ?>">
+                                <input tabindex="1" autocomplete="off" type="text" name="outlet_name" class="form-control" placeholder="<?php echo lang('outlet_name'); ?>" value="<?php echo set_value('outlet_name', $outlet_information->outlet_name); ?>">
                             </div>
                             <?php if (form_error('outlet_name')) { ?>
                                 <div class="callout callout-danger my-2">
@@ -73,7 +74,7 @@
 
                             <div class="form-group">
                                 <label><?php echo lang('phone'); ?> <span class="required_star">*</span></label>
-                                <input tabindex="4" autocomplete="off" type="text" name="phone" class="form-control" placeholder="<?php echo lang('phone'); ?>" value="<?php echo escape_output($outlet_information->phone); ?>">
+                                <input tabindex="4" autocomplete="off" type="text" name="phone" class="form-control" placeholder="<?php echo lang('phone'); ?>" value="<?php echo set_value('phone', $outlet_information->phone); ?>">
                             </div>
                             <?php if (form_error('phone')) { ?>
                                 <div class="callout callout-danger my-2">
@@ -86,7 +87,7 @@
 
                             <div class="form-group">
                                 <label><?php echo lang('email'); ?> </label>
-                                <input tabindex="4" autocomplete="off" type="text" name="email" class="form-control" placeholder="<?php echo lang('email'); ?>" value="<?php echo escape_output($outlet_information->email); ?>" />
+                                <input tabindex="4" autocomplete="off" type="text" name="email" class="form-control" placeholder="<?php echo lang('email'); ?>" value="<?php echo set_value('email', $outlet_information->email); ?>" />
                             </div>
                             <?php if (form_error('email')) { ?>
                                 <div class="callout callout-danger my-2">
@@ -104,8 +105,8 @@
                             <div class="form-group">
                                 <label><?php echo lang('Active_Status'); ?> <span class="required_star">*</span></label>
                                 <select class="form-control select2" name="active_status" id="active_status">
-                                    <option <?php echo isset($outlet_information->active_status) && $outlet_information->active_status=="active"?'selected':''?> value="active"><?php echo lang('Active'); ?></option>
-                                    <option <?php echo isset($outlet_information->active_status) && $outlet_information->active_status=="inactive"?'selected':''?> value="inactive"><?php echo lang('Inactive'); ?></option>
+                                    <option <?php echo set_select('active_status', 'active', $outlet_information->active_status == 'active'); ?> value="active"><?php echo lang('Active'); ?></option>
+                                    <option <?php echo set_select('active_status', 'inactive', $outlet_information->active_status == 'inactive'); ?> value="inactive"><?php echo lang('Inactive'); ?></option>
                                 </select>
                             </div>
                             <?php if (form_error('active_status')) { ?>
@@ -125,7 +126,7 @@
                                         foreach ($waiters as $value):
                                             if($value->designation=="Waiter"):
                                                 ?>
-                                                <option <?=($outlet_information->default_waiter==$value->id?'selected':'')?>  value="<?=$value->id?>"><?=$value->full_name?></option>
+                                                <option <?php echo set_select('default_waiter', $value->id, $outlet_information->default_waiter == $value->id); ?> value="<?=$value->id?>"><?=$value->full_name?></option>
                                                 <?php
                                             endif;
                                         endforeach;
@@ -146,7 +147,7 @@
 
                             <div class="form-group">
                                 <label><?php echo lang('address'); ?> <span class="required_star">*</span></label>
-                                <textarea tabindex="3" autocomplete="off" name="address" class="form-control" placeholder="<?php echo lang('address'); ?>"><?php echo escape_output($outlet_information->address); ?></textarea>
+                                <textarea tabindex="3" autocomplete="off" name="address" class="form-control" placeholder="<?php echo lang('address'); ?>"><?php echo set_value('address', $outlet_information->address); ?></textarea>
                             </div>
                             <?php if (form_error('address')) { ?>
                                 <div class="callout callout-danger my-2">
@@ -165,7 +166,7 @@
                                         if($value->designation=="Cashier"):
                                             if($outlet_information->id!=$value->id):
                                                 ?>
-                                                <option <?php echo ($outlet_information->online_self_order_receiving_id==$value->id)?'selected':''?>  <?php echo set_select('online_self_order_receiving_id',$value->id)?> value="<?=$value->id?>"><?=$value->full_name?></option>
+                                                <option <?php echo set_select('online_self_order_receiving_id', $value->id, $outlet_information->online_self_order_receiving_id == $value->id); ?> value="<?=$value->id?>"><?=$value->full_name?></option>
                                                 <?php
                                             endif;
                                         endif;
@@ -186,10 +187,10 @@
                                     <select tabindex="7" class="form-control select2" name="online_order_module"
                                             id="online_order_module">
                                         <option
-                                            <?= isset($outlet_information) && $outlet_information->online_order_module== "1" ? 'selected' : '' ?>
+                                            <?php echo set_select('online_order_module', '1', $outlet_information->online_order_module == '1'); ?>
                                                 value="1"><?php echo lang('no')?></option>
                                         <option
-                                            <?= isset($outlet_information) && $outlet_information->online_order_module== "2" ? 'selected' : '' ?>
+                                            <?php echo set_select('online_order_module', '2', $outlet_information->online_order_module == '2'); ?>
                                                 value="2"><?php echo lang('yes')?></option>
                                     </select>
                                 </div>
@@ -245,9 +246,14 @@
 
                             if(isset($sale_price_tmp) && $sale_price_tmp){
                                 $sale_price = explode("||",$sale_price_tmp);
-                                $dine_ta_price = isset($sale_price[0]) && $sale_price[0]?$sale_price[0]:$item->sale_price;
-                                $sale_ta_price = isset($sale_price[1]) && $sale_price[1]?$sale_price[1]:$item->sale_price_take_away;
-                                $sale_de_price = isset($sale_price[2]) && $sale_price[2]?$sale_price[2]:$item->sale_price_delivery;
+                                $dine_ta_price = isset($sale_price[0]) && $sale_price[0] !== '' ? $sale_price[0] : $item->sale_price;
+                                $sale_ta_price = isset($sale_price[1]) && $sale_price[1] !== '' ? $sale_price[1] : $item->sale_price_take_away;
+                                $sale_de_price = isset($sale_price[2]) && $sale_price[2] !== '' ? $sale_price[2] : $item->sale_price_delivery;
+                            }
+                            if (isset($submitted_menu_data)) {
+                                $dine_ta_price = isset($submitted_menu_data['price_'.$item->id]) ? $submitted_menu_data['price_'.$item->id] : $dine_ta_price;
+                                $sale_ta_price = isset($submitted_menu_data['price_ta_'.$item->id]) ? $submitted_menu_data['price_ta_'.$item->id] : $sale_ta_price;
+                                $sale_de_price = isset($submitted_menu_data['price_de_'.$item->id]) ? $submitted_menu_data['price_de_'.$item->id] : $sale_de_price;
                             }
 
                             ?>
@@ -259,16 +265,16 @@
                                 </label>
                                 <div class="form-group outlet-price-field">
                                     <label class="txt_outlet_1"><?php echo lang('price'); ?><?php echo lang('DI'); ?></label>
-                                    <input  type="text" value="<?php echo escape_output($dine_ta_price)?>" name="price_<?php echo escape_output($item->id)?>" placeholder="<?php echo lang('price');?><?php echo lang('DI'); ?>" onfocus="select()" class="txt_21 form-control">
+                                    <input  type="text" value="<?php echo html_escape((string) $dine_ta_price); ?>" name="price_<?php echo escape_output($item->id)?>" placeholder="<?php echo lang('price');?><?php echo lang('DI'); ?>" onfocus="select()" class="txt_21 form-control">
                                 </div>
                                 <div class="form-group outlet-price-field">
                                     <label class="txt_outlet_1"><?php echo lang('price'); ?><?php echo lang('TA'); ?></label>
-                                    <input  type="text" value="<?php echo escape_output($sale_ta_price)?>" name="price_ta_<?php echo escape_output($item->id)?>" placeholder="<?php echo lang('price');?><?php echo lang('TA'); ?>" onfocus="select()" class="txt_21 form-control">
+                                    <input  type="text" value="<?php echo html_escape((string) $sale_ta_price); ?>" name="price_ta_<?php echo escape_output($item->id)?>" placeholder="<?php echo lang('price');?><?php echo lang('TA'); ?>" onfocus="select()" class="txt_21 form-control">
                                 </div>
                             <?php if(!sizeof($deliveryPartners)):?>
                                 <div class="form-group outlet-price-field">
                                     <label class="txt_outlet_1"><?php echo lang('price'); ?><?php echo lang('De'); ?></label>
-                                    <input  type="text" value="<?php echo escape_output($sale_de_price)?>" name="price_de_<?php echo escape_output($item->id)?>" placeholder="<?php echo lang('price');?><?php echo lang('De'); ?>" onfocus="select()" class="form-control txt_21">
+                                    <input  type="text" value="<?php echo html_escape((string) $sale_de_price); ?>" name="price_de_<?php echo escape_output($item->id)?>" placeholder="<?php echo lang('price');?><?php echo lang('De'); ?>" onfocus="select()" class="form-control txt_21">
                                 </div>
                             <?php else:?>
                                 <label class="margin_top_de_price"><?php echo lang('price'); ?> <?php echo lang('De'); ?></label>
@@ -280,9 +286,15 @@
                                             $delivery_price = (array)json_decode($outlet_information->delivery_price);
                                             foreach ($deliveryPartners as $value):
                                                 $delivery_price_value = (array)json_decode(isset($delivery_price["index_".$item->id]) && $delivery_price["index_".$item->id]?$delivery_price["index_".$item->id]:'');
-                                                $dl_price = isset($delivery_price_value["index_".$value->id]) && $delivery_price_value["index_".$value->id]?$delivery_price_value["index_".$value->id]:'';
-                                                if(!$dl_price){
+                                                $dl_price = isset($delivery_price_value["index_".$value->id]) ? $delivery_price_value["index_".$value->id] : '';
+                                                if($dl_price === ''){
                                                     $dl_price = $item->sale_price;
+                                                }
+                                                if (isset($submitted_menu_data['delivery_person'.$item->id])) {
+                                                    $partner_index = array_search($value->id, $submitted_menu_data['delivery_person'.$item->id]);
+                                                    if ($partner_index !== false && isset($submitted_menu_data['sale_price_delivery_json'.$item->id][$partner_index])) {
+                                                        $dl_price = $submitted_menu_data['sale_price_delivery_json'.$item->id][$partner_index];
+                                                    }
                                                 }
                                                 ?>
                                                 <tr>
@@ -293,7 +305,7 @@
                                                         <input tabindex="4" type="text" onfocus="this.select();"
                                                                name="sale_price_delivery_json<?=$item->id?>[]" class="margin_top_9 form-control integerchk check_required"
                                                                placeholder="<?php echo lang('sale_price'); ?> (<?php echo lang('delivery'); ?>)"
-                                                               value="<?php echo escape_output($dl_price); ?>"></td>
+                                                               value="<?php echo html_escape((string) $dl_price); ?>"></td>
                                                 </tr>
                                             <?php endforeach;?>
                                             </tbody>
@@ -325,8 +337,10 @@
                         </a>
                     </div>
                 </div>
+                <input type="hidden" name="outlet_form_complete" value="1">
                 <?php echo form_close(); ?>
             </div>
     </div>
 </section>
 <script src="<?php echo base_url(); ?>frequent_changing/js/edit_outlet.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/outlet_form.js"></script>

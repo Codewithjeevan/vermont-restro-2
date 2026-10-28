@@ -31,7 +31,8 @@
     <!-- left column -->
     <div class="box-wrapper">
           
-        <?php echo form_open(base_url('Outlet/addEditOutlet')); ?>
+        <?php echo form_open(base_url('Outlet/addEditOutlet'), array('class' => 'outlet-form')); ?>
+        <input type="hidden" name="outlet_menu_data" value="">
                 
             <div class="row">
                         <?php
@@ -292,8 +293,10 @@
                         </div>
             </div>
             
+        <input type="hidden" name="outlet_form_complete" value="1">
         <?php echo form_close(); ?>
        
     </div>
 </section>
 <script src="<?php echo base_url(); ?>frequent_changing/js/add_outlet.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/outlet_form.js"></script>

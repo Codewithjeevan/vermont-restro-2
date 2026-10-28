@@ -117,7 +117,37 @@ class Outlet extends Cl_Controller {
         $language_manifesto = $this->session->userdata('language_manifesto');
 
 
-        if (htmlspecialcharscustom($this->input->post('submit'))) {
+        if ($this->input->method() === 'post') {
+            // The last field detects PHP truncating a large, non-JavaScript form.
+            // Never save a partial menu or silently redisplay the old outlet.
+            if ($this->input->post('outlet_form_complete') !== '1') {
+                show_error('The outlet form was incomplete. Please reload and try again. If this continues, enable JavaScript or ask your administrator to increase PHP max_input_vars/post_max_size.', 400);
+                return;
+            }
+            $menu_data = $this->input->post();
+            $menu_payload = $this->input->post('outlet_menu_data');
+            if ($menu_payload !== NULL && $menu_payload !== '') {
+                $menu_data = is_string($menu_payload) ? json_decode($menu_payload, TRUE) : NULL;
+                $valid_menu = is_array($menu_data) && json_last_error() === JSON_ERROR_NONE
+                    && isset($menu_data['item_check']) && is_array($menu_data['item_check']);
+                if ($valid_menu) {
+                    foreach ($menu_data as $field => $value) {
+                        if (preg_match('/^(item_check|delivery_person\d+|sale_price_delivery_json\d+)$/', $field)) {
+                            if (!is_array($value) || array_values($value) !== $value || count(array_filter($value, 'is_string')) !== count($value)) {
+                                $valid_menu = false;
+                                break;
+                            }
+                        } elseif (!preg_match('/^price_(?:ta_|de_)?\d+$/', $field) || !is_string($value)) {
+                            $valid_menu = false;
+                            break;
+                        }
+                    }
+                }
+                if (!$valid_menu) {
+                    show_error('The outlet menu data was invalid. Please reload and try again.', 400);
+                    return;
+                }
+            }
             $this->form_validation->set_rules('outlet_name',lang('outlet_name'), 'required|max_length[50]');
             $this->form_validation->set_rules('address',lang('address'), 'required|max_length[200]');
             $this->form_validation->set_rules('phone', lang('phone'), 'required');
@@ -134,6 +164,7 @@ class Outlet extends Cl_Controller {
                 $outlet_info['online_self_order_receiving_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('online_self_order_receiving_id')));
                 $outlet_info['online_order_module'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('online_order_module')));
                 if(str_rot13($language_manifesto)=="eriutoeri"):
+                    $outlet_info['outlet_code'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('outlet_code')));
                     $outlet_info['default_waiter'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('default_waiter')));
                     $outlet_info['active_status'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('active_status')));
                 endif;
@@ -141,9 +172,6 @@ class Outlet extends Cl_Controller {
                 if ($id == "") {
                     $outlet_info['company_id'] = $this->session->userdata('company_id');
                     $outlet_info['created_date'] = date("Y-m-d");
-                    if(str_rot13($language_manifesto)=="eriutoeri") {
-                        $outlet_info['outlet_code'] = htmlspecialcharscustom($this->input->post($this->security->xss_clean('outlet_code')));
-                    }
                 }
                 if ($id == "") {
                     $id = $this->Common_model->insertInformation($outlet_info, "tbl_outlets");
@@ -166,7 +194,7 @@ class Outlet extends Cl_Controller {
                 }
                 $language_manifesto = $this->session->userdata('language_manifesto');
                 if(str_rot13($language_manifesto)=="eriutoeri"):
-                    $item_check =$this->input->post($this->security->xss_clean('item_check'));
+                    $item_check = isset($menu_data['item_check']) && is_array($menu_data['item_check']) ? $menu_data['item_check'] : array();
                     if($item_check){
                         $main_arr = '';
                         $total_selected = sizeof($item_check);
@@ -180,13 +208,13 @@ class Outlet extends Cl_Controller {
                                 $name_generate = "price_".$item_check[$i];
                                 $price_ta_name_generate = "price_ta_".$item_check[$i];
                                 $price_de_name_generate = "price_de_".$item_check[$i];
-                                $data_price_array["tmp".$item_check[$i]] = htmlspecialcharscustom($this->input->post($this->security->xss_clean($name_generate)))."||".htmlspecialcharscustom($this->input->post($this->security->xss_clean($price_ta_name_generate)))."||".htmlspecialcharscustom($this->input->post($this->security->xss_clean($price_de_name_generate)));
+                                $data_price_array["tmp".$item_check[$i]] = htmlspecialcharscustom(isset($menu_data[$name_generate]) ? $menu_data[$name_generate] : '')."||".htmlspecialcharscustom(isset($menu_data[$price_ta_name_generate]) ? $menu_data[$price_ta_name_generate] : '')."||".htmlspecialcharscustom(isset($menu_data[$price_de_name_generate]) ? $menu_data[$price_de_name_generate] : '');
                             }
 
                             $field_name = "sale_price_delivery_json".$item_check[$i];
                             $delivery_person_field_name = "delivery_person".$item_check[$i];
-                            $del_price_total = $this->input->post($this->security->xss_clean($field_name));
-                            $delivery_person_field_name_value = $this->input->post($this->security->xss_clean($delivery_person_field_name));
+                            $del_price_total = isset($menu_data[$field_name]) ? $menu_data[$field_name] : array();
+                            $delivery_person_field_name_value = isset($menu_data[$delivery_person_field_name]) ? $menu_data[$delivery_person_field_name] : array();
 
                             if(isset($del_price_total) && $del_price_total){
                                 $tmp_array = array();
@@ -202,6 +230,12 @@ class Outlet extends Cl_Controller {
                         $data_food_menus['food_menu_prices'] = json_encode($data_price_array);
                         $data_food_menus['delivery_price'] = json_encode($json_data);
                         $this->Common_model->updateInformation($data_food_menus, $id, "tbl_outlets");
+                    } else {
+                        $this->Common_model->updateInformation(array(
+                            'food_menus' => '',
+                            'food_menu_prices' => '{}',
+                            'delivery_price' => '{}'
+                        ), $id, "tbl_outlets");
                     }
                 endif;
                 $data_c = getLanguageManifesto();
@@ -219,6 +253,8 @@ class Outlet extends Cl_Controller {
                 } else {
                     $data = array();
                     $data['encrypted_id'] = $encrypted_id;
+                    $data['selected_modules_arr'] = isset($menu_data['item_check']) && is_array($menu_data['item_check']) ? $menu_data['item_check'] : array();
+                    $data['submitted_menu_data'] = $menu_data;
                     $data['deliveryPartners'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_delivery_partners");
                     $data['items'] = $this->Common_model->getFoodMenuForOutlet($company_id, "tbl_food_menus");
                     $data['outlet_information'] = $this->Common_model->getDataById($id, "tbl_outlets");
