@@ -60,14 +60,17 @@ class Ai_client {
      * Send one Messages API request.
      *
      * @param array $ctx company_id, outlet_id, user_id, feature (report/chat/test);
-     *                   'ignore_switch' => true only for the main admin's Test connection
+     *                   'ignore_switch' => true only for the main admin's Test connection;
+     *                   'mock_text' => reply returned in AI_MOCK mode
      * @param array $params named arguments of $client->messages->create(): model, maxTokens,
      *                      messages, and optionally system, tools, outputConfig, thinking, cacheControl
      * @param int $timeout seconds
-     * @return array ok (bool), message (\Anthropic\Messages\Message|null), text, stop_reason,
+     * @param array $beta optional beta call: betas (header values) and fallbacks, e.g.
+     *                    array('betas' => array('server-side-fallback-2026-07-01'), 'fallbacks' => 'default')
+     * @return array ok (bool), message (Message / BetaMessage / null), text, stop_reason, model,
      *               usage (array), cost_usd, error (friendly text), error_code
      */
-    public function send(array $ctx, array $params, $timeout = 30) {
+    public function send(array $ctx, array $params, $timeout = 30, array $beta = array()) {
         $company_id = (int) $ctx['company_id'];
         $model = (string) $params['model'];
         $base = array(
@@ -87,7 +90,8 @@ class Ai_client {
         }
         if ($this->mockMode()) {
             $this->CI->Ai_model->logUsage($base + array('status' => 'ok', 'error' => 'mock', 'duration_ms' => 0));
-            return $this->result(true, null, 'MOCK: ' . $base['feature'] . ' reply', 'end_turn', array(), 0.0, '', '');
+            $text = isset($ctx['mock_text']) ? (string) $ctx['mock_text'] : 'MOCK: ' . $base['feature'] . ' reply';
+            return $this->result(true, null, $text, 'end_turn', array(), 0.0, '', '', $model);
         }
         if (!$this->keyConfigured()) {
             return $this->refuse($base, 'key_missing', lang('ai_key_missing'));
@@ -99,7 +103,15 @@ class Ai_client {
                 'timeout' => (float) $timeout,
                 'maxRetries' => (int) ai_config('ai_max_retries'),
             );
-            $message = $this->client()->messages->create(...$params);
+            if (!empty($beta['betas'])) {
+                $params['betas'] = $beta['betas'];
+                if (isset($beta['fallbacks'])) {
+                    $params['fallbacks'] = $beta['fallbacks'];
+                }
+                $message = $this->client()->beta->messages->create(...$params);
+            } else {
+                $message = $this->client()->messages->create(...$params);
+            }
         } catch (AuthenticationException $e) {
             return $this->failed($base, $started, 'auth', $e);
         } catch (PermissionDeniedException $e) {
@@ -130,8 +142,11 @@ class Ai_client {
             'cache_write_tokens' => (int) $message->usage->cacheCreationInputTokens,
             'output_tokens' => (int) $message->usage->outputTokens,
         );
-        $cost = $this->cost($model, $usage);
+        // a server-side fallback can answer with another model: bill the model that answered
+        $answered_by = (string) $message->model ? (string) $message->model : $model;
+        $cost = $this->cost($answered_by, $usage);
         $stop = (string) $message->stopReason;
+        $base['model'] = mb_substr($answered_by, 0, 50);
         $this->CI->Ai_model->logUsage($base + $usage + array(
             'cost_usd' => $cost,
             'status' => $stop == 'refusal' ? 'refusal' : 'ok',
@@ -144,7 +159,16 @@ class Ai_client {
                 $text .= $block->text;
             }
         }
-        return $this->result($stop != 'refusal', $message, $text, $stop, $usage, $cost, $stop == 'refusal' ? lang('ai_error_generic') : '', $stop == 'refusal' ? 'refusal' : '');
+        return $this->result($stop != 'refusal', $message, $text, $stop, $usage, $cost, $stop == 'refusal' ? lang('ai_error_generic') : '', $stop == 'refusal' ? 'refusal' : '', $answered_by);
+    }
+
+    /**
+     * Error codes worth another try on the next hourly run; the rest will fail the same way again.
+     * @param string $code
+     * @return bool
+     */
+    public function retryable($code) {
+        return in_array($code, array('rate_limit', 'server', 'api_status', 'timeout', 'connection', 'api', 'internal'));
     }
 
     /**
@@ -155,10 +179,8 @@ class Ai_client {
      */
     public function cost($model, $usage) {
         $prices = ai_config('ai_prices');
-        if (!isset($prices[$model])) {
-            return 0.0;
-        }
-        $p = $prices[$model];
+        // a model missing from the table (e.g. a fallback model) is priced high, so limits stay on the safe side
+        $p = isset($prices[$model]) ? $prices[$model] : ai_config('ai_price_unknown');
         return round(($usage['input_tokens'] * $p['in'] + $usage['cache_read_tokens'] * $p['cache_read']
             + $usage['cache_write_tokens'] * $p['cache_write'] + $usage['output_tokens'] * $p['out']) / 1000000, 6);
     }
@@ -187,12 +209,13 @@ class Ai_client {
         return $this->result(false, null, '', '', array(), 0.0, lang('ai_error_generic'), $code);
     }
 
-    private function result($ok, $message, $text, $stop, $usage, $cost, $error, $code) {
+    private function result($ok, $message, $text, $stop, $usage, $cost, $error, $code, $model = '') {
         return array(
             'ok' => $ok,
             'message' => $message,
             'text' => $text,
             'stop_reason' => $stop,
+            'model' => $model,
             'usage' => $usage,
             'cost_usd' => $cost,
             'error' => $error,

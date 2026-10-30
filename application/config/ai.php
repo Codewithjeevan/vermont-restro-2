@@ -34,6 +34,18 @@ $config['ai_prices'] = array(
     'claude-haiku-5-5' => array('in' => 0.10, 'out' => 0.50, 'cache_read' => 0.01, 'cache_write' => 0.125),
     'claude-opus-5-5' => array('in' => 4.00, 'out' => 20.00, 'cache_read' => 0.20, 'cache_write' => 5.00),
 );
+// price used for any other model that answers (e.g. a server-side fallback): deliberately high
+$config['ai_price_unknown'] = array('in' => 10.00, 'out' => 50.00, 'cache_read' => 1.00, 'cache_write' => 12.50);
+
+// models that accept the server-side refusal fallback (beta server-side-fallback-2026-07-01, "default" form);
+// Haiku 5.5 has none, so a refused chat answer just shows the polite error
+$config['ai_fallback_models'] = array('claude-sonnet-5-5', 'claude-opus-5-5');
+
+// daily report: built once per outlet per day, after this hour (company local time); the cron runs hourly
+$config['ai_report_hour'] = 3;
+$config['ai_report_max_attempts'] = 3;
+$config['ai_report_max_tokens'] = 8000;
+$config['ai_report_effort'] = 'medium';
 
 // defaults of a new tbl_ai_settings row
 $config['ai_defaults'] = array(

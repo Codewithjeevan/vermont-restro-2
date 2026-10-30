@@ -1,6 +1,6 @@
 # AI Insight: implementation plan
 
-**Date:** 30 Oct 2026 · **Branch:** `feature/ai-insight` from `main` · **Status:** Phases 0, 1 and 2 built and tested (section 15); Phase 3 next
+**Date:** 30 Oct 2026 · **Branch:** `feature/ai-insight` from `main` · **Status:** Phases 0–3 built and tested (section 15); Phase 4 next
 
 This plan covers the AI Insight page the client asked for: menu performance, price check, purchase vs usage, profit & loss, a 7-day sales prediction, the top 5 improvements, and an "Ask AI" chat. It is written so each phase can be built and tested on its own without redoing earlier work.
 
@@ -154,6 +154,7 @@ Its outlets are ANDAAZE HYDERABAD CAFETERIA (has a kitchen) and WAREHOUSE Zone (
 | `application/third_party/anthropic/` | Its own `composer.json` + `vendor/` with `anthropic-ai/sdk` and `guzzlehttp/guzzle` ^7, loaded only by `Ai_client` |
 | `application/libraries/Ai/Ai_client.php` | Wraps the SDK: budget check before a call, usage log after, timeouts, error mapping, mock mode for tests |
 | `application/libraries/Ai/Ai_narrator.php` | Daily report prompt, JSON schema, output validation, template fallback |
+| `application/libraries/Ai/Ai_report.php` | One outlet's report of the day: numbers → snapshot → text, attempts and retries; the due-companies loop of the cron (also used by the page's Regenerate button) |
 | `application/libraries/Ai/Ai_chat.php` | Chat loop, tool definitions, tool executor, limits |
 | `application/models/Ai_metrics_model.php` | The calculation engine (section 6) |
 | `application/models/Ai_model.php` | Settings, snapshots, usage, chat storage |
@@ -322,7 +323,7 @@ The snapshot JSON stores full lists for the page. The AI receives a **trimmed co
   - Fixed system prompt (role, rules, English, the company currency, "use only the numbers given").
   - The trimmed metrics JSON.
   - `output_config.format` = JSON schema: `{headline, summary, issues: [{id, explanation, action}], sections: {menu, price, purchase, pnl, forecast, data}}`.
-  - Adaptive thinking at effort `medium`, `max_tokens` 4000.
+  - Adaptive thinking at effort `medium`, `max_tokens` 8000 (thinking counts against it; a `max_tokens` stop falls back to the template).
   - No `temperature`/`top_p` (API version `2026-10-21` rejects them).
 - **Refusal fallback:** `fallbacks: "default"` with beta `server-side-fallback-2026-07-01`, so a rare safety refusal is retried on a fallback model by the API. If it still refuses, the template text is used.
 - **Validation before saving:**
@@ -624,3 +625,59 @@ The AI is only as good as the data. Before go-live, and every day after:
   - The POS food cost equals the old P&L's (after the F1 sync).
   - The net-profit difference is exactly mess revenue − mess food cost − tips − salaries the old report never saw (company 1: −7590.72 → −6522.82).
 - On the 24 Oct production copy: no errors; with no sales, the top 5 stays empty instead of listing all 186 menus for removal.
+
+### Phase 3: built 30 Oct 2026
+
+**Built**
+- `Ai_report`:
+  - `runOutlet()`: numbers saved first (status `pending`), then the text.
+  - `ok`: the AI text was accepted (pieces failing the number check are swapped for template text and listed in `error`).
+  - `failed`: a retryable error (network, overload, 5xx, timeout). Retried by the next hourly runs, up to 3 attempts; after the 3rd it becomes `template`.
+  - `template`: the AI was not used (company off, limit reached, key missing, refusal, invalid answer, `max_tokens`).
+  - One row per outlet per day; `force` re-makes it.
+- `Ai_report::runDue()`: every company that is switched on, once its local time is past `ai_report_hour` (03:00), for every live outlet.
+- `Ai_narrator`:
+  - Fixed system prompt, cached.
+  - Structured output schema.
+  - Validation: plain text, length caps, known issue ids only, every number must be in the payload (a whole-number rounding of a payload number is accepted, dates are ignored).
+  - `template()`: the full report without the AI.
+- `Ai_client`:
+  - Optional beta call: Sonnet 5.5 and Opus 5.5 use the server-side refusal fallback (`fallbacks: "default"`, `server-side-fallback-2026-07-01`). On Sonnet 5.5 it only retries "cyber" and "frontier_llm" refusals; anything else falls back to the template.
+  - Cost is priced by the model that answered (an unknown model is priced high on purpose).
+  - `mock_text` for tests.
+- `Ai_cron`:
+  - `run` (hourly): `GET_LOCK` so two runs never overlap; a `tbl_ai_cron_log` row per run.
+  - `outlet <company> <outlet> [date] [force]`, `status`.
+  - Web trigger `Ai_cron/web/<AI_CRON_WEB_TOKEN>` (off unless the token is set; everything else on the web returns 404).
+  - Uses the app timezone like the web screens.
+
+**Deviations from the plan**
+- The engine now computes the counts and week totals the text needs (class counts, unsold count, price-band counts, over-bought / high-waste counts, 7-day totals and busiest day, P&L % changes), so neither the AI nor the template adds anything up.
+- The payload sends **no figures for a blocked section**, carries transfers in/out per ingredient, and says when the outlet is stock-only. Found in the live test: the model had commented on a blocked price check for the warehouse, and had called oil "used but never bought" while it came by transfer.
+- Added `Ai_report` (not in the original file list) and the `outlet` / `status` commands.
+
+**Tested**
+- `tests/ai/narrator_test.php`: **32 passed, 0 failed**, all without real API calls:
+  - The template passes the number check on every local outlet.
+  - A made-up number is replaced; a rounded amount is accepted.
+  - HTML is stripped; dates are ignored.
+  - A missing issue gets template text; an unknown issue id is dropped.
+  - Long text is cut at the limit.
+  - The schema is closed.
+  - Mock run: report saved; same day = skipped with no API call; forced = same row; a `pending` row left by a killed run is finished.
+  - Company off / limit reached: template, no retry.
+  - Network down: `failed` 1 → `failed` 2 → `template` 3 → skipped, and the error is logged without the key.
+- `tests/ai/metrics_test.php` still 158/158.
+- Hourly `run` (mock):
+  - Both fixture outlets were done on the first run and skipped on the second.
+  - With the lock held by another session it exits ("another AI cron run is still working").
+  - Disabled companies are untouched.
+  - The web trigger answers 200 only with the right token, 404 otherwise.
+- **Live Sonnet 5.5** on the fixture:
+  - Kitchen: 4.4K input + 1.1K cached system prompt, 1.3K output, **$0.022–0.025**, 12–16 s.
+  - Warehouse: **$0.007–0.009**, 6–7 s (system prompt read from cache).
+  - Every number passed the check.
+  - Total spent on live tests: about $0.07.
+  - Expected cost per outlet: about **$0.75 / month** for a busy outlet, under the 7.3 estimate.
+
+**Live cron line for cPanel (Phase 6 go-live):** `0 * * * * /usr/local/bin/php /home/<account>/public_html/<app>/index.php Ai_cron run >/dev/null 2>&1`

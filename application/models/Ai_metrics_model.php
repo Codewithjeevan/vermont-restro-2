@@ -23,13 +23,21 @@ class Ai_metrics_model extends CI_Model {
      * @return string Y-m-d
      */
     public function companyToday($company_id) {
+        return $this->companyNow($company_id)->format('Y-m-d');
+    }
+
+    /**
+     * Current time in the company's own timezone.
+     * @param int $company_id
+     * @return DateTime
+     */
+    public function companyNow($company_id) {
         $zone = $this->db->query("SELECT zone_name FROM tbl_companies WHERE id = ?", array((int) $company_id))->row('zone_name');
         try {
-            $now = new DateTime('now', new DateTimeZone($zone ? $zone : date_default_timezone_get()));
+            return new DateTime('now', new DateTimeZone($zone ? $zone : date_default_timezone_get()));
         } catch (Exception $e) {
-            $now = new DateTime('now');
+            return new DateTime('now');
         }
-        return $now->format('Y-m-d');
     }
 
     /**
@@ -749,6 +757,8 @@ class Ai_metrics_model extends CI_Model {
             'avg_cm' => round($avg_cm, 2),
             'popularity_line_pct' => round($pop_line, 2),
             'costed_items' => $costed_n,
+            'class_counts' => array_count_values(array_filter(array_column($rows, 'class'))) + array('star' => 0, 'plowhorse' => 0, 'puzzle' => 0, 'dog' => 0),
+            'unsold_count' => count($unsold),
             'unsold' => $unsold,
             'totals' => array(
                 'paid_qty' => $cur['totals']['paid_qty'],
@@ -814,7 +824,9 @@ class Ai_metrics_model extends CI_Model {
         usort($rows, function ($a, $b) use ($order) {
             return $order[$a['band']] <=> $order[$b['band']] ?: $b['impact'] <=> $a['impact'];
         });
-        return array('target_pct' => $target, 'rounding' => $step, 'items' => $rows);
+        $counts = array_count_values(array_column($rows, 'band')) + array('loss' => 0, 'critical' => 0, 'high' => 0, 'watch' => 0, 'good' => 0);
+        return array('target_pct' => $target, 'rounding' => $step, 'items' => $rows, 'band_counts' => $counts,
+            'above_target_count' => count($rows) - $counts['good'], 'above_50_count' => $counts['critical'] + $counts['loss']);
     }
 
     /** round up to the next multiple of $step */
@@ -952,6 +964,12 @@ class Ai_metrics_model extends CI_Model {
         foreach ($totals as $k => $v) {
             $totals[$k] = round($v, 2);
         }
+        $totals['overbuy_count'] = count(array_filter($rows, function ($r) {
+            return $r['overbuy'];
+        }));
+        $totals['high_waste_count'] = count(array_filter($rows, function ($r) {
+            return $r['high_waste'];
+        }));
         return array('from' => $from, 'to' => $to, 'days' => $days, 'cover_days_limit' => $cover_limit, 'items' => $rows, 'totals' => $totals);
     }
 
@@ -1154,7 +1172,8 @@ class Ai_metrics_model extends CI_Model {
     public function forecast($company_id, $outlet_id, $today, $health, $cur, $costs, $prices, $company, $stock, $purchase, $s) {
         $gate = $health['gates']['forecast'];
         $out = array('available' => $gate != 'blocked', 'gate' => $gate, 'days' => array(), 'items' => array(),
-            'accuracy_pct' => null, 'purchase' => array(), 'purchase_total' => 0.0);
+            'accuracy_pct' => null, 'purchase' => array(), 'purchase_total' => 0.0,
+            'total_qty' => 0.0, 'total_sales_value' => 0.0, 'busiest_day' => null);
         if ($gate == 'blocked') {
             return $out;
         }
@@ -1212,6 +1231,18 @@ class Ai_metrics_model extends CI_Model {
         usort($out['items'], function ($a, $b) {
             return $b['total'] <=> $a['total'];
         });
+        // week totals are computed here, so neither the AI nor the template has to add anything up
+        $busiest = null;
+        foreach ($out['days'] as $day) {
+            $out['total_qty'] += $day['qty'];
+            $out['total_sales_value'] += $day['sales_value'];
+            if ($busiest === null || $day['qty'] > $busiest['qty']) {
+                $busiest = $day;
+            }
+        }
+        $out['total_qty'] = round($out['total_qty'], 1);
+        $out['total_sales_value'] = round($out['total_sales_value'], 2);
+        $out['busiest_day'] = $busiest ? date('l', strtotime($busiest['date'])) : null;
 
         // suggested purchase: recipe need of the forecast + mess/modifier use + waste allowance + safety days - stock
         $per_plate = $this->perPlateUsage($company_id, array_keys($item_totals));
@@ -1541,36 +1572,51 @@ class Ai_metrics_model extends CI_Model {
         foreach ($m['health']['checks'] as $k => $c) {
             $checks[$k] = array('status' => $c['status'], 'result' => $c['result']);
         }
+        // a blocked section sends no figures at all, so the model cannot comment on data it should ignore
+        $gates = $m['health']['gates'];
+        $blocked = array('status' => 'blocked', 'reason' => 'see data_health');
         return array(
             'outlet' => $m['meta']['outlet_name'],
+            'outlet_type' => $m['health']['stock_only'] ? 'stock only (store or warehouse: buys and transfers stock, does not sell)' : 'sales outlet',
             'currency' => $m['meta']['currency'],
             'period' => $m['windows']['cur']['from'] . ' to ' . $m['windows']['cur']['to'],
             'target_food_cost_pct' => $m['meta']['target_food_cost_pct'],
-            'data_health' => array('checks' => $checks, 'sections' => $m['health']['gates']),
+            'data_health' => array('checks' => $checks, 'sections' => $gates),
             'yesterday' => $m['yesterday'],
             'top_issues' => $pick($m['top5'], 5, array('id', 'type', 'subject', 'impact_30d', 'confidence', 'numbers', 'action')),
-            'menu' => array(
+            'menu' => $gates['menu'] == 'blocked' ? $blocked : array(
                 'avg_cm' => $m['menu']['avg_cm'],
+                'class_counts' => $m['menu']['class_counts'],
+                'unsold_count' => $m['menu']['unsold_count'],
                 'items' => $pick($m['menu']['items'], 15, array('name', 'class', 'qty', 'avg_price', 'plate_cost', 'cm', 'total_cm', 'qty_change_pct')),
                 'unsold' => array_slice(array_column($m['menu']['unsold'], 'name'), 0, 15),
             ),
-            'price_check' => $pick(array_values(array_filter($m['price']['items'], function ($p) {
-                return $p['band'] != 'good';
-            })), 15, array('name', 'list_price', 'plate_cost', 'food_cost_pct', 'band', 'suggested_price', 'qty', 'impact')),
-            'purchase_vs_usage' => array(
-                'totals' => $m['purchase']['totals'],
-                'items' => $pick($m['purchase']['items'], 10, array('name', 'unit', 'purchased', 'used', 'wasted', 'stock', 'cover_days',
-                    'waste_pct', 'overbuy', 'high_waste', 'excess_value', 'waste_value', 'shrink_value')),
+            'price_check' => $gates['price'] == 'blocked' ? $blocked : array(
+                'counts' => array('above_target' => $m['price']['above_target_count'], 'above_50_pct' => $m['price']['above_50_count']),
+                'items' => $pick(array_values(array_filter($m['price']['items'], function ($p) {
+                    return $p['band'] != 'good';
+                })), 15, array('name', 'list_price', 'plate_cost', 'food_cost_pct', 'band', 'suggested_price', 'qty', 'impact')),
             ),
-            'profit_loss' => array(
+            'purchase_vs_usage' => $gates['purchase'] == 'blocked' ? $blocked : array(
+                'totals' => $m['purchase']['totals'],
+                'items' => $pick($m['purchase']['items'], 10, array('name', 'unit', 'purchased', 'transfer_in', 'transfer_out', 'used', 'wasted',
+                    'stock', 'cover_days', 'waste_pct', 'overbuy', 'high_waste', 'excess_value', 'waste_value', 'shrink_value')),
+            ),
+            'profit_loss' => $gates['pnl'] == 'blocked' ? $blocked : array(
                 'last_28_days' => $pnl($m['pnl']['cur']),
                 'previous_28_days' => $pnl($m['pnl']['prev']),
                 'expenses_by_category' => array_slice($m['pnl']['cur']['expenses'], 0, 8),
                 'last_7_days' => $pnl($m['pnl7']['cur']),
                 'previous_7_days' => $pnl($m['pnl7']['prev']),
+                'change_pct_28_days' => array_map(function ($c) {
+                    return $c['pct'];
+                }, array_intersect_key($m['pnl']['change'], array_flip(array('net_sales', 'food_cost', 'waste', 'salaries', 'expenses_total', 'net_profit', 'orders')))),
             ),
             'forecast' => $m['forecast']['available'] ? array(
                 'accuracy_last_7_days_pct' => $m['forecast']['accuracy_pct'],
+                'next_7_days_qty' => $m['forecast']['total_qty'],
+                'next_7_days_sales_value' => $m['forecast']['total_sales_value'],
+                'busiest_day' => $m['forecast']['busiest_day'],
                 'days' => $m['forecast']['days'],
                 'top_items' => $pick($m['forecast']['items'], 10, array('name', 'total')),
                 'purchase' => $pick($m['forecast']['purchase'], 10, array('name', 'buy_qty', 'buy_unit', 'est_cost')),
