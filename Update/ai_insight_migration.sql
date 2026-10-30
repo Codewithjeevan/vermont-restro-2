@@ -63,20 +63,6 @@ CREATE TABLE IF NOT EXISTS tbl_ai_snapshots (
   KEY ix_ai_snapshot_company (company_id, report_date)
 ) ENGINE=InnoDB;
 
--- each day's forecast, kept to measure accuracy against the real sales later
-CREATE TABLE IF NOT EXISTS tbl_ai_forecasts (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  company_id INT NOT NULL,
-  outlet_id INT NOT NULL,
-  food_menu_id INT NOT NULL,
-  for_date DATE NOT NULL,
-  qty_forecast DECIMAL(10,2) NOT NULL DEFAULT 0,
-  made_on DATE NOT NULL,
-  PRIMARY KEY (id),
-  UNIQUE KEY uq_ai_forecast (outlet_id, for_date, food_menu_id, made_on),
-  KEY ix_ai_forecast_day (outlet_id, for_date)
-) ENGINE=InnoDB;
-
 CREATE TABLE IF NOT EXISTS tbl_ai_chat_sessions (
   id INT NOT NULL AUTO_INCREMENT,
   company_id INT NOT NULL,

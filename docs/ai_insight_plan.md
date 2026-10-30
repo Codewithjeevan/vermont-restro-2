@@ -1,6 +1,6 @@
 # AI Insight: implementation plan
 
-**Date:** 30 Oct 2026 · **Branch:** `feature/ai-insight` from `main` · **Status:** Phase 0 and Phase 1 built and tested (section 15); Phase 2 next
+**Date:** 30 Oct 2026 · **Branch:** `feature/ai-insight` from `main` · **Status:** Phases 0, 1 and 2 built and tested (section 15); Phase 3 next
 
 This plan covers the AI Insight page the client asked for: menu performance, price check, purchase vs usage, profit & loss, a 7-day sales prediction, the top 5 improvements, and an "Ask AI" chat. It is written so each phase can be built and tested on its own without redoing earlier work.
 
@@ -120,6 +120,10 @@ Its outlets are ANDAAZE HYDERABAD CAFETERIA (has a kitchen) and WAREHOUSE Zone (
 
 **F17. Sidebar wiring.** A new menu needs `tbl_access` rows, `checkAccess()` in the controller, both menu blocks in `userHome.php`, and lang keys in all 4 language files. Non-Admin roles must log out and back in to see a new menu.
 
+**F18. A combo with a resale item records no stock use for it.** `Sale.php` costs a combo from its items' recipe rows (`tbl_food_menus_ingredients`), and a resale item (product type 3) has none: it uses `tbl_ingredients.food_id`. So a combo containing, for example, a can of cola never takes the can out of stock. The engine's plate cost and purchase need include it; the stock and theoretical food cost (which come from the consumption rows) do not. This is a POS issue, outside AI Insight.
+
+**F19. Names are saved HTML-escaped.** The input forms run names through `htmlspecialcharscustom()`, so `&` is stored as `&amp;`. The engine decodes names once (`text()`), and the views escape them again.
+
 ---
 
 ## 5. Architecture
@@ -191,7 +195,7 @@ All functions take `(company_id, outlet_id, date_from, date_to)` and use query b
   - Type 2 (combo): Σ child item cost × quantity from `tbl_combo_food_menus`.
   - Type 3 (resale item): unit cost of the linked ingredient (`tbl_ingredients.food_id`).
 - **Variations** (`parent_id > 0`) are separate items with their own recipes, shown grouped under the parent name.
-- **Modifiers:** revenue from `tbl_sales_details_modifiers.modifier_price`, cost from `tbl_modifier_ingredients`. Shown as an "Add-ons" line.
+- **Modifiers:** their ingredient use is counted in food cost and stock. Their revenue stays inside the bill totals (P&L) but is not split out per item, because local and production data have no modifier sales to verify the price column against. A separate "Add-ons" line is left for later.
 - **Food cost for a period:** Σ consumption rows of the period's sales (menus + modifiers) + mess consumption rows (`mess_close_id`, by close date) × unit cost.
 
 ### 6.3 Menu performance (menu engineering)
@@ -212,7 +216,7 @@ For every item sold in the window:
 - **High CM** = CM ≥ the quantity-weighted average CM.
 
 Extra rules:
-- Items on the outlet menu with **0 sales in 28 days** are listed as removal candidates.
+- Items on the outlet menu with **0 sales in 28 days** are listed as removal candidates, but only when the outlet sold something in that window. Otherwise a new or stock-only outlet would list its whole menu.
 - Items with **no recipe cost** get no class. They are listed under Data Health, because judging them would be guesswork.
 
 ### 6.4 Price check
@@ -265,7 +269,7 @@ Each line shows the change vs the previous window, in value and %. The page stat
 - **Per item, per weekday:** a weighted average of the same weekday over the last 8 weeks (minimum 4). The last 4 weeks count double. With 6 or more weeks, the highest and lowest values are dropped to remove one-off events.
 - **Trend factor** = last 4 weeks ÷ previous 4 weeks, kept between 0.8 and 1.2.
 - **Output:** expected quantity per item per day (top items) and expected sales value per day.
-- **Accuracy:** each day's forecast is stored, and the next runs compare it with actual sales. The page shows "last 7 days: forecasts were within ±X %". This builds trust and shows when not to rely on the prediction.
+- **Accuracy (back-test):** the same rule is run for each of the last 7 days using only the data before that day, and compared with what really sold: error = Σ|forecast − actual| ÷ Σ actual over the 7 days. The page shows "last 7 days: forecasts were within ±X %". It needs no stored forecasts, so it works from the first report, and it shows when not to rely on the prediction.
 - **Suggested purchase:** ingredient need for 7 days = Σ forecast quantity × recipe consumption, plus the average waste %. Then subtract stock now, and add a safety stock of 2 days of usage (a setting). If the result is above 0, it is rounded up to whole purchase units and costed at the latest price.
 - With less than 4 weeks of sales, this section is hidden with the message "needs 4 weeks of sales (you have X days)".
 - Not modelled: holidays, Ramadan and events. The page says so.
@@ -381,7 +385,6 @@ The migration is safe to re-run: `CREATE TABLE IF NOT EXISTS`, `INSERT IGNORE`, 
 |---|---|
 | `tbl_ai_settings` | `company_id` (PK), `enabled`, `monthly_budget_usd`, `target_food_cost_pct` (30), `price_rounding` (0.50), `overbuy_factor` (1.2), `cover_days_limit` (14), `safety_days` (2), `chat_enabled`, `chat_daily_limit` (30), `report_model`, `chat_model`, `updated_by`, `updated_at` |
 | `tbl_ai_snapshots` | `id`, `company_id`, `outlet_id`, `report_date`, `window_days`, `metrics_json` (MEDIUMTEXT), `narrative_json`, `narrative_status` (ok / template / failed), `attempts`, `error`, `created_at`. UNIQUE (`outlet_id`, `report_date`) |
-| `tbl_ai_forecasts` | `outlet_id`, `food_menu_id`, `for_date`, `qty_forecast`, `made_on`, used for the accuracy check |
 | `tbl_ai_chat_sessions` | `id`, `company_id`, `outlet_id`, `user_id`, `questions`, `status`, `created_at` |
 | `tbl_ai_chat_messages` | `id`, `session_id`, `role`, `content_json`, `created_at` |
 | `tbl_ai_usage` | `id`, `company_id`, `outlet_id`, `user_id`, `feature` (report / chat), `model`, `input_tokens`, `cache_read_tokens`, `cache_write_tokens`, `output_tokens`, `cost_usd`, `status`, `request_id`, `created_at` |
@@ -462,8 +465,8 @@ Each phase ends with a check that must pass before the next one starts.
 ### Phase 2: Calculation engine (size L)
 
 1. `Ai_metrics_model`: sections 6.2–6.9 and the trimmed AI JSON (6.10).
-2. **Test data generator** `tools/ai_fixture.php`: a test company and outlet on local `restodb` with 8 weeks of sales (weekday pattern), recipes, purchases, transfers, wastes, adjustments, expenses, payroll and mess. It has known answers: one under-priced item, one over-bought ingredient, one high-waste ingredient, one dog item, one star item.
-3. Test script `tests/ai_metrics_test.php` that checks every expected number.
+2. **Test data generator** `tests/ai/fixture.php` (spec in `tests/ai/fixture_spec.php`): a test company and outlet on local `restodb` with 8 weeks of sales (weekday pattern), recipes, purchases, transfers, wastes, adjustments, expenses, payroll and mess. It has known answers: one under-priced item, one over-bought ingredient, one high-waste ingredient, one dog item, one star item.
+3. Test script `tests/ai/metrics_test.php` that checks every expected number.
 4. Each function compared once against the existing reports: food sales report, inventory report, and P&L after the F1 sync.
 
 **Done when:** all fixture checks pass; the stock figures match `inventoryReport.php`; differences from the old P&L are only the deliberate ones in 6.6.
@@ -472,8 +475,7 @@ Each phase ends with a check that must pass before the next one starts.
 
 1. `Ai_cron run` runs every hour. For each enabled company, when its local time is past 03:00 and today's snapshot is missing (or failed with fewer than 3 attempts), it builds the snapshot for each active outlet and then the narrative.
 2. `Ai_narrator`: prompt, schema, validation (7.1), template fallback.
-3. The forecast store and the accuracy check (6.7).
-4. `Ai_cron status`: a CLI summary of the last runs, for support.
+3. `Ai_cron status`: a CLI summary of the last runs, for support.
 
 **Done when:** a mock run fills snapshots for the fixture outlet; one live run produces a narrative that passes the number check; killing the run halfway and re-running completes without duplicates; the cost per outlet is logged and close to 7.3.
 
@@ -591,3 +593,34 @@ The AI is only as good as the data. Before go-live, and every day after:
 - Without login, every AI page redirects to the login page.
 
 **Not yet click-tested in a browser:** the sidebar menu, the AI Companies save, and the Test connection button (needs a logged-in session).
+
+### Phase 2: built 30 Oct 2026
+
+**Built**
+- `Ai_metrics_model::build($company_id, $outlet_id, $today, $settings)` returns every number of the page for one outlet in about 0.3–0.4 s:
+  - `itemSales()`: net line revenue after the bill-discount and VAT shares; complimentary lines, free items and staff meals count as giveaways.
+  - `menuPerformance()`: star / plowhorse / puzzle / dog, plus items never sold.
+  - `priceCheck()`: uses the outlet price; band; suggested price rounded up; 28-day impact.
+  - `purchaseUsage()`: purchased, used (POS + modifiers + mess), wasted, transfers in and out, shrinkage, stock, days of cover, over-purchase, high waste.
+  - `profitLoss()`: as in 6.6.
+  - `forecast()`: next 7 days, back-test accuracy, suggested purchase.
+  - `issues()`: top 5, one per item or ingredient.
+  - `aiPayload()`: the trimmed JSON for the model.
+  - 7-day versions of the menu, purchase and P&L blocks.
+- Test data and test: `tests/ai/fixture_spec.php`, `tests/ai/fixture.php create|remove` (company "AI Fixture Cafe (test)" on the local database only; refuses database names containing "prod"), `tests/ai/metrics_test.php`, and `tests/ai/bootstrap.php` (boots CodeIgniter from the command line for tests).
+
+**Deviations from the plan**
+- Forecast accuracy is a back-test, not stored forecasts (6.7), so `tbl_ai_forecasts` was removed from the migration. It existed only on local `restodb` and was dropped there.
+- Fixture and test live in `tests/ai/`, not `tools/`.
+- "Never sold" items are listed only when the outlet sold something in the window (6.3).
+- Modifier revenue is not split per item (6.2).
+- New findings F18 (combo with a resale item records no stock use) and F19 (names saved HTML-escaped) in section 4.
+
+**Tested**
+- `tests/ai/metrics_test.php`: **158 passed, 0 failed**. The expected numbers come from the spec with plain PHP and are compared with the engine's SQL results. Covered: paid quantity and net revenue per item (incl. a 10 % bill discount, a complimentary line, a staff meal, a bill with tips, and a refund), plate costs (recipe, combo, resale), the menu classes, the price bands, suggested prices and impact, stock / use / purchase per ingredient, over-purchase, high waste, shrinkage, transfers, P&L for both windows (VAT inclusive, tips left out, mess payments − refunds, salary not counted twice), the 7-day forecast and back-test, the top 5 order, Data Health and gates, the warehouse outlet, payload size (about 2,100 tokens) with no notes or key, and build() on every other local outlet.
+- Against the existing reports on local company 1 and on the fixture:
+  - The food sales report quantity per item equals the engine's.
+  - Sales and VAT equal the old P&L's.
+  - The POS food cost equals the old P&L's (after the F1 sync).
+  - The net-profit difference is exactly mess revenue − mess food cost − tips − salaries the old report never saw (company 1: −7590.72 → −6522.82).
+- On the 24 Oct production copy: no errors; with no sales, the top 5 stays empty instead of listing all 186 menus for removal.
