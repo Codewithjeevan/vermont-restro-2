@@ -43,67 +43,7 @@ $saved_settings = (array) $CI->Ai_model->getSettings($company_id);
 $db->update('tbl_ai_settings', array('enabled' => 1, 'monthly_budget_usd' => 5), array('company_id' => $company_id));
 $db->query("DELETE FROM tbl_ai_snapshots WHERE company_id = ?", array($company_id));
 
-/* ---------- sessions: CI database driver, PHP "key|serialized" format ---------- */
-function sess_decode($data) {
-    $out = array();
-    $p = 0;
-    while ($p < strlen($data)) {
-        $bar = strpos($data, '|', $p);
-        $key = substr($data, $p, $bar - $p);
-        $value = @unserialize(substr($data, $bar + 1));
-        $len = strlen(serialize($value));
-        if (substr($data, $bar + 1, $len) !== serialize($value)) {
-            exit("Cannot read the session row near key $key\n");
-        }
-        $out[$key] = $value;
-        $p = $bar + 1 + $len;
-    }
-    return $out;
-}
-function sess_encode($arr) {
-    $s = '';
-    foreach ($arr as $k => $v) {
-        $s .= $k . '|' . serialize($v);
-    }
-    return $s;
-}
-$host = parse_url($base, PHP_URL_HOST);
-$jars = array();
-function make_session($name, $changes) {
-    global $db, $template_row, $host, $jars;
-    $s = array_merge(sess_decode($template_row), $changes, array('ai_page_test' => 1));
-    unset($s['__ci_vars'], $s['exception'], $s['exception_er'], $s['exception_2'], $s['ai_csrf']);
-    $id = bin2hex(random_bytes(16));
-    $db->insert('tbl_sessions', array('id' => $id, 'ip_address' => '127.0.0.1', 'timestamp' => time(), 'data' => sess_encode($s)));
-    $jar = tempnam(sys_get_temp_dir(), 'aijar');
-    file_put_contents($jar, "$host\tFALSE\t/\tFALSE\t0\tsess\t$id\n");
-    $jars[$name] = $jar;
-}
-function http($who, $method, $path, $post = null, $headers = array()) {
-    global $base, $jars;
-    $ch = curl_init(strpos($path, 'http') === 0 ? $path : $base . $path);
-    curl_setopt_array($ch, array(CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_COOKIEFILE => $jars[$who], CURLOPT_COOKIEJAR => $jars[$who], CURLOPT_TIMEOUT => 120, CURLOPT_HTTPHEADER => $headers));
-    if ($method == 'POST') {
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query((array) $post));
-    }
-    $resp = (string) curl_exec($ch);
-    $size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    $head = substr($resp, 0, $size);
-    preg_match('/^Location:\s*(\S+)/mi', $head, $loc);
-    return array('code' => $code, 'location' => isset($loc[1]) ? $loc[1] : '', 'body' => substr($resp, $size));
-}
-/** POST, then follow the redirect: returns the page that shows the flash message */
-function post_follow($who, $path, $post, $headers = array()) {
-    $r = http($who, 'POST', $path, $post, $headers);
-    return $r['location'] ? http($who, 'GET', $r['location']) + array('first' => $r) : $r + array('first' => $r);
-}
-function token($body) {
-    return preg_match('/name="ai_csrf" value="([0-9a-f]{64})"/', $body, $t) ? $t[1] : '';
-}
+require __DIR__ . '/web.php';
 /**
  * The page rendered here in the CLI, where every notice or warning counts (production
  * hides them on the web, so a missing variable would only show as an empty section).
@@ -122,7 +62,9 @@ function strict_render($outlet_id, $days, $view = 'ai_insight/index') {
     });
     $CI->load->clear_vars();
     if ($view == 'ai_insight/index') {
-        $data = $R->pageData($company_id, $outlet_id, $days) + array('can_regenerate' => true);
+        $CI->load->library('Ai/Ai_chat', null, 'Ai_chat');
+        $data = $R->pageData($company_id, $outlet_id, $days)
+            + array('can_regenerate' => true, 'chat' => $CI->Ai_chat->panelData($company_id, $outlet_id, 1));
     } else {
         $data = array('settings' => $CI->Ai_model->getSettings($company_id), 'steps' => ai_config('ai_rounding_steps'), 'currency' => 'AED');
     }
@@ -133,9 +75,6 @@ function strict_render($outlet_id, $days, $view = 'ai_insight/index') {
 function strict_ok($label, $outlet_id, $days = 28, $view = 'ai_insight/index') {
     list($html, $errors) = strict_render($outlet_id, $days, $view);
     ok(!$errors && strlen($html) > 1000, "$label: renders with no PHP notice" . ($errors ? ': ' . implode(' | ', array_slice(array_unique($errors), 0, 4)) : ''));
-}
-function redirect_to($r, $where) {
-    return in_array($r['code'], array(302, 303, 307)) && strpos($r['location'], $where) !== false;
 }
 function h4_order($body, $labels) {
     $last = -1;

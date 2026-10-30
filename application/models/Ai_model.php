@@ -48,7 +48,7 @@ class Ai_model extends CI_Model {
     /**
      * Main-admin values of one company (AI Companies page). Values must already be validated.
      * @param int $company_id
-     * @param array $values enabled, monthly_budget_usd, report_model, chat_model
+     * @param array $values enabled, monthly_budget_usd, report_model, chat_model, chat_enabled, chat_daily_limit
      * @param int $user_id
      */
     public function saveCompanySwitch($company_id, $values, $user_id) {
@@ -59,6 +59,8 @@ class Ai_model extends CI_Model {
             'monthly_budget_usd' => $values['monthly_budget_usd'],
             'report_model' => $values['report_model'],
             'chat_model' => $values['chat_model'],
+            'chat_enabled' => $values['chat_enabled'] ? 1 : 0,
+            'chat_daily_limit' => (int) $values['chat_daily_limit'],
             'updated_by' => (int) $user_id,
             'updated_at' => date('Y-m-d H:i:s'),
         ));
@@ -114,7 +116,7 @@ class Ai_model extends CI_Model {
         $month_start = date('Y-m-01 00:00:00');
         return $this->db->query("SELECT c.id, c.business_name,
                 (SELECT COUNT(*) FROM tbl_outlets o WHERE o.company_id = c.id AND o.del_status = 'Live') AS outlets,
-                s.enabled, s.monthly_budget_usd, s.report_model, s.chat_model,
+                s.enabled, s.monthly_budget_usd, s.report_model, s.chat_model, s.chat_enabled, s.chat_daily_limit,
                 (SELECT COALESCE(SUM(u.cost_usd), 0) FROM tbl_ai_usage u WHERE u.company_id = c.id AND u.created_at >= ?) AS spent,
                 (SELECT COUNT(*) FROM tbl_ai_usage u WHERE u.company_id = c.id AND u.created_at >= ? AND u.status <> 'blocked') AS calls
             FROM tbl_companies c

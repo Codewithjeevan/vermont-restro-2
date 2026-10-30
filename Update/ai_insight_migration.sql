@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS tbl_ai_chat_messages (
   session_id INT NOT NULL,
   role VARCHAR(10) NOT NULL COMMENT 'user / assistant',
   content_json MEDIUMTEXT NOT NULL,
+  display_text TEXT NULL COMMENT 'set on the rows shown in the chat panel: the question and the final answer',
   created_at DATETIME NULL,
   PRIMARY KEY (id),
   KEY ix_ai_chat_session (session_id)
@@ -125,6 +126,10 @@ CREATE TABLE IF NOT EXISTS tbl_ai_cron_log (
 -- Columns added after the first version of this file (for databases that already ran it).
 SET @ai_sql = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tbl_ai_snapshots' AND column_name = 'regen_count') = 0,
   'ALTER TABLE tbl_ai_snapshots ADD COLUMN regen_count INT NOT NULL DEFAULT 0 AFTER attempts', 'SELECT 1');
+PREPARE ai_stmt FROM @ai_sql; EXECUTE ai_stmt; DEALLOCATE PREPARE ai_stmt;
+
+SET @ai_sql = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tbl_ai_chat_messages' AND column_name = 'display_text') = 0,
+  'ALTER TABLE tbl_ai_chat_messages ADD COLUMN display_text TEXT NULL AFTER content_json', 'SELECT 1');
 PREPARE ai_stmt FROM @ai_sql; EXECUTE ai_stmt; DEALLOCATE PREPARE ai_stmt;
 
 -- Indexes for the analysis queries (they also speed up the existing reports).

@@ -67,6 +67,18 @@ $config['ai_timeout_report'] = 90;   // seconds
 $config['ai_timeout_chat'] = 30;     // seconds
 $config['ai_max_retries'] = 2;       // SDK retries 408/409/429/5xx and connection errors
 
+// Ask AI chat (plan 7.2); the daily questions per user are tbl_ai_settings.chat_daily_limit
+$config['ai_chat'] = array(
+    'question_chars' => 500,         // longest question
+    'tool_calls' => 4,               // tool calls per question
+    'max_tokens' => 1200,            // per answer, thinking included
+    'effort' => 'low',
+    'questions_per_chat' => 10,      // then "Start a new chat" (history is never trimmed)
+    'answer_chars' => 3000,          // longest answer kept
+    'range_days' => 92,              // longest date range a tool accepts
+    'rows' => 20,                    // most rows a list tool returns
+);
+
 // Data Health thresholds (docs/ai_insight_plan.md section 6.9)
 $config['ai_health'] = array(
     'window_days' => 28,

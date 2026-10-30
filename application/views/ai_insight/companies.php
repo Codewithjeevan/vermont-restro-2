@@ -44,6 +44,8 @@
                         <th><?php echo lang('ai_monthly_limit'); ?></th>
                         <th><?php echo lang('ai_report_model'); ?></th>
                         <th><?php echo lang('ai_chat_model'); ?></th>
+                        <th class="text-center"><?php echo lang('ai_ask'); ?></th>
+                        <th><?php echo lang('ai_chat_daily'); ?></th>
                         <th class="text-end"><?php echo lang('ai_spent_this_month'); ?></th>
                         <th class="text-end"><?php echo lang('ai_calls_this_month'); ?></th>
                         <th></th>
@@ -82,6 +84,13 @@
                                         <option value="<?php echo escape_output($id); ?>" <?php echo $c->chat_model == $id ? 'selected' : ''; ?>><?php echo escape_output($label); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                            </td>
+                            <td class="text-center">
+                                <input type="checkbox" name="chat_enabled" value="1" form="<?php echo $form_id; ?>" <?php echo (int) $c->chat_enabled ? 'checked' : ''; ?>>
+                            </td>
+                            <td>
+                                <input type="number" step="1" min="0" max="200" name="chat_daily_limit" form="<?php echo $form_id; ?>"
+                                       class="form-control ai-input-sm" value="<?php echo (int) $c->chat_daily_limit; ?>">
                             </td>
                             <td class="text-end"><?php echo escape_output(number_format((float) $c->spent, 4)); ?></td>
                             <td class="text-end"><?php echo (int) $c->calls; ?></td>

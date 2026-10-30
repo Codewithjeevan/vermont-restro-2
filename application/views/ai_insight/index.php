@@ -34,6 +34,9 @@ $js_ver = @filemtime(FCPATH . 'frequent_changing/js/ai_insight.js');
                     <a href="<?php echo base_url(); ?>Ai_insight/index/7" class="<?php echo $days == 7 ? 'active' : ''; ?>"><?php echo lang('ai_period_7'); ?></a>
                 </div>
             <?php endif; ?>
+            <?php if ($chat): ?>
+                <button type="button" class="btn ai-btn-light" data-chat-open><?php echo lang('ai_ask'); ?></button>
+            <?php endif; ?>
             <?php if ($can_regenerate): ?>
                 <?php echo form_open(base_url('Ai_insight/regenerate'), array('class' => 'd-inline ai-regen-form')); ?>
                     <?php echo ai_csrf_field(); ?>
@@ -136,5 +139,8 @@ $js_ver = @filemtime(FCPATH . 'frequent_changing/js/ai_insight.js');
     <?php endif; ?>
 
     <?php $this->load->view('ai_insight/_health'); ?>
+    <?php if ($chat): ?>
+        <?php $this->load->view('ai_insight/_chat'); ?>
+    <?php endif; ?>
 </section>
 <script src="<?php echo base_url(); ?>frequent_changing/js/ai_insight.js?v=<?php echo (int) $js_ver; ?>"></script>
