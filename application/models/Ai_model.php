@@ -65,6 +65,48 @@ class Ai_model extends CI_Model {
     }
 
     /**
+     * Company values of the AI Settings page. Values must already be validated.
+     * @param int $company_id
+     * @param array $values target_food_cost_pct, price_rounding, overbuy_factor, cover_days_limit, safety_days
+     * @param int $user_id
+     */
+    public function saveCompanySettings($company_id, $values, $user_id) {
+        $this->getSettings($company_id);
+        $this->db->where('company_id', (int) $company_id);
+        $this->db->update('tbl_ai_settings', array(
+            'target_food_cost_pct' => $values['target_food_cost_pct'],
+            'price_rounding' => $values['price_rounding'],
+            'overbuy_factor' => $values['overbuy_factor'],
+            'cover_days_limit' => $values['cover_days_limit'],
+            'safety_days' => $values['safety_days'],
+            'updated_by' => (int) $user_id,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ));
+    }
+
+    /**
+     * Newest report of the outlet that has its numbers, made on or before $date.
+     * @param int $outlet_id
+     * @param string $date Y-m-d
+     * @return object|null
+     */
+    public function latestSnapshot($outlet_id, $date) {
+        return $this->db->query("SELECT * FROM tbl_ai_snapshots WHERE outlet_id = ? AND report_date <= ? AND metrics_json IS NOT NULL
+            ORDER BY report_date DESC LIMIT 1", array((int) $outlet_id, $date))->row();
+    }
+
+    /**
+     * Regenerate clicks already used for the outlet on $date.
+     * @param int $outlet_id
+     * @param string $date Y-m-d
+     * @return int
+     */
+    public function regenCount($outlet_id, $date) {
+        return (int) $this->db->query("SELECT regen_count FROM tbl_ai_snapshots WHERE outlet_id = ? AND report_date = ?",
+            array((int) $outlet_id, $date))->row('regen_count');
+    }
+
+    /**
      * Every live company with its AI settings and this month's usage, for the AI Companies page.
      * @return array
      */

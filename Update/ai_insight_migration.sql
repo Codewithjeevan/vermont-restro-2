@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS tbl_ai_snapshots (
   narrative_json MEDIUMTEXT NULL COMMENT 'AI text, validated against metrics_json',
   narrative_status VARCHAR(10) NOT NULL DEFAULT 'pending' COMMENT 'pending / ok / template / failed',
   attempts INT NOT NULL DEFAULT 0,
+  regen_count INT NOT NULL DEFAULT 0 COMMENT 'Regenerate clicks on this day (limit 3 per outlet per day)',
   error VARCHAR(500) NULL,
   created_at DATETIME NULL,
   updated_at DATETIME NULL,
@@ -120,6 +121,11 @@ CREATE TABLE IF NOT EXISTS tbl_ai_cron_log (
   message TEXT NULL,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB;
+
+-- Columns added after the first version of this file (for databases that already ran it).
+SET @ai_sql = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tbl_ai_snapshots' AND column_name = 'regen_count') = 0,
+  'ALTER TABLE tbl_ai_snapshots ADD COLUMN regen_count INT NOT NULL DEFAULT 0 AFTER attempts', 'SELECT 1');
+PREPARE ai_stmt FROM @ai_sql; EXECUTE ai_stmt; DEALLOCATE PREPARE ai_stmt;
 
 -- Indexes for the analysis queries (they also speed up the existing reports).
 -- MySQL has no ADD INDEX IF NOT EXISTS, so each one is created only when missing.

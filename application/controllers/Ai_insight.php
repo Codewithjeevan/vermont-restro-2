@@ -3,11 +3,13 @@
   ###########################################################
   # This is Ai_insight Controller
   ###########################################################
-  # AI Insight page of the selected outlet (data health now;
-  # menu, price, purchase, P&L, prediction and top 5 once the
-  # daily report runs) and the AI Companies page where the main
-  # admin switches AI on per company and sets the monthly limit.
-  # Plan: docs/ai_insight_plan.md
+  # AI Insight page of the selected outlet: the latest daily
+  # report (top 5, menu, price, purchase vs usage, P&L,
+  # prediction) and live Data Health; the Regenerate button;
+  # the company's AI Settings; and the AI Companies page where
+  # the main admin switches AI on per company and sets the
+  # monthly limit. The page never calls the AI itself, only
+  # Regenerate does. Plan: docs/ai_insight_plan.md
   ###########################################################
  */
 defined('BASEPATH') OR exit('No direct script access allowed');
@@ -52,6 +54,9 @@ class Ai_insight extends Cl_Controller {
         }
         $map = array(
             'index' => array(self::ACCESS_INSIGHT, 'view'),
+            'regenerate' => array(self::ACCESS_INSIGHT, 'regenerate'),
+            'settings' => array(self::ACCESS_SETTINGS, 'update'),
+            'saveSettings' => array(self::ACCESS_SETTINGS, 'update'),
         );
         if (in_array($segment_2, $this->main_admin_methods)) {
             if (!ai_is_main_admin()) {
@@ -113,12 +118,85 @@ class Ai_insight extends Cl_Controller {
      * AI Insight page of the selected outlet
      * ================================================================= */
 
-    public function index() {
-        $today = $this->Ai_metrics_model->companyToday($this->company_id);
-        $data = array();
-        $data['health'] = $this->Ai_metrics_model->dataHealth($this->company_id, $this->outlet_id, $today);
-        $data['checked_at'] = date('Y-m-d H:i');
+    /**
+     * @param int $days 28 (default) or 7: the period of the menu, purchase and P&L tables
+     */
+    public function index($days = 28) {
+        $this->load->library('Ai/Ai_report', null, 'Ai_report');
+        $data = $this->Ai_report->pageData($this->company_id, $this->outlet_id, $days);
+        $data['can_regenerate'] = checkAccess(self::ACCESS_INSIGHT, 'regenerate');
         $this->render('ai_insight/index', $data);
+    }
+
+    /** today's report of the session outlet again (permission 440, ai_regen_per_day per outlet per day) */
+    public function regenerate() {
+        $back = 'Ai_insight/index' . ((int) $this->input->post('days') === 7 ? '/7' : '');
+        if ($this->input->method() !== 'post' || !ai_csrf_ok()) {
+            $this->back($back, lang('ai_invalid_request'));
+        }
+        @set_time_limit(300);
+        ignore_user_abort(true);
+        $this->load->library('Ai/Ai_report', null, 'Ai_report');
+        try {
+            $r = $this->Ai_report->regenerate($this->company_id, $this->outlet_id, $this->user_id);
+        } catch (Throwable $e) {
+            log_message('error', 'AI regenerate outlet ' . $this->outlet_id . ': ' . ai_redact($e->getMessage()));
+            $this->back($back, lang('ai_error_generic'));
+        }
+        if ($r['action'] == 'busy') {
+            $this->back($back, lang('ai_regen_busy'));
+        }
+        if ($r['action'] == 'limit') {
+            $this->back($back, sprintf(lang('ai_regen_limit'), (int) ai_config('ai_regen_per_day')));
+        }
+        $this->back($back, '', $r['status'] == 'ok' ? lang('ai_regen_done') : lang('ai_regen_done_standard'));
+    }
+
+    /* =================================================================
+     * AI Settings of the company (permission 441)
+     * ================================================================= */
+
+    public function settings() {
+        $data = array();
+        $data['settings'] = $this->Ai_model->getSettings($this->company_id);
+        $data['steps'] = ai_config('ai_rounding_steps');
+        $data['currency'] = $this->Ai_metrics_model->companyInfo($this->company_id)->currency;
+        $this->render('ai_insight/settings', $data);
+    }
+
+    public function saveSettings() {
+        if ($this->input->method() !== 'post' || !ai_csrf_ok()) {
+            $this->back('Ai_insight/settings', lang('ai_invalid_request'));
+        }
+        $number = function ($name, $min, $max, $whole) {
+            $v = trim((string) $this->input->post($name));
+            if (!is_numeric($v) || ($whole && !ctype_digit($v)) || $v < $min || $v > $max) {
+                return null;
+            }
+            return $whole ? (int) $v : round((float) $v, 2);
+        };
+        $values = array(
+            'target_food_cost_pct' => $number('target_food_cost_pct', 15, 60, false),
+            'overbuy_pct' => $number('overbuy_pct', 5, 200, true),
+            'cover_days_limit' => $number('cover_days_limit', 3, 60, true),
+            'safety_days' => $number('safety_days', 0, 7, true),
+            'price_rounding' => null,
+        );
+        $rounding = (float) $this->input->post('price_rounding');
+        foreach (ai_config('ai_rounding_steps') as $step) {
+            if (abs($rounding - $step) < 0.0001) {
+                $values['price_rounding'] = $step;
+            }
+        }
+        if (in_array(null, $values, true)) {
+            $this->back('Ai_insight/settings', lang('ai_settings_invalid'));
+        }
+        $values['overbuy_factor'] = round(1 + $values['overbuy_pct'] / 100, 2);
+        $this->Ai_model->saveCompanySettings($this->company_id, $values, $this->user_id);
+        putAuditLog($this->user_id, 'AI Insight settings: target food cost ' . $values['target_food_cost_pct'] . '%, rounding ' . $values['price_rounding']
+            . ', over-purchase above ' . $values['overbuy_pct'] . '%, stock cover ' . $values['cover_days_limit'] . ' days, safety ' . $values['safety_days'] . ' days',
+            'AI Insight settings', date('Y-m-d H:i:s'));
+        $this->back('Ai_insight/settings', '', lang('ai_settings_saved'));
     }
 
     /* =================================================================

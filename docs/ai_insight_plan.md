@@ -1,6 +1,6 @@
 # AI Insight: implementation plan
 
-**Date:** 30 Oct 2026 · **Branch:** `feature/ai-insight` from `main` · **Status:** Phases 0–3 built and tested (section 15); Phase 4 next
+**Date:** 30 Oct 2026 · **Branch:** `feature/ai-insight` from `main` · **Status:** Phases 0–4 built and tested (section 15); Phase 5 next
 
 This plan covers the AI Insight page the client asked for: menu performance, price check, purchase vs usage, profit & loss, a 7-day sales prediction, the top 5 improvements, and an "Ask AI" chat. It is written so each phase can be built and tested on its own without redoing earlier work.
 
@@ -154,14 +154,15 @@ Its outlets are ANDAAZE HYDERABAD CAFETERIA (has a kitchen) and WAREHOUSE Zone (
 | `application/third_party/anthropic/` | Its own `composer.json` + `vendor/` with `anthropic-ai/sdk` and `guzzlehttp/guzzle` ^7, loaded only by `Ai_client` |
 | `application/libraries/Ai/Ai_client.php` | Wraps the SDK: budget check before a call, usage log after, timeouts, error mapping, mock mode for tests |
 | `application/libraries/Ai/Ai_narrator.php` | Daily report prompt, JSON schema, output validation, template fallback |
-| `application/libraries/Ai/Ai_report.php` | One outlet's report of the day: numbers → snapshot → text, attempts and retries; the due-companies loop of the cron (also used by the page's Regenerate button) |
+| `application/libraries/Ai/Ai_report.php` | One outlet's report of the day: numbers → snapshot → text, attempts and retries; the due-companies loop of the cron; the page's Regenerate button and the page data |
+| `application/libraries/Ai/Ai_format.php` | Escaped output of every number, amount, change and AI text on the page |
 | `application/libraries/Ai/Ai_chat.php` | Chat loop, tool definitions, tool executor, limits |
 | `application/models/Ai_metrics_model.php` | The calculation engine (section 6) |
 | `application/models/Ai_model.php` | Settings, snapshots, usage, chat storage |
 | `application/controllers/Ai_insight.php` | Page, chat endpoints, regenerate, settings, company switch page |
 | `application/controllers/Ai_cron.php` | CLI only (extends `CI_Controller`, not `Cl_Controller`). Now: `test <company_id>`, `health <company_id> <outlet_id>`. Phase 3 adds `run`, `status` and the optional web trigger |
 | `application/views/ai_insight/*.php` | Page sections, chat panel, settings, data health |
-| `assets/js/ai_insight.js` | Chat panel and section toggles |
+| `frequent_changing/js/ai_insight.js`, `frequent_changing/css/ai_insight.css` | "Show all" rows, Regenerate busy state, chat panel; page styles (next to the other modules' files) |
 | `Update/ai_insight_migration.sql` | Tables, access rows, indexes, one-time cost sync |
 | `application/language/*/*_lang.php` (4 files) | Lang keys |
 | `application/views/userHome.php` | Sidebar menu, in both blocks |
@@ -681,3 +682,33 @@ The AI is only as good as the data. Before go-live, and every day after:
   - Expected cost per outlet: about **$0.75 / month** for a busy outlet, under the 7.3 estimate.
 
 **Live cron line for cPanel (Phase 6 go-live):** `0 * * * * /usr/local/bin/php /home/<account>/public_html/<app>/index.php Ai_cron run >/dev/null 2>&1`
+
+### Phase 4: built 30 Oct 2026
+
+**Built**
+- `Ai_insight/index[/7]`: the latest report of the session outlet, in the planned order: headline + KPI tiles → Top 5 → Menu performance → Price check → Purchase vs usage → P&L → Prediction + suggested purchase → Data Health.
+  - The 7 / 28-day toggle switches the menu, purchase and P&L tables and tiles (price check, top 5 and prediction are always 28 days and say so).
+  - Report line: report date, "figures up to", made at, who wrote the text ("Written by AI" / "Standard text" + the reason in words: monthly limit, AI off, key missing, retrying, still being written). Raw errors stay in the row.
+  - A row with numbers but no text yet gets the template text on the fly. An older report says it is from an earlier day. No report: "made automatically every day after 03:00" + Data Health.
+  - Sections with a blocked or limited gate show what is missing (from the checks the report saw) with links; Data Health at the bottom is checked live.
+  - Stock-only outlets show only the stock sections (headline tiles = bought / used / wasted / extra stock).
+  - Tables longer than 10–12 rows open with "Show all"; single-hue CSS bars (share of sales, food cost with the target line, days of stock with the limit line, the 7 forecast days), status colours always next to a text label.
+- Regenerate (permission 440): POST + form token + same-site check; `GET_LOCK` per outlet ("already being made"); at most `ai_regen_per_day` (3) per outlet per day, counted on the day's row (`tbl_ai_snapshots.regen_count`, new column with a guarded `ALTER` in the migration); then `runOutlet(..., force)`.
+- AI Settings (permission 441, tab + sidebar item): target food cost 15–60 %, price rounding (fixed list), over-purchase 5–200 % above use (stored as the factor), stock cover 3–60 days, safety stock 0–7 days; audit-logged; used from the next report.
+- `Ai_format` library: every value on the page is echoed through it (escape first; AI text allows only `**bold**`, `-` bullets, line breaks). `escape_output()` is not used for numbers because it prints nothing for 0.
+- 149 new lang keys in all four languages (and the unused `ai_reports_coming` removed) (UI labels translated; the report text stays English).
+
+**Deviations from the plan**
+- The page JS lives in `frequent_changing/js/ai_insight.js` (not `assets/js/`), next to the CSS.
+- The page data is assembled in `Ai_report::pageData()` instead of the controller, so the test can render the real page in the CLI.
+
+**Tested**
+- `tests/ai/page_test.php`: **48 passed, 0 failed**, over HTTP against the local site with copies of an Admin session (no real API call):
+  - No snapshot, full snapshot, template-only snapshot (limit reached), pending snapshot, yesterday's snapshot, warehouse, 7-day view.
+  - Every scenario also rendered in the CLI with **any PHP notice = failure** (production hides them; this caught partials that could not see the report's numbers).
+  - A menu named `<script>alert(1)</script> Burger` and an ingredient named `<img src=x onerror=alert(2)>`: never raw in the HTML, shown as text in 4 places.
+  - Regenerate: no token / foreign Origin refused; lock held → "already being made"; clicks 1–4 = done, done, done, limit; button disabled; back to the 7-day view.
+  - View-only role: no Regenerate button, no Settings tab, both URLs refused; another company's outlet in the session → outlet list; company switched off → message only.
+  - Settings: valid values saved; target 99, rounding 0.3, cover 2.5, safety −1, over-purchase "abc" each refused with nothing saved; bad token refused.
+- `metrics_test.php` 158/158 and `narrator_test.php` 32/32 still pass.
+- Headless Chrome at 1366 px and 390 px: no horizontal page scroll (wide tables scroll inside their box), no JS errors.

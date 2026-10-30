@@ -10,6 +10,9 @@ $css_ver = @filemtime(FCPATH . 'frequent_changing/css/ai_insight.css');
 $tabs = array();
 if (ai_company_enabled()) {
     $tabs[] = array('insight', 'view-437', 'Ai_insight/index', lang('ai_insight'));
+    if (checkAccess(441, 'update')) {
+        $tabs[] = array('settings', 'update-441', 'Ai_insight/settings', lang('ai_settings'));
+    }
 }
 if (ai_is_main_admin()) {
     $tabs[] = array('companies', 'view-437', 'Ai_insight/companies', lang('ai_companies'));

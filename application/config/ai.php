@@ -46,6 +46,10 @@ $config['ai_report_hour'] = 3;
 $config['ai_report_max_attempts'] = 3;
 $config['ai_report_max_tokens'] = 8000;
 $config['ai_report_effort'] = 'medium';
+// the page's Regenerate button: clicks per outlet per day (plan S9)
+$config['ai_regen_per_day'] = 3;
+// AI Settings page: price rounding steps offered
+$config['ai_rounding_steps'] = array(0.01, 0.05, 0.10, 0.25, 0.50, 1, 5, 10);
 
 // defaults of a new tbl_ai_settings row
 $config['ai_defaults'] = array(

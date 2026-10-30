@@ -18,7 +18,6 @@ $lang['ai_insight_hint'] = 'Analyse quotidienne de ce point de vente : ce qui se
 $lang['ai_outlet'] = 'Point de vente';
 $lang['ai_not_enabled'] = 'L\'analyse IA n\'est pas activée pour votre société. Contactez votre administrateur.';
 $lang['ai_not_ready'] = 'L\'analyse IA n\'est pas encore installée : exécutez Update/ai_insight_migration.sql.';
-$lang['ai_reports_coming'] = 'La performance du menu, le contrôle des prix, les achats vs consommation, les profits et pertes, la prévision des ventes et les 5 améliorations prioritaires apparaîtront ici dès que le rapport quotidien sera exécuté. Corrigez d\'abord les points rouges ci-dessous : chaque section en dépend.';
 
 // data health
 $lang['ai_data_health'] = 'Qualité des données';
@@ -105,3 +104,168 @@ $lang['ai_key_missing'] = 'Le service IA n\'est pas configuré sur le serveur.';
 $lang['ai_budget_reached'] = 'La limite IA de ce mois pour votre société est atteinte.';
 $lang['ai_disabled_company'] = 'L\'analyse IA est désactivée pour cette société.';
 $lang['ai_error_generic'] = 'Le service IA est injoignable. Les chiffres restent affichés ; réessayez plus tard.';
+
+// report page
+$lang['ai_period_28'] = '28 derniers jours';
+$lang['ai_period_7'] = '7 derniers jours';
+$lang['ai_report_of'] = 'Rapport du %s';
+$lang['ai_figures_to'] = 'chiffres jusqu\'au %s';
+$lang['ai_made_at'] = 'créé le %s';
+$lang['ai_text_ai'] = 'Rédigé par l\'IA';
+$lang['ai_text_ai_partly'] = 'Certaines parties utilisent le texte standard car un chiffre n\'a pas pu être vérifié.';
+$lang['ai_text_standard'] = 'Texte standard';
+$lang['ai_text_pending'] = 'Le texte IA est en cours de rédaction.';
+$lang['ai_text_retry'] = 'Le service IA n\'a pas répondu ; nouvel essai dans l\'heure.';
+$lang['ai_text_unavailable'] = 'Le service IA n\'a pas pu être utilisé pour ce rapport.';
+$lang['ai_regen_left'] = '%s sur %s restants aujourd\'hui';
+$lang['ai_regen_working'] = 'Création du rapport…';
+$lang['ai_regen_busy'] = 'Ce rapport est déjà en cours de création. Attendez une minute puis rechargez la page.';
+$lang['ai_regen_limit'] = 'Un rapport peut être recréé %s fois par jour et par point de vente. Réessayez demain.';
+$lang['ai_regen_done'] = 'Le rapport a été recréé.';
+$lang['ai_regen_done_standard'] = 'Le rapport a été recréé avec le texte standard (le texte IA n\'était pas disponible).';
+$lang['ai_no_report'] = 'Ce point de vente n\'a pas encore de rapport. Les rapports sont créés automatiquement chaque jour après %s:00.';
+$lang['ai_no_report_regen'] = 'Cliquez sur Régénérer le rapport pour créer le premier maintenant.';
+$lang['ai_old_report'] = 'Ceci est le rapport du %s. Le rapport du jour est créé après %s:00.';
+$lang['ai_note_ai'] = 'Note de l\'IA';
+$lang['ai_note_standard'] = 'Résumé';
+$lang['ai_gate_blocked'] = 'Cette section a besoin de plus de données :';
+$lang['ai_gate_limited'] = 'Ces chiffres sont incomplets :';
+$lang['ai_gate_see_health'] = 'Voir Qualité des données ci-dessous.';
+$lang['ai_show_all'] = 'Tout afficher (%s)';
+$lang['ai_show_less'] = 'Afficher moins';
+$lang['ai_vs_prev'] = 'vs la période précédente';
+$lang['ai_against'] = 'contre';
+$lang['ai_new'] = 'Nouveau';
+$lang['ai_days'] = '%s jours';
+$lang['ai_days_unit'] = 'jours';
+$lang['ai_k_yesterday'] = 'Hier';
+$lang['ai_k_orders'] = '%s commandes';
+$lang['ai_k_vs_last_week'] = 'vs le même jour la semaine dernière';
+$lang['ai_k_target'] = 'Objectif %s%%';
+
+// top 5
+$lang['ai_top5'] = '5 améliorations prioritaires';
+$lang['ai_top5_hint'] = 'Classées selon ce que chacune rapporte par mois';
+$lang['ai_top5_none'] = 'Rien d\'urgent n\'a été trouvé sur les 28 derniers jours.';
+$lang['ai_per_month'] = 'environ %s par mois';
+$lang['ai_conf_high'] = 'Confiance élevée';
+$lang['ai_conf_medium'] = 'Confiance moyenne';
+$lang['ai_conf_low'] = 'Confiance faible';
+$lang['ai_it_underpriced'] = 'Prix trop bas';
+$lang['ai_it_loss_item'] = 'Vendu à perte';
+$lang['ai_it_overbuy'] = 'Achat excessif';
+$lang['ai_it_waste'] = 'Pertes élevées';
+$lang['ai_it_discounts'] = 'Remises';
+$lang['ai_it_sales_drop'] = 'Baisse des ventes';
+$lang['ai_it_item_drop'] = 'Article moins vendu';
+$lang['ai_it_expense_jump'] = 'Hausse des dépenses';
+$lang['ai_it_dog_item'] = 'Article faible';
+$lang['ai_it_unsold_item'] = 'Ne se vend pas';
+
+// menu performance
+$lang['ai_c_star'] = 'Populaire, rapporte bien';
+$lang['ai_c_plowhorse'] = 'Populaire, rapporte peu';
+$lang['ai_c_puzzle'] = 'Rapporte bien, se vend peu';
+$lang['ai_c_dog'] = 'Se vend peu, rapporte peu';
+$lang['ai_c_none'] = 'Sans coût de recette';
+$lang['ai_menu_avg_margin'] = 'Marge moyenne par assiette : %s. Chaque article est classé selon sa marge par rapport à cette moyenne et selon sa fréquence de vente.';
+$lang['ai_col_sold'] = 'Vendus';
+$lang['ai_free'] = '+%s offerts';
+$lang['ai_col_share'] = 'Part des ventes';
+$lang['ai_col_avg_price'] = 'Prix moyen';
+$lang['ai_col_plate_cost'] = 'Coût assiette';
+$lang['ai_col_margin'] = 'Marge par assiette';
+$lang['ai_col_total_margin'] = 'Marge totale';
+$lang['ai_col_vs_prev'] = 'vs avant';
+$lang['ai_col_group'] = 'Groupe';
+$lang['ai_unsold'] = 'Non vendus sur la période (%s)';
+
+// price check
+$lang['ai_price_hint'] = 'Coût matière cible %s%%, prix suggérés arrondis au-dessus à %s';
+$lang['ai_b_loss'] = 'Vendu à perte';
+$lang['ai_b_critical'] = 'Au-dessus de 50%';
+$lang['ai_b_high'] = 'Bien au-dessus de l\'objectif';
+$lang['ai_b_watch'] = 'Légèrement au-dessus de l\'objectif';
+$lang['ai_b_good'] = 'Dans l\'objectif';
+$lang['ai_col_price'] = 'Prix';
+$lang['ai_col_net_price'] = 'Prix hors TVA';
+$lang['ai_col_food_cost'] = 'Coût matière';
+$lang['ai_col_status'] = 'Statut';
+$lang['ai_col_sold_28'] = 'Vendus (28 jours)';
+$lang['ai_col_suggested'] = 'Prix suggéré';
+$lang['ai_col_gain'] = 'Gain (28 jours)';
+$lang['ai_price_foot'] = 'Coût matière = coût assiette / prix hors TVA. Le trait foncé sur chaque barre est l\'objectif. Gain = ce que le prix suggéré aurait ajouté sur la même quantité.';
+
+// purchase vs usage
+$lang['ai_t_bought'] = 'Acheté';
+$lang['ai_t_used'] = 'Consommé';
+$lang['ai_t_wasted'] = 'Perdu';
+$lang['ai_t_shrink'] = 'Écarts d\'inventaire';
+$lang['ai_t_excess'] = 'Stock acheté en trop';
+$lang['ai_t_high_waste'] = '%s avec pertes élevées';
+$lang['ai_t_overbought'] = '%s trop achetés';
+$lang['ai_col_ingredient'] = 'Ingrédient';
+$lang['ai_col_bought'] = 'Acheté';
+$lang['ai_col_transfers'] = 'Transferts entrée / sortie';
+$lang['ai_col_used'] = 'Consommé';
+$lang['ai_col_wasted'] = 'Perdu';
+$lang['ai_col_stock_now'] = 'Stock actuel';
+$lang['ai_col_days_cover'] = 'Durée du stock';
+$lang['ai_col_flags'] = 'Alertes';
+$lang['ai_f_overbuy'] = 'Trop acheté';
+$lang['ai_f_waste'] = 'Pertes élevées';
+$lang['ai_f_negative'] = 'Sous zéro';
+$lang['ai_purchase_foot'] = 'Quantités en unité de consommation. Trop acheté = plus de %s jours de stock (le trait foncé sur la barre) ou achat bien supérieur à la consommation et aux pertes.';
+
+// profit & loss
+$lang['ai_col_this'] = 'Cette période';
+$lang['ai_col_prev'] = 'Période précédente';
+$lang['ai_col_change'] = 'Évolution';
+$lang['ai_l_orders'] = 'Commandes';
+$lang['ai_l_gross'] = 'Ventes TTC';
+$lang['ai_l_vat'] = 'TVA';
+$lang['ai_l_tips'] = 'Pourboires (pas un revenu)';
+$lang['ai_l_net_sales'] = 'Ventes nettes';
+$lang['ai_l_mess'] = 'Revenus cantine';
+$lang['ai_l_refunds'] = 'Remboursements';
+$lang['ai_l_food'] = 'Coût matière';
+$lang['ai_l_waste'] = 'Pertes';
+$lang['ai_l_salaries'] = 'Salaires versés';
+$lang['ai_l_expenses'] = 'Dépenses';
+$lang['ai_l_net_profit'] = 'Bénéfice net';
+$lang['ai_l_included'] = 'Déjà déduit des ventes nettes';
+$lang['ai_l_discounts'] = 'Remises';
+$lang['ai_l_complimentary'] = 'Articles offerts';
+$lang['ai_l_staff'] = 'Repas du personnel';
+$lang['ai_l_avg_ticket'] = 'Ticket moyen';
+$lang['ai_pnl_foot'] = 'Le coût matière est le coût recette de ce qui a été vendu, repas de cantine compris. Les salaires sont les paiements de paie de ce point de vente ; les dépenses payées via la paie ne sont pas comptées deux fois.';
+
+// sales prediction
+$lang['ai_forecast_title'] = 'Prévision des ventes : 7 prochains jours';
+$lang['ai_fc_line'] = 'Environ %s articles pour %s sont attendus. Jour le plus chargé : %s.';
+$lang['ai_fc_accuracy'] = 'Sur les 7 derniers jours, la prévision s\'est écartée de %s.';
+$lang['ai_fc_items'] = 'Quantité attendue par article';
+$lang['ai_col_total'] = 'Total';
+$lang['ai_fc_purchase'] = 'Achats suggérés pour les 7 prochains jours';
+$lang['ai_fc_no_purchase'] = 'Le stock disponible couvre les 7 prochains jours.';
+$lang['ai_col_need'] = 'Besoin';
+$lang['ai_col_safety'] = 'Stock de sécurité';
+$lang['ai_col_in_stock'] = 'En stock';
+$lang['ai_col_buy'] = 'Acheter';
+$lang['ai_col_est_cost'] = 'Coût estimé';
+$lang['ai_fc_foot'] = 'Besoin = ventes attendues x quantités des recettes, plus les pertes habituelles. Stock de sécurité = jours de consommation en plus (Paramètres IA). Arrondi à l\'unité d\'achat supérieure.';
+
+// AI Settings
+$lang['ai_settings_hint'] = 'Appliqué à partir du prochain rapport : demain après %s:00, ou cliquez sur Régénérer le rapport dans la page AI Insight.';
+$lang['ai_s_target'] = 'Coût matière cible';
+$lang['ai_s_target_help'] = 'Les articles au-dessus reçoivent un prix suggéré. La plupart des restaurants visent 25-35%.';
+$lang['ai_s_rounding'] = 'Arrondir les prix suggérés à';
+$lang['ai_s_rounding_help'] = 'Par exemple, 0.50 transforme 21.14 en 21.50.';
+$lang['ai_s_overbuy'] = 'Achat excessif quand l\'achat dépasse de plus de';
+$lang['ai_s_overbuy_help'] = 'la consommation et les pertes de la période.';
+$lang['ai_s_cover'] = 'Achat excessif quand le stock dure plus de';
+$lang['ai_s_cover_help'] = 'à la consommation journalière actuelle.';
+$lang['ai_s_safety'] = 'Stock de sécurité dans les achats suggérés';
+$lang['ai_s_safety_help'] = 'Jours de consommation en plus à garder en stock.';
+$lang['ai_settings_saved'] = 'Paramètres IA enregistrés. Ils s\'appliquent à partir du prochain rapport.';
+$lang['ai_settings_invalid'] = 'Vérifiez les valeurs : objectif 15-60%, achat excessif 5-200%, stock 3-60 jours, stock de sécurité 0-7 jours.';

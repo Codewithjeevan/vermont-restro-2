@@ -744,6 +744,8 @@ $user_id = $this->session->userdata('user_id');
                                 <?php if (ai_company_enabled()): ?>
                                 <li data-access="view-437" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/index">
                                         <?php echo lang('ai_insight'); ?></a></li>
+                                <li data-access="update-441" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/settings">
+                                        <?php echo lang('ai_settings'); ?></a></li>
                                 <?php endif; ?>
                                 <?php if (ai_is_main_admin()): ?>
                                 <li data-access="view-437" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/companies">
@@ -1312,6 +1314,8 @@ $user_id = $this->session->userdata('user_id');
                                 <?php if (ai_company_enabled()): ?>
                                 <li data-access="view-437" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/index">
                                         <?php echo lang('ai_insight'); ?></a></li>
+                                <li data-access="update-441" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/settings">
+                                        <?php echo lang('ai_settings'); ?></a></li>
                                 <?php endif; ?>
                                 <?php if (ai_is_main_admin()): ?>
                                 <li data-access="view-437" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/companies">
