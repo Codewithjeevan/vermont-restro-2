@@ -355,10 +355,14 @@ class Purchase extends Cl_Controller {
         if ($latest_purchase_id != $purchase_id) {
             return;
         }
+        // average_consumption_per_unit is what the Profit & Loss report costs food with,
+        // so it moves together with consumption_unit_cost (docs/ai_insight_plan.md F1)
+        $unit_cost = getAmtP($unit_price / $conversion_rate);
         $this->db->where('id', $ingredient_id);
         $this->db->update('tbl_ingredients', array(
             'purchase_price' => $unit_price,
-            'consumption_unit_cost' => getAmtP($unit_price / $conversion_rate),
+            'consumption_unit_cost' => $unit_cost,
+            'average_consumption_per_unit' => $unit_cost,
         ));
     }
      /**

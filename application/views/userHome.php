@@ -733,6 +733,26 @@ $user_id = $this->session->userdata('user_id');
                             </ul>
                         </li>
 
+                        <?php /* AI Insight: shown only for companies switched on, plus the main admin's AI Companies page */ ?>
+                        <?php if (ai_company_enabled() || ai_is_main_admin()): ?>
+                        <li class="treeview menu__cidirp_ai">
+                            <a href="#">
+                                <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-cpu"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+                                <span> <?php echo lang('ai_insight'); ?></span>
+                            </a>
+                            <ul class="treeview-menu">
+                                <?php if (ai_company_enabled()): ?>
+                                <li data-access="view-437" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/index">
+                                        <?php echo lang('ai_insight'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (ai_is_main_admin()): ?>
+                                <li data-access="view-437" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/companies">
+                                        <?php echo lang('ai_companies'); ?></a></li>
+                                <?php endif; ?>
+                            </ul>
+                        </li>
+                        <?php endif; ?>
+
 
                         <li class="treeview menu__cidirp_12irp_12irp_15">
                             <a href="#">
@@ -1280,6 +1300,26 @@ $user_id = $this->session->userdata('user_id');
                                 <?php endif; ?>
                             </ul>
                         </li>
+
+                        <?php /* AI Insight: shown only for companies switched on, plus the main admin's AI Companies page */ ?>
+                        <?php if (ai_company_enabled() || ai_is_main_admin()): ?>
+                        <li class="treeview menu__cidirp_ai">
+                            <a href="#">
+                                <svg  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-cpu"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
+                                <span> <?php echo lang('ai_insight'); ?></span>
+                            </a>
+                            <ul class="treeview-menu">
+                                <?php if (ai_company_enabled()): ?>
+                                <li data-access="view-437" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/index">
+                                        <?php echo lang('ai_insight'); ?></a></li>
+                                <?php endif; ?>
+                                <?php if (ai_is_main_admin()): ?>
+                                <li data-access="view-437" class="menu_assign_class" data-menu__cid="irp_ai"><a href="<?php echo base_url()?>Ai_insight/companies">
+                                        <?php echo lang('ai_companies'); ?></a></li>
+                                <?php endif; ?>
+                            </ul>
+                        </li>
+                        <?php endif; ?>
 
 
                         <li class="treeview menu__cidirp_12irp_12irp_15">

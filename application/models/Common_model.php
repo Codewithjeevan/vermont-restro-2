@@ -29,6 +29,9 @@ class Common_model extends CI_Model {
         if (file_exists(APPPATH . "language/$language/payroll_lang.php")) {
             $this->lang->load("payroll", "$language");
         }
+        if (file_exists(APPPATH . "language/$language/ai_lang.php")) {
+            $this->lang->load("ai", "$language");
+        }
         $this->config->set_item('language', $language);
     }
     /**

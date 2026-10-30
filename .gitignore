@@ -3,6 +3,9 @@ application/config/database.php
 application/config/stripe.php
 application/config/paypal.php
 
+# Secrets read by ai_env() (Anthropic API key etc.) - template: application/.env.example
+.env
+
 # Hosting/environment artifacts
 error_log
 .well-known/

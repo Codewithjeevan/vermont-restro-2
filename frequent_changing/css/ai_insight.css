@@ -1,0 +1,235 @@
+/* =====================================================================
+   AI Insight module. Admin pages only, scoped with .ai-*
+   Same look as the Payroll and Mess modules: white boxes, #7367f0 accent.
+   ===================================================================== */
+:root {
+  --ai-accent: #7367f0;
+  --ai-accent-soft: rgba(115, 103, 240, 0.12);
+  --ai-text: #5e5873;
+  --ai-muted: #8a8698;
+  --ai-line: #ebe9f1;
+  --ai-bg-soft: #f8f7fa;
+  --ai-green: #1f9d55;
+  --ai-green-soft: #e3f6ea;
+  --ai-amber: #b7791f;
+  --ai-amber-soft: #fdf3dc;
+  --ai-red: #d63939;
+  --ai-red-soft: #fce8e8;
+  --ai-grey: #8a8698;
+  --ai-grey-soft: #eeedf2;
+}
+
+/* ---------- page header + tabs ---------- */
+.ai-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.ai-head h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ai-text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ai-head .ai-sub {
+  color: var(--ai-muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.ai-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ai-outlet {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ai-accent);
+  background: var(--ai-accent-soft);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.ai-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  margin: 0 0 14px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.05);
+}
+.ai-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  color: var(--ai-text);
+  font-weight: 500;
+  text-decoration: none;
+}
+.ai-tab:hover {
+  background: var(--ai-bg-soft);
+  color: var(--ai-accent);
+}
+.ai-tab.active {
+  background: var(--ai-accent);
+  color: #fff;
+}
+
+/* ---------- notices ---------- */
+.ai-notice {
+  background: var(--ai-accent-soft);
+  border: 1px dashed rgba(115, 103, 240, 0.45);
+  color: var(--ai-text);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.ai-keyline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--ai-text);
+}
+.ai-muted {
+  color: var(--ai-muted);
+  font-size: 12.5px;
+}
+.ai-mb {
+  margin-bottom: 10px;
+}
+
+/* ---------- sections ---------- */
+.ai-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ai-section-head h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ai-text);
+}
+.ai-subhead {
+  margin: 18px 0 8px;
+  font-weight: 600;
+  color: var(--ai-text);
+}
+
+/* ---------- section gates ---------- */
+.ai-gates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.ai-gate {
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 4px 10px;
+}
+.ai-gate.is-ready {
+  background: var(--ai-green-soft);
+  color: var(--ai-green);
+}
+.ai-gate.is-limited {
+  background: var(--ai-amber-soft);
+  color: var(--ai-amber);
+}
+.ai-gate.is-blocked {
+  background: var(--ai-red-soft);
+  color: var(--ai-red);
+}
+
+/* ---------- table ---------- */
+.ai-table {
+  margin-bottom: 0;
+}
+.ai-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ai-muted);
+  white-space: nowrap;
+}
+.ai-table td {
+  vertical-align: top;
+  color: var(--ai-text);
+  font-size: 13px;
+}
+.ai-table-sm td,
+.ai-table-sm th {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.ai-neg {
+  color: var(--ai-red);
+  font-weight: 600;
+}
+.ai-link {
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--ai-accent);
+}
+.ai-chip {
+  display: inline-block;
+  font-size: 11.5px;
+  background: var(--ai-bg-soft);
+  border: 1px solid var(--ai-line);
+  border-radius: 12px;
+  padding: 1px 8px;
+  margin: 0 4px 4px 0;
+  white-space: nowrap;
+}
+.ai-input-sm {
+  max-width: 110px;
+}
+.ai-input-md {
+  min-width: 150px;
+}
+
+/* ---------- status ---------- */
+.ai-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: var(--ai-grey);
+}
+.ai-dot.is-good { background: var(--ai-green); }
+.ai-dot.is-watch { background: var(--ai-amber); }
+.ai-dot.is-missing { background: var(--ai-red); }
+.ai-status {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 1px 8px;
+  margin-top: 3px;
+  background: var(--ai-grey-soft);
+  color: var(--ai-grey);
+}
+.ai-status.is-good { background: var(--ai-green-soft); color: var(--ai-green); }
+.ai-status.is-watch { background: var(--ai-amber-soft); color: var(--ai-amber); }
+.ai-status.is-missing { background: var(--ai-red-soft); color: var(--ai-red); }
+
+[dir="rtl"] .ai-dot {
+  margin-right: 0;
+  margin-left: 6px;
+}
