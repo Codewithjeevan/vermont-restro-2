@@ -14,7 +14,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <h2 class="top-left-header"><?php echo lang('ingredients'); ?> </h2>
-                    <input type="hidden" class="datatable_name" data-title="<?php echo lang('ingredients'); ?>" data-id_name="datatable">
+                    <input type="hidden" class="datatable_name" data-keep_state="yes" data-title="<?php echo lang('ingredients'); ?>" data-id_name="datatable">
                 </div>
                 <div class="col-md-offset-2 col-md-4">
                     
