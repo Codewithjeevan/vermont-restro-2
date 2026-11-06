@@ -2627,6 +2627,398 @@ FROM tbl_food_menus_ingredients i  LEFT JOIN (select * from tbl_ingredients wher
         $result = $query_result->result();
         return $result;
     }
+    /**
+     * date filter used by sales summary report (same rule as Detailed Sale Report)
+     * @access private
+     * @return void
+     * @param string
+     * @param string
+     * @param string
+     */
+    private function salesSummaryDateWhere($start_date, $end_date, $column) {
+        if ($start_date != '' && $end_date != '') {
+            $this->db->where($column.' >=', $start_date);
+            $this->db->where($column.' <=', $end_date);
+        }
+        if ($start_date != '' && $end_date == '') {
+            $this->db->where($column, $start_date);
+        }
+        if ($start_date == '' && $end_date != '') {
+            $this->db->where($column, $end_date);
+        }
+    }
+    /**
+     * group of a payment method for sales summary report
+     * @access public
+     * @return string card|cash|online|other
+     * @param string
+     */
+    public function salesSummaryPaymentGroup($payment_name) {
+        $name = strtolower(trim($payment_name));
+        if (strpos($name, 'card') !== false) {
+            return 'card';
+        }
+        if (strpos($name, 'cash') !== false) {
+            return 'cash';
+        }
+        foreach (array('talabat', 'keeta', 'noon', 'smiles', 'deliveroo') as $platform) {
+            if (strpos($name, $platform) !== false) {
+                return 'online';
+            }
+        }
+        return 'other';
+    }
+    private $ssr_company = null;
+    /**
+     * amount for sales summary report, shown exactly as saved (no round off), never less decimals than company precision
+     * @access public
+     * @return string
+     * @param float
+     */
+    public function salesSummaryAmount($amount) {
+        if ($this->ssr_company === null) {
+            $this->ssr_company = getCompanyInfo();
+        }
+        $company = $this->ssr_company;
+        $precision = isset($company->precision) && is_numeric($company->precision) ? (int)$company->precision : 2;
+        $decimals_separator = isset($company->decimals_separator) && $company->decimals_separator ? $company->decimals_separator : '.';
+        $thousands_separator = isset($company->thousands_separator) && $company->thousands_separator ? $company->thousands_separator : '';
+        //sale amounts are saved with up to 4 decimals, so 4 decimals keep every saved digit
+        $text = number_format(abs((float)$amount), 4, '.', '');
+        $parts = explode('.', $text);
+        $fraction = rtrim($parts[1], '0');
+        if (strlen($fraction) < $precision) {
+            $fraction = str_pad($fraction, $precision, '0');
+        }
+        $result = number_format((float)$parts[0], 0, '', $thousands_separator);
+        if ($fraction !== '') {
+            $result .= $decimals_separator.$fraction;
+        }
+        $is_negative = (float)$amount < 0 && (float)$text != 0;
+        return ($is_negative ? '-' : '').$result;
+    }
+    /**
+     * sales summary report: payment method summary, total checks, issues and daily reconciliation
+     * every amount is used exactly as saved, nothing is rounded off
+     * @access public
+     * @return array|false
+     * @param string
+     * @param string
+     * @param int
+     * @param boolean total items of every invoice (only Invoice Detail Report needs it)
+     */
+    public function salesSummaryReport($start_date = '', $end_date = '', $outlet_id = '', $with_items = false) {
+        if (!$start_date && !$end_date) {
+            return false;
+        }
+        //only to ignore binary float noise of php sums, far below any saved decimal
+        $epsilon = 0.000001;
+        $is_zero = function ($value) use ($epsilon) {
+            return abs($value) < $epsilon;
+        };
+        //exact sum of a float column in database, same digits php gets for every row
+        $exact_sum = function ($column) {
+            return "SUM(CAST(CAST(".$column." AS CHAR) AS DECIMAL(20,6)))";
+        };
+        //same rule as POS: tax is added on top of the bill only for tax_type 1, otherwise it is already inside the item price
+        $company = getCompanyInfo();
+        $tax_on_top = $company && $company->tax_type == 1;
+
+        //invoices, same filter as Detailed Sale Report
+        $this->db->select('id,sale_no,sale_date,sub_total,sub_total_discount_amount,total_discount_amount,vat,charge_type,delivery_charge_actual_charge,tips_amount_actual_charge,rounding_amount_hidden,total_payable');
+        $this->db->from('tbl_sales');
+        $this->salesSummaryDateWhere($start_date, $end_date, 'sale_date');
+        $this->db->where('order_status', '3');
+        $this->db->where('outlet_id', $outlet_id);
+        $this->db->where('del_status', 'Live');
+        $this->db->order_by('sale_date', 'ASC');
+        $this->db->order_by('id', 'ASC');
+        $invoices = $this->db->get()->result();
+
+        //payments of those invoices
+        $this->db->select('tbl_sale_payments.sale_id,tbl_sale_payments.payment_id,tbl_sale_payments.amount,tbl_sale_payments.usage_point,tbl_payment_methods.name as payment_name');
+        $this->db->from('tbl_sale_payments');
+        $this->db->join('tbl_sales', 'tbl_sales.id = tbl_sale_payments.sale_id');
+        $this->db->join('tbl_payment_methods', 'tbl_payment_methods.id = tbl_sale_payments.payment_id', 'left');
+        $this->salesSummaryDateWhere($start_date, $end_date, 'tbl_sales.sale_date');
+        $this->db->where('tbl_sales.order_status', '3');
+        $this->db->where('tbl_sales.outlet_id', $outlet_id);
+        $this->db->where('tbl_sales.del_status', 'Live');
+        $this->db->where('tbl_sale_payments.outlet_id', $outlet_id);
+        $this->db->where('tbl_sale_payments.del_status', 'Live');
+        $this->db->order_by('tbl_sale_payments.id', 'ASC');
+        $payment_rows = $this->db->get()->result();
+
+        //total items of those invoices
+        $items_by_sale = array();
+        if ($with_items) {
+            $this->db->select('tbl_sales_details.sales_id,SUM(tbl_sales_details.qty) as total_qty', FALSE);
+            $this->db->from('tbl_sales_details');
+            $this->db->join('tbl_sales', 'tbl_sales.id = tbl_sales_details.sales_id');
+            $this->salesSummaryDateWhere($start_date, $end_date, 'tbl_sales.sale_date');
+            $this->db->where('tbl_sales.order_status', '3');
+            $this->db->where('tbl_sales.outlet_id', $outlet_id);
+            $this->db->where('tbl_sales.del_status', 'Live');
+            $this->db->where('tbl_sales_details.del_status', 'Live');
+            $this->db->group_by('tbl_sales_details.sales_id');
+            foreach ($this->db->get()->result() as $row) {
+                $items_by_sale[$row->sales_id] = (int)$row->total_qty;
+            }
+        }
+
+        //totals straight from database, used in total checks
+        $this->db->select('COUNT(id) as total_invoices, '.$exact_sum('sub_total').' as sub_total, '.$exact_sum('total_discount_amount').' as total_discount, '.$exact_sum('vat').' as total_vat, '.$exact_sum('total_payable').' as total_payable', FALSE);
+        $this->db->from('tbl_sales');
+        $this->salesSummaryDateWhere($start_date, $end_date, 'sale_date');
+        $this->db->where('order_status', '3');
+        $this->db->where('outlet_id', $outlet_id);
+        $this->db->where('del_status', 'Live');
+        $db_totals = $this->db->get()->row();
+
+        //Daily Sale Report figures (same filter as Daily Sale Report, exact sum)
+        $this->db->select('sale_date, '.$exact_sum('total_payable').' as total_payable', FALSE);
+        $this->db->from('tbl_sales');
+        $this->salesSummaryDateWhere($start_date, $end_date, 'sale_date');
+        $this->db->where('order_status', '3');
+        $this->db->where('outlet_id', $outlet_id);
+        $this->db->where('del_status', 'Live');
+        $this->db->group_by('sale_date');
+        $daily_report_rows = $this->db->get()->result();
+        $daily_report = array();
+        $daily_report_total = 0;
+        foreach ($daily_report_rows as $row) {
+            $daily_report[$row->sale_date] = (float)$row->total_payable;
+            $daily_report_total += (float)$row->total_payable;
+        }
+
+        $payments_by_sale = array();
+        foreach ($payment_rows as $row) {
+            $payments_by_sale[$row->sale_id][] = $row;
+        }
+
+        //all days of the selected range
+        $days = array();
+        $first_day = $start_date != '' ? $start_date : $end_date;
+        $last_day = ($start_date != '' && $end_date != '') ? $end_date : $first_day;
+        $day_time = strtotime($first_day);
+        $last_time = strtotime($last_day);
+        while ($day_time && $last_time && $day_time <= $last_time) {
+            $days[date('Y-m-d', $day_time)] = array('methods' => array(), 'collected' => 0, 'g_total' => 0, 'unrecorded' => 0, 'invoices' => 0, 'problem_invoices' => 0);
+            $day_time = strtotime('+1 day', $day_time);
+        }
+
+        $methods = array();
+        $issues = array();
+        $invoice_rows = array();
+        $sale_no_count = array();
+        $total = array('g_total' => 0, 'collected' => 0, 'unrecorded' => 0, 'sub_total' => 0, 'discount' => 0, 'vat' => 0, 'formula' => 0, 'invoices' => 0, 'unrecorded_invoices' => 0, 'formula_mismatch' => 0);
+
+        foreach ($invoices as $invoice) {
+            $g_total = (float)$invoice->total_payable;
+            $paid = 0;
+            $paid_by_method = array();
+            $payment_parts = array();
+            if (isset($payments_by_sale[$invoice->id])) {
+                foreach ($payments_by_sale[$invoice->id] as $payment) {
+                    $amount = (float)$payment->amount;
+                    $paid += $amount;
+                    $paid_by_method[$payment->payment_id] = (isset($paid_by_method[$payment->payment_id]) ? $paid_by_method[$payment->payment_id] : 0) + $amount;
+                    $payment_name = $payment->payment_name != '' ? $payment->payment_name : lang('ssr_unknown_payment');
+                    if (!isset($methods[$payment->payment_id])) {
+                        $methods[$payment->payment_id] = array('name' => $payment_name, 'group' => $this->salesSummaryPaymentGroup($payment_name), 'amount' => 0, 'invoices' => 0);
+                    }
+                    $txt_point = $payment->payment_id == 5 ? " (Usage Point:".$payment->usage_point.")" : '';
+                    $payment_parts[] = array($payment_name.$txt_point, $amount);
+                }
+            }
+            foreach ($paid_by_method as $payment_id => $amount) {
+                $methods[$payment_id]['amount'] += $amount;
+                if ($amount > $epsilon) {
+                    $methods[$payment_id]['invoices']++;
+                }
+            }
+
+            //G.Total = Subtotal (after item discount) - Subtotal Discount + Charge + Tips + Rounding, + Tax only when tax is on top
+            $formula = (float)$invoice->sub_total - (float)$invoice->sub_total_discount_amount + (float)$invoice->delivery_charge_actual_charge + (float)$invoice->tips_amount_actual_charge + ($tax_on_top ? (float)$invoice->vat : 0) + (float)$invoice->rounding_amount_hidden;
+            $formula_diff = $formula - $g_total;
+            $gap = $g_total - $paid;
+            $has_gap = !$is_zero($gap);
+            $has_formula_diff = !$is_zero($formula_diff);
+
+            $total['g_total'] += $g_total;
+            $total['collected'] += $paid;
+            $total['unrecorded'] += $gap;
+            $total['sub_total'] += (float)$invoice->sub_total;
+            $total['discount'] += (float)$invoice->total_discount_amount;
+            $total['vat'] += (float)$invoice->vat;
+            $total['formula'] += $formula;
+            $total['invoices']++;
+            if ($has_gap) {
+                $total['unrecorded_invoices']++;
+            }
+            if ($has_formula_diff) {
+                $total['formula_mismatch']++;
+            }
+            $sale_no_count[$invoice->sale_no] = (isset($sale_no_count[$invoice->sale_no]) ? $sale_no_count[$invoice->sale_no] : 0) + 1;
+
+            if (!isset($days[$invoice->sale_date])) {
+                $days[$invoice->sale_date] = array('methods' => array(), 'collected' => 0, 'g_total' => 0, 'unrecorded' => 0, 'invoices' => 0, 'problem_invoices' => 0);
+            }
+            foreach ($paid_by_method as $payment_id => $amount) {
+                $days[$invoice->sale_date]['methods'][$payment_id] = (isset($days[$invoice->sale_date]['methods'][$payment_id]) ? $days[$invoice->sale_date]['methods'][$payment_id] : 0) + $amount;
+            }
+            $days[$invoice->sale_date]['collected'] += $paid;
+            $days[$invoice->sale_date]['g_total'] += $g_total;
+            $days[$invoice->sale_date]['unrecorded'] += $gap;
+            $days[$invoice->sale_date]['invoices']++;
+            if ($has_gap) {
+                $days[$invoice->sale_date]['problem_invoices']++;
+            }
+
+            //issues of this invoice
+            $issue_text = array();
+            $action_text = array();
+            if ($is_zero($g_total) && $is_zero($paid)) {
+                $issue_text[] = lang('ssr_issue_zero_bill');
+                $action_text[] = lang('ssr_action_zero_bill');
+            } elseif (empty($paid_by_method)) {
+                $issue_text[] = lang('ssr_issue_no_payment');
+                $action_text[] = lang('ssr_action_no_payment');
+            } elseif ($has_gap && $gap > 0) {
+                $issue_text[] = lang('ssr_issue_short_paid')." ".$this->salesSummaryAmount($gap);
+                $action_text[] = lang('ssr_action_short_paid');
+            } elseif ($has_gap) {
+                $issue_text[] = lang('ssr_issue_over_paid')." ".$this->salesSummaryAmount(abs($gap));
+                $action_text[] = lang('ssr_action_over_paid');
+            }
+            if ($has_formula_diff) {
+                $issue_text[] = lang('ssr_issue_formula')." ".$this->salesSummaryAmount($formula_diff);
+                $action_text[] = lang('ssr_action_formula');
+            }
+            $payment_text = array();
+            foreach ($payment_parts as $part) {
+                $payment_text[] = $part[0].":".$this->salesSummaryAmount($part[1]);
+            }
+            $payment_text = $payment_text ? implode(" - ", $payment_text) : '('.lang('ssr_blank').')';
+            if ($issue_text) {
+                $issues[] = (object)array(
+                    'sale_date' => $invoice->sale_date,
+                    'sale_no' => $invoice->sale_no,
+                    'g_total' => $g_total,
+                    'paid' => $paid,
+                    'gap' => $gap,
+                    'payment_method' => $payment_text,
+                    'issue' => implode("; ", $issue_text),
+                    'action' => implode("; ", $action_text),
+                );
+            }
+
+            //one row of Invoice Detail Report, charge shown under delivery or service as per its charge type
+            $charge = (float)$invoice->delivery_charge_actual_charge;
+            $invoice_rows[] = (object)array(
+                'sale_date' => $invoice->sale_date,
+                'sale_no' => $invoice->sale_no,
+                'items' => isset($items_by_sale[$invoice->id]) ? $items_by_sale[$invoice->id] : 0,
+                'sub_total' => (float)$invoice->sub_total,
+                'delivery' => $invoice->charge_type == 'service' ? 0 : $charge,
+                'service' => $invoice->charge_type == 'service' ? $charge : 0,
+                'tips' => (float)$invoice->tips_amount_actual_charge,
+                'discount' => (float)$invoice->total_discount_amount,
+                'vat' => (float)$invoice->vat,
+                'g_total' => $g_total,
+                'payment_method' => $payment_text,
+                'paid_by_method' => $paid_by_method,
+                'paid' => $paid,
+                'paid_diff' => $paid - $g_total,
+                'has_gap' => $has_gap,
+                'calc_check' => $formula_diff,
+                'has_calc_diff' => $has_formula_diff,
+                'issue' => implode("; ", $issue_text),
+            );
+        }
+        ksort($days);
+
+        //payment methods: card, cash, online platforms, other - bigger amount first inside a group
+        $group_order = array('card' => 1, 'cash' => 2, 'online' => 3, 'other' => 4);
+        uasort($methods, function ($a, $b) use ($group_order) {
+            if ($group_order[$a['group']] != $group_order[$b['group']]) {
+                return $group_order[$a['group']] - $group_order[$b['group']];
+            }
+            if ($a['amount'] == $b['amount']) {
+                return 0;
+            }
+            return $a['amount'] > $b['amount'] ? -1 : 1;
+        });
+
+        $unrecorded = $total['unrecorded'];
+
+        $groups = array(
+            'card' => array('label' => lang('ssr_card_sale'), 'amount' => 0, 'names' => array()),
+            'cash' => array('label' => lang('ssr_cash_sale'), 'amount' => 0, 'names' => array()),
+            'online' => array('label' => lang('ssr_online_platforms'), 'amount' => 0, 'names' => array()),
+            'other' => array('label' => lang('ssr_other_payments'), 'amount' => 0, 'names' => array()),
+        );
+        foreach ($methods as $method) {
+            $groups[$method['group']]['amount'] += $method['amount'];
+            $groups[$method['group']]['names'][] = $method['name'];
+        }
+        foreach (array('online', 'other') as $group) {
+            if ($groups[$group]['names']) {
+                $groups[$group]['label'] .= ' ('.implode('+', $groups[$group]['names']).')';
+            }
+        }
+        if (!$groups['other']['names']) {
+            unset($groups['other']);
+        }
+        $groups['not_recorded'] = array('label' => lang('ssr_not_recorded'), 'amount' => $unrecorded, 'names' => array());
+
+        //day wise reconciliation with Daily Sale Report
+        $matched_days = 0;
+        foreach ($days as $date => $day) {
+            $days[$date]['daily_report'] = isset($daily_report[$date]) ? $daily_report[$date] : 0;
+            $days[$date]['difference'] = $days[$date]['daily_report'] - $day['g_total'];
+            $days[$date]['match'] = $is_zero($days[$date]['difference']);
+            if ($days[$date]['match']) {
+                $matched_days++;
+            }
+        }
+
+        $duplicate_sale_no = 0;
+        foreach ($sale_no_count as $count) {
+            if ($count > 1) {
+                $duplicate_sale_no++;
+            }
+        }
+
+        $checks = array(
+            array('label' => lang('ssr_check_invoice_sum'), 'a' => $total['g_total'], 'b' => (float)$db_totals->total_payable, 'is_count' => false),
+            array('label' => lang('ssr_check_detailed_daily'), 'a' => $total['g_total'], 'b' => $daily_report_total, 'is_count' => false),
+            array('label' => lang('ssr_check_subtotal'), 'a' => $total['sub_total'], 'b' => (float)$db_totals->sub_total, 'is_count' => false),
+            array('label' => lang('ssr_check_discount'), 'a' => $total['discount'], 'b' => (float)$db_totals->total_discount, 'is_count' => false),
+            array('label' => lang('ssr_check_tax'), 'a' => $total['vat'], 'b' => (float)$db_totals->total_vat, 'is_count' => false),
+            array('label' => lang($tax_on_top ? 'ssr_check_formula' : 'ssr_check_formula_inclusive'), 'a' => $total['formula'], 'b' => $total['g_total'], 'is_count' => false, 'mismatch_invoices' => $total['formula_mismatch']),
+            array('label' => lang('ssr_check_collected'), 'a' => $total['collected'], 'b' => $total['g_total'], 'is_count' => false),
+            array('label' => lang('ssr_check_days'), 'a' => $matched_days, 'b' => count($days), 'is_count' => true),
+            array('label' => lang('ssr_check_duplicate'), 'a' => $duplicate_sale_no, 'b' => 0, 'is_count' => true),
+        );
+        foreach ($checks as $key => $check) {
+            $checks[$key]['difference'] = $check['a'] - $check['b'];
+            $checks[$key]['ok'] = $is_zero($checks[$key]['difference']) && empty($check['mismatch_invoices']);
+        }
+
+        return array(
+            'methods' => $methods,
+            'groups' => $groups,
+            'unrecorded' => $unrecorded,
+            'total' => $total,
+            'checks' => $checks,
+            'issues' => $issues,
+            'invoices' => $invoice_rows,
+            'days' => $days,
+            'daily_report_total' => $daily_report_total,
+            'tax_on_top' => $tax_on_top,
+        );
+    }
 
 }
 
