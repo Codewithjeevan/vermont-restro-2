@@ -23,7 +23,91 @@ jqry(document).ready(function () {
   let title = $(".datatable_name").attr("data-title");
   let TITLE = title + "" +
     "" + today;
-  jqry(`#${datatable_name},#datatable2`).DataTable({
+
+  //keep page, page length, search and sort of the list when the user comes back
+  //from a row action (edit, delete...) - opt-in per view with data-keep_state="yes"
+  let keep_state = $(".datatable_name").attr("data-keep_state") === "yes";
+  let state_key = "dt_keep_state:" + location.pathname.replace(/\.html$/, "") + ":" + datatable_name;
+  let filter_form = $("#filterModal form");
+  let current_filter = getFilterValues();
+  let restore_options = keep_state ? getRestoreOptions() : {};
+
+  function getFilterValues() {
+    let values = {};
+    filter_form
+      .find("select[name], input[name]")
+      .not("[type=hidden], [type=submit], [type=button]")
+      .each(function () {
+        values[this.name] = $(this).val() || "";
+      });
+    return values;
+  }
+
+  function readState() {
+    try {
+      return JSON.parse(sessionStorage.getItem(state_key));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeState(state) {
+    try {
+      if (state) {
+        sessionStorage.setItem(state_key, JSON.stringify(state));
+      } else {
+        sessionStorage.removeItem(state_key);
+      }
+    } catch (e) {}
+  }
+
+  function getRestoreOptions() {
+    let state = readState();
+    if (!state) {
+      return {};
+    }
+    let saved_filter = state.filter || {};
+    if (JSON.stringify(saved_filter) !== JSON.stringify(current_filter)) {
+      //the list was filtered (Filter By) when the user left it: apply that filter
+      //again first, the page is restored once the filtered list loads
+      let had_filter = Object.keys(saved_filter).some((name) => saved_filter[name] !== "");
+      let submit_button = filter_form.find("[type=submit]")[0];
+      if (had_filter && submit_button && !state.filter_applied) {
+        state.filter_applied = true;
+        writeState(state);
+        Object.keys(saved_filter).forEach(function (name) {
+          filter_form.find(`[name="${name}"]`).val(saved_filter[name]);
+        });
+        submit_button.click();
+      } else {
+        writeState(null);
+      }
+      return {};
+    }
+    writeState(null);
+    return {
+      displayStart: parseInt(state.start) || 0,
+      pageLength: parseInt(state.length) || 10,
+      search: { search: state.search || "" },
+      order: Array.isArray(state.order) ? state.order : [[0, "desc"]],
+    };
+  }
+
+  if (keep_state) {
+    jqry(document).on("click", `#${datatable_name} a[href]:not([href^="javascript"])`, function () {
+      let table = jqry(`#${datatable_name}`).DataTable();
+      let info = table.page.info();
+      writeState({
+        start: info.start,
+        length: info.length,
+        search: table.search(),
+        order: table.order().map((column) => [column[0], column[1]]),
+        filter: current_filter,
+      });
+    });
+  }
+
+  jqry(`#${datatable_name},#datatable2`).DataTable(jqry.extend({
     autoWidth: false,
     ordering: true,
     order: [[0, "desc"]],
@@ -67,5 +151,5 @@ jqry(document).ready(function () {
         next: "Next",
       },
     },
-  });
+  }, restore_options));
 });
