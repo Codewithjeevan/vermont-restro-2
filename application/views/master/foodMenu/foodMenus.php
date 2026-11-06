@@ -16,7 +16,7 @@
         <section class="content-header">
             <div class="col-sm-12">
                 <h2 class="top-left-header"><?php echo lang('food_menus'); ?> </h2>
-                <input type="hidden" class="datatable_name" data-filter="yes" data-title="<?php echo lang('food_menus'); ?>" data-id_name="datatable">
+                <input type="hidden" class="datatable_name" data-filter="yes" data-keep_state="yes" data-title="<?php echo lang('food_menus'); ?>" data-id_name="datatable">
             </div>
         </section>
          <div class="box-wrapper">
