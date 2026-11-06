@@ -50,7 +50,7 @@ class Report extends Cl_Controller {
             }elseif($segment_2=="saleReportByDate"){
                 $controller = "165";
                 $function = "view";
-            }elseif($segment_2=="detailedSaleReport"){
+            }elseif($segment_2=="detailedSaleReport" || $segment_2=="salesSummaryReport" || $segment_2=="salesIssuesReport" || $segment_2=="dailySalesReconciliationReport" || $segment_2=="invoiceDetailReport"){
                 $controller = "167";
                 $function = "view";
             }elseif($segment_2=="consumptionReport"){
@@ -972,6 +972,68 @@ class Report extends Cl_Controller {
         $data['paymentMethods'] = $this->Common_model->getAllByCompanyId($company_id, "tbl_payment_methods");
         $data['users'] = $this->Common_model->getAllByCompanyIdForDropdown($company_id, 'tbl_users');
         $data['main_content'] = $this->load->view('report/detailedSaleReport', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+      /**
+     * sales Summary Report
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function salesSummaryReport() {
+        $this->loadSalesSummaryReport('salesSummaryReport', lang('sales_summary_report'));
+    }
+      /**
+     * sales Issues Report
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function salesIssuesReport() {
+        $this->loadSalesSummaryReport('salesIssuesReport', lang('sales_issues_report'));
+    }
+      /**
+     * daily Sales Reconciliation Report
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function dailySalesReconciliationReport() {
+        $this->loadSalesSummaryReport('dailySalesReconciliationReport', lang('daily_sales_reconciliation_report'));
+    }
+      /**
+     * invoice Detail Report
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function invoiceDetailReport() {
+        $this->loadSalesSummaryReport('invoiceDetailReport', lang('invoice_detail_report'));
+    }
+      /**
+     * load one of the sales summary reports, all of them use the same data and view
+     * @access private
+     * @return void
+     * @param string
+     * @param string
+     */
+    private function loadSalesSummaryReport($report_method, $report_title) {
+        $data = array();
+        $data['report_method'] = $report_method;
+        $data['report_title'] = $report_title;
+        if (htmlspecialcharscustom($this->input->post('submit'))) {
+            $outlet_id  = isset($_POST['outlet_id']) && $_POST['outlet_id']?$_POST['outlet_id']:'';
+            if(!$outlet_id){
+                $outlet_id = $this->session->userdata('outlet_id');
+            }
+            $data['outlet_id'] = $outlet_id;
+            $start_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('startDate')));
+            $end_date =htmlspecialcharscustom($this->input->post($this->security->xss_clean('endDate')));
+            $data['start_date'] = $start_date;
+            $data['end_date'] = $end_date;
+            $data['salesSummary'] = $this->Report_model->salesSummaryReport($start_date, $end_date, $outlet_id, $report_method == 'invoiceDetailReport');
+        }
+        $data['main_content'] = $this->load->view('report/salesSummaryReport', $data, TRUE);
         $this->load->view('userHome', $data);
     }
       /**

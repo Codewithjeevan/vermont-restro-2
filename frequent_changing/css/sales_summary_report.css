@@ -1,0 +1,50 @@
+/*
+sales summary report
+*/
+.table-box table.ssr_table .ssr_amount {
+  text-align: right;
+}
+.table-box table.ssr_table thead th.ssr_label_col {
+  text-align: left;
+}
+.table-box table.ssr_table tr.ssr_section_row th {
+  background-color: #f3f2f7;
+  color: rgba(47, 43, 61, 0.78);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.table-box table.ssr_table tr.ssr_total_row td {
+  background-color: #e8ecf7;
+  font-weight: 700;
+  color: #2f2b3d;
+}
+.table-box table.ssr_table tr.ssr_blank_row td {
+  border: none;
+}
+.table-box table.ssr_table tr.ssr_note_row td {
+  font-style: italic;
+  font-size: 12px;
+}
+.table-box table.ssr_table td.ssr_ok {
+  background-color: #c6efce;
+  color: #006100;
+  font-weight: 600;
+}
+.table-box table.ssr_table td.ssr_diff {
+  background-color: #f8cbad;
+  color: #9c0006;
+  font-weight: 600;
+}
+.table-box table.ssr_table tfoot tr.ssr_total_row td {
+  border-top: 2px solid #ddd;
+}
+.table-box table.ssr_table tr.ssr_issue_row td {
+  background-color: #fdeceb;
+}
+.table-box table.ssr_table tr.ssr_issue_row td.ssr_diff {
+  background-color: #f8cbad;
+}
