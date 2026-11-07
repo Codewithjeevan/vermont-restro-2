@@ -177,8 +177,8 @@
                             <div class="form-group">
                                 <label><?php echo lang('paid'); ?> <span class="required_star">*</span></label>
                                 <input tabindex="3" class="form-control integerchk" type="text" name="paid"
-                                       id="paid" onfocus="this.select();" onkeyup="return calculateAll()"
-                                    <?php echo set_value('paid'); ?>>
+                                       id="paid" onfocus="this.select();" onkeyup="markPaidManual(); return calculateAll()"
+                                       value="<?php echo set_value('paid'); ?>">
                             </div>
                             <?php if (form_error('paid')) { ?>
                             <div class="callout callout-danger my-2">

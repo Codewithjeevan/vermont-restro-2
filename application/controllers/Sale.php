@@ -209,6 +209,8 @@ class Sale extends Cl_Controller {
     }
     public function saveRefundItems($qtys, $sale_id, $table_name) {
         $main_arry = array();
+        $audit_items = array();
+        $audit_qtys = array();
         $tmp_txt ="<br><b>Items:</b><br>";
         foreach ($qtys as $row => $qty):
             /*This all variables could not be escaped because this is an array field*/
@@ -221,6 +223,10 @@ class Sale extends Cl_Controller {
             $fmi['discount'] = $_POST['discount'][$row];
             $fmi['refund_qty'] = $_POST['refund_qty'][$row];
             $main_arry[] = $fmi;
+            if ((float)$fmi['refund_qty'] > 0) {
+                $audit_items[] = $fmi['name'];
+                $audit_qtys[] = $fmi['refund_qty'];
+            }
             $price = $_POST['price'][$row];
             $tmp_txt.=$_POST['name'][$row]."("."$qty X $price".")";
 
@@ -242,7 +248,11 @@ class Sale extends Cl_Controller {
         $txt.="Total Payable: ".$sale->total_payable.", ";
         $txt.="Total Refund: ".$sale->total_refund;
         $txt.=$tmp_txt;
-        putAuditLog($this->session->userdata('user_id'),$txt,"Refund Sale",date('Y-m-d H:i:s'));
+        putAuditLog($this->session->userdata('user_id'),$txt,"Refund Sale",date('Y-m-d H:i:s'),array(
+            'sale_no' => $sale->sale_no,
+            'item_name' => implode("\n", $audit_items),
+            'qty' => implode("\n", $audit_qtys),
+        ));
     }
     public function getDetailsRefund()
     {
@@ -438,7 +448,7 @@ class Sale extends Cl_Controller {
         $id = $this->custom->encrypt_decrypt($id, 'decrypt');
 
         $event_txt = getSaleText($id);
-        putAuditLog($this->session->userdata('user_id'),$event_txt,"Deleted Sale",date('Y-m-d H:i:s'));
+        putAuditLog($this->session->userdata('user_id'),$event_txt,"Deleted Sale",date('Y-m-d H:i:s'),getSaleAuditFields($id));
 
         $isDeleted = $this->delete_specific_order_by_sale_id($id);
         if($isDeleted){
@@ -1154,20 +1164,31 @@ class Sale extends Cl_Controller {
         echo json_encode($customer_return) ;
     }
     /**
-     * verify that the entered password belongs to an Admin/Manager of this company,
-     * used to gate POS actions restricted to Admin/Manager (e.g. clearing the cart)
+     * verify that the entered password or login PIN belongs to an Admin/Manager of this
+     * company, used to gate POS actions restricted to Admin/Manager (e.g. clearing the cart).
+     * Takes the same credentials as the login screen, so the password is hashed as typed,
+     * exactly like Authentication::loginCheck
      * @access public
      * @return void
      * @param no
      */
     public function verify_admin_password_by_ajax(){
-        $entered_password = md5(trim_checker(htmlspecialcharscustom($this->input->post($this->security->xss_clean('password')))));
+        $entered_password = (string)$this->input->post($this->security->xss_clean('password'));
+        $entered_pin = trim($entered_password);
+        //some users have a blank login_pin, a blank entry must never match them
+        if($entered_pin === ''){
+            echo json_encode(array('status' => false));
+            return;
+        }
         $company_id = $this->session->userdata('company_id');
         $this->db->select('id');
         $this->db->from('tbl_users');
         $this->db->where('company_id', $company_id);
         $this->db->where('del_status', 'Live');
-        $this->db->where('password', $entered_password);
+        $this->db->group_start();
+        $this->db->where('password', md5($entered_password));
+        $this->db->or_where('login_pin', $entered_pin);
+        $this->db->group_end();
         $this->db->group_start();
         $this->db->where('role', 'Admin');
         $this->db->or_where_in('designation', array('Admin','Super Admin','Manager'));
@@ -1889,7 +1910,18 @@ class Sale extends Cl_Controller {
         $this->db->insert('tbl_notifications', $notification_data);
 
         //store audit log data
-        putAuditLog($this->session->userdata('user_id'),$txt,"Cancelled Sale",date('Y-m-d H:i:s'));
+        $audit_items = array();
+        $audit_qtys = array();
+        foreach($order_details->items as $item){
+            $audit_items[] = $item->menu_name;
+            $audit_qtys[] = $item->qty;
+        }
+        putAuditLog($this->session->userdata('user_id'),$txt,"Cancelled Sale",date('Y-m-d H:i:s'),array(
+            'sale_no' => $order_details->sale_no,
+            'item_name' => implode("\n", $audit_items),
+            'qty' => implode("\n", $audit_qtys),
+            'reason' => mb_substr(trim((string)$reason), 0, 255),
+        ));
 
     }
     public function add_sale_by_ajax_split(){
@@ -3168,7 +3200,7 @@ We hope to see you again!";
     {
         $sale_id = $this->input->post('sale_id');
         $event_txt = getSaleText($sale_id);
-        putAuditLog($this->session->userdata('user_id'),$event_txt,"Cancelled Sale",date('Y-m-d H:i:s'));
+        putAuditLog($this->session->userdata('user_id'),$event_txt,"Cancelled Sale",date('Y-m-d H:i:s'),getSaleAuditFields($sale_id));
         $this->delete_specific_order_by_sale_id($sale_id);
         echo "success";
     }

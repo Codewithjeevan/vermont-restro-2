@@ -6,7 +6,9 @@
 <input type="hidden" id="wast_amt" value="<?php echo lang('wast_amt'); ?>">
 <input type="hidden" id="loss_amt" value="<?php echo lang('loss_amt'); ?>">
 
-<script src="<?php echo base_url(); ?>frequent_changing/js/add_waste.js"></script>
+<input type="hidden" id="food_menu_no_recipe" value="<?php echo lang('food_menu_no_recipe'); ?>">
+<input type="hidden" id="waste_quantity_invalid" value="<?php echo lang('waste_quantity_invalid'); ?>">
+<script src="<?php echo base_url(); ?>frequent_changing/js/add_waste.js?v=<?php echo @filemtime(FCPATH . 'frequent_changing/js/add_waste.js'); ?>"></script>
 <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/custom/addWaste.css">
 
 
@@ -175,11 +177,11 @@
                     </div>
                 </div>
 
-                <div class="row" id="food_menu_waste_quantity_row" class="ir_display_none">
+                <div class="row ir_display_none" id="food_menu_waste_quantity_row">
                     <div class="col-sm-12 col-md-4">
                         <div class="form-group">
                             <label><?php echo lang('food_menu_waste_quantity'); ?></label>
-                            <input tabindex="1" type="number" readonly id="waste_quantity" name="food_menu_waste_qty"
+                            <input tabindex="1" type="number" step="any" min="0" id="waste_quantity" name="food_menu_waste_qty"
                                    class="form-control" placeholder="<?php echo lang('waste_quantity'); ?>" value="">
                         </div>
                         <?php if (form_error('waste_quantity')) { ?>

@@ -201,6 +201,95 @@ FROM tbl_ingredients i  LEFT JOIN (select * from tbl_ingredients where del_statu
         return $result;
     }
     /**
+     * Opening Stock needs Update/inventory_stock_updates_migration.sql
+     * @access public
+     * @return bool
+     * @param no
+     */
+    public function openingEnabled() {
+        return $this->db->field_exists('is_opening', 'tbl_inventory_adjustment');
+    }
+    /**
+     * stock of one getInventory() row in consumption units, same formula as the stock page
+     * @access public
+     * @return float
+     * @param object
+     */
+    public function stockInConsumptionUnits($value) {
+        return ($value->total_purchase*$value->conversion_rate) - $value->total_consumption - $value->total_modifiers_consumption - $value->total_waste + $value->total_consumption_plus - $value->total_consumption_minus + ($value->total_transfer_plus*$value->conversion_rate) - ($value->total_transfer_minus*$value->conversion_rate) + ($value->total_transfer_plus_2*$value->conversion_rate) - ($value->total_transfer_minus_2*$value->conversion_rate) + ($value->total_production*$value->conversion_rate);
+    }
+    /**
+     * live opening stock rows of an outlet, amounts are in consumption units
+     * @access public
+     * @return array ingredient_id => row with consumption_amount and date
+     * @param int
+     */
+    public function getOpeningStockRows($outlet_id) {
+        $rows = $this->db->query("SELECT c.ingredient_id, c.consumption_amount, a.date
+            FROM tbl_inventory_adjustment_ingredients c
+            JOIN tbl_inventory_adjustment a ON a.id = c.inventory_adjustment_id
+            WHERE a.is_opening = 1 AND a.outlet_id = ? AND c.del_status = 'Live'", array((int)$outlet_id))->result();
+        $result = array();
+        foreach ($rows as $row) {
+            $result[$row->ingredient_id] = $row;
+        }
+        return $result;
+    }
+    /**
+     * save changed opening stock rows. An ingredient keeps one live opening row per outlet: the
+     * old row goes, and a zero quantity only removes it.
+     * @access public
+     * @return bool
+     * @param array ingredient_id => amount in consumption units
+     * @param string
+     * @param int
+     * @param int
+     * @param string
+     */
+    public function saveOpeningStock($rows, $date, $outlet_id, $user_id, $reference_no) {
+        $outlet_id = (int)$outlet_id;
+        $ingredient_ids = implode(',', array_map('intval', array_keys($rows)));
+
+        $this->db->trans_start();
+        $this->db->query("UPDATE tbl_inventory_adjustment_ingredients c
+            JOIN tbl_inventory_adjustment a ON a.id = c.inventory_adjustment_id
+            SET c.del_status = 'Deleted'
+            WHERE a.is_opening = 1 AND a.outlet_id = $outlet_id AND c.del_status = 'Live' AND c.ingredient_id IN ($ingredient_ids)");
+        $this->db->query("UPDATE tbl_inventory_adjustment a
+            SET a.del_status = 'Deleted'
+            WHERE a.is_opening = 1 AND a.outlet_id = $outlet_id AND a.del_status = 'Live'
+            AND NOT EXISTS (SELECT 1 FROM tbl_inventory_adjustment_ingredients c WHERE c.inventory_adjustment_id = a.id AND c.del_status = 'Live')");
+
+        $new_rows = array_filter($rows, function ($amount) {
+            return $amount > 0;
+        });
+        if ($new_rows) {
+            $this->db->insert('tbl_inventory_adjustment', array(
+                'reference_no' => $reference_no,
+                'date' => $date,
+                'note' => 'Opening Stock',
+                'employee_id' => (int)$user_id,
+                'user_id' => (int)$user_id,
+                'outlet_id' => $outlet_id,
+                'del_status' => 'Live',
+                'is_opening' => 1,
+            ));
+            $adjustment_id = $this->db->insert_id();
+            foreach ($new_rows as $ingredient_id => $amount) {
+                $this->db->insert('tbl_inventory_adjustment_ingredients', array(
+                    'ingredient_id' => (int)$ingredient_id,
+                    'consumption_amount' => $amount,
+                    'consumption_status' => 'Plus',
+                    'inventory_adjustment_id' => $adjustment_id,
+                    'outlet_id' => $outlet_id,
+                    'del_status' => 'Live',
+                ));
+            }
+        }
+        $this->db->trans_complete();
+        return $this->db->trans_status();
+    }
+    /**
      * get All By Company Id For Dropdown
      * @access public
      * @return object

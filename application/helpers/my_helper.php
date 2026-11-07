@@ -643,7 +643,7 @@ function setDefaultTimezone(){
     if ($zoneName)
         date_default_timezone_set($zoneName->zone_name);
 }
-function putAuditLog($user_id,$txt,$event,$date_time) {
+function putAuditLog($user_id,$txt,$event,$date_time,$extra=array()) {
     setDefaultTimezone();
 
     $CI = & get_instance();
@@ -654,8 +654,82 @@ function putAuditLog($user_id,$txt,$event,$date_time) {
     $data['outlet_id'] = $outlet_id;
     $data['date'] = date('Y-m-d');
     $data['details'] = $txt;
+    //sale_no, item_name, qty and reason need Update/inventory_stock_updates_migration.sql
+    if ($extra && $CI->db->field_exists('reason', 'tbl_audit_logs')) {
+        foreach (array('sale_no', 'item_name', 'qty', 'reason') as $field) {
+            if (isset($extra[$field])) {
+                $data[$field] = $extra[$field];
+            }
+        }
+    }
     $CI->db->insert("tbl_audit_logs", $data);
 
+}
+/**
+ * invoice number and items of a sale, in the shape putAuditLog() takes. One line per item.
+ * @access public
+ * @return array
+ * @param int
+ */
+function getSaleAuditFields($sale_id) {
+    $CI = & get_instance();
+    $sale_id = (int)$sale_id;
+    $sale = $CI->db->query("SELECT sale_no FROM tbl_sales WHERE id = $sale_id")->row();
+    $items = $CI->db->query("SELECT menu_name, qty FROM tbl_sales_details WHERE sales_id = $sale_id")->result();
+    $names = array();
+    $qtys = array();
+    foreach ($items as $item) {
+        $names[] = $item->menu_name;
+        $qtys[] = $item->qty;
+    }
+    return array(
+        'sale_no' => $sale ? $sale->sale_no : '',
+        'item_name' => implode("\n", $names),
+        'qty' => implode("\n", $qtys),
+    );
+}
+/**
+ * what the Audit Log Report shows for a row. Rows saved before the columns existed only have the
+ * details text, so the same values are read from that; an event that is not about a sale keeps
+ * its text under Reason so nothing disappears from the report.
+ * @access public
+ * @return array sale_no, item_name, qty, reason
+ * @param object tbl_audit_logs row
+ */
+function auditLogColumns($row) {
+    if (!empty($row->sale_no) || !empty($row->item_name) || !empty($row->reason)) {
+        return array(
+            'sale_no' => (string)$row->sale_no,
+            'item_name' => (string)$row->item_name,
+            'qty' => (string)$row->qty,
+            'reason' => (string)$row->reason,
+        );
+    }
+
+    $details = (string)$row->details;
+    $columns = array('sale_no' => '', 'item_name' => '', 'qty' => '', 'reason' => '');
+    if (preg_match('/Sale No:\s*([^<,]+)/', $details, $match)) {
+        $columns['sale_no'] = trim($match[1]);
+    }
+    if ($columns['sale_no'] === '') {
+        $columns['reason'] = trim(html_entity_decode(strip_tags($details), ENT_QUOTES, 'UTF-8'));
+        return $columns;
+    }
+    if (preg_match('/Reason:\s*(.*?)<\/b>/s', $details, $match)) {
+        $columns['reason'] = trim($match[1]);
+    }
+    //a removed item was logged as Name(Name) - 2qty, and the name itself can hold brackets
+    if (preg_match('/<br>([^<]*)\(\1\)\s*-\s*([\d.]+)\s*qty/', $details, $match)) {
+        $columns['item_name'] = trim($match[1]);
+        $columns['qty'] = $match[2];
+    } elseif (($items_at = strpos($details, 'Items:')) !== false && preg_match_all('/([^,<>]+?)\(([\d.]+) X [^)]*\)/', substr($details, $items_at), $matches)) {
+        $names = array_map(function ($name) {
+            return trim(html_entity_decode($name, ENT_QUOTES, 'UTF-8'));
+        }, $matches[1]);
+        $columns['item_name'] = implode("\n", $names);
+        $columns['qty'] = implode("\n", $matches[2]);
+    }
+    return $columns;
 }
 /**
  * get Main Menu
@@ -2220,6 +2294,34 @@ function getLastPurchaseAmount($id) {
         $returnPrice = isset($ings->purchase_price) && $ings->purchase_price?$ings->purchase_price:0;
     }
     return $returnPrice;
+}
+/**
+ * last purchase price of every ingredient of an outlet, as it was on a date. The stock page and
+ * the monthly inventory report both use it so their values tally. Deleted lines and zero prices
+ * are skipped; an ingredient missing from the result falls back to its own purchase_price.
+ * @access public
+ * @return array ingredient_id => price per purchase unit
+ * @param int
+ * @param string Y-m-d, empty means up to now
+ */
+function getIngredientPricesAsOf($outlet_id, $as_of = '') {
+    $CI = & get_instance();
+    $CI->db->select('tbl_purchase_ingredients.ingredient_id, tbl_purchase_ingredients.unit_price');
+    $CI->db->from('tbl_purchase_ingredients');
+    $CI->db->join('tbl_purchase', 'tbl_purchase.id = tbl_purchase_ingredients.purchase_id');
+    $CI->db->where('tbl_purchase_ingredients.outlet_id', (int)$outlet_id);
+    $CI->db->where('tbl_purchase_ingredients.del_status', 'Live');
+    $CI->db->where('tbl_purchase_ingredients.unit_price >', 0);
+    if ($as_of != '') {
+        $CI->db->where('tbl_purchase.date <=', $as_of);
+    }
+    $CI->db->order_by('tbl_purchase.date', 'ASC');
+    $CI->db->order_by('tbl_purchase_ingredients.id', 'ASC');
+    $prices = array();
+    foreach ($CI->db->get()->result() as $row) {
+        $prices[$row->ingredient_id] = (float)$row->unit_price;
+    }
+    return $prices;
 }
 /**
  * get Purchase Ingredients

@@ -34,7 +34,79 @@ class Waste_model extends CI_Model {
         $this->db->where("tbl_purchase_ingredients.del_status", 'Live');
         $this->db->where("tbl_purchase_ingredients.outlet_id", $outlet_id);
         $result = $this->db->get()->result();
+        //an ingredient with Opening Stock has stock too, even before its first purchase
+        if ($this->db->field_exists('is_opening', 'tbl_inventory_adjustment')) {
+            $opening = $this->db->query("SELECT i.id, i.conversion_rate, i.name, i.code, i.purchase_price, u.unit_name
+                FROM tbl_inventory_adjustment_ingredients c
+                JOIN tbl_inventory_adjustment a ON a.id = c.inventory_adjustment_id
+                JOIN tbl_ingredients i ON i.id = c.ingredient_id
+                LEFT JOIN tbl_units u ON u.id = i.unit_id
+                WHERE a.is_opening = 1 AND a.outlet_id = ? AND c.del_status = 'Live' AND i.company_id = ? AND i.del_status = 'Live'
+                GROUP BY i.id", array((int)$outlet_id, (int)$company_id))->result();
+            $result = array_merge($result, $opening);
+            usort($result, function ($a, $b) {
+                return strcasecmp((string)$a->name, (string)$b->name);
+            });
+        }
         return $result;
+    }
+    /**
+     * ingredients one portion of a food menu uses, worked out the way the POS deducts stock on a
+     * sale: the recipe, the ingredient behind a direct item, or the recipes of a combo's items
+     * @access public
+     * @return array rows with ingredient_id, name, code, unit_name, consumption_unit_cost, consumption
+     * @param int
+     */
+    public function getFoodMenuIngredients($food_menu_id) {
+        $food_menu_id = (int)$food_menu_id;
+        $company_id = (int)$this->session->userdata('company_id');
+        $food_menu = $this->db->query("SELECT product_type FROM tbl_food_menus WHERE id = $food_menu_id AND company_id = $company_id")->row();
+        if (!$food_menu) {
+            return array();
+        }
+
+        $amounts = array();
+        if ($food_menu->product_type == 1) {
+            $this->addRecipeToAmounts($amounts, $food_menu_id, 1);
+        } elseif ($food_menu->product_type == 3) {
+            $direct_ingredients = $this->db->query("SELECT id FROM tbl_ingredients WHERE food_id = $food_menu_id AND del_status = 'Live'")->result();
+            foreach ($direct_ingredients as $ingredient) {
+                $amounts[$ingredient->id] = (isset($amounts[$ingredient->id]) ? $amounts[$ingredient->id] : 0) + 1;
+            }
+        } else {
+            $combo_items = $this->db->query("SELECT added_food_menu_id, quantity FROM tbl_combo_food_menus WHERE food_menu_id = $food_menu_id AND del_status = 'Live'")->result();
+            foreach ($combo_items as $combo_item) {
+                $this->addRecipeToAmounts($amounts, (int)$combo_item->added_food_menu_id, (float)$combo_item->quantity);
+            }
+        }
+        if (!$amounts) {
+            return array();
+        }
+
+        $rows = $this->db->query("SELECT i.id AS ingredient_id, i.name, i.code, i.consumption_unit_cost, u.unit_name
+            FROM tbl_ingredients i
+            LEFT JOIN tbl_units u ON u.id = i.unit_id
+            WHERE i.id IN (" . implode(',', array_map('intval', array_keys($amounts))) . ")
+            ORDER BY i.name")->result();
+        foreach ($rows as $row) {
+            $row->consumption = $amounts[$row->ingredient_id];
+        }
+        return $rows;
+    }
+    /**
+     * add one food menu's recipe to a running ingredient_id => amount list
+     * @access private
+     * @return void
+     * @param array
+     * @param int
+     * @param float
+     */
+    private function addRecipeToAmounts(&$amounts, $food_menu_id, $multiply_by) {
+        $recipe = $this->db->query("SELECT ingredient_id, consumption FROM tbl_food_menus_ingredients WHERE food_menu_id = $food_menu_id AND del_status = 'Live'")->result();
+        foreach ($recipe as $line) {
+            $amount = (float)$line->consumption * $multiply_by;
+            $amounts[$line->ingredient_id] = (isset($amounts[$line->ingredient_id]) ? $amounts[$line->ingredient_id] : 0) + $amount;
+        }
     }
     public function getPurchaseIng($in_id) {
         $outlet_id = $this->session->userdata('outlet_id');

@@ -34,6 +34,23 @@ class Inventory_adjustment_model extends CI_Model {
         return $result;
     }
      /**
+     * adjustments of an outlet without the Opening Stock ones, those are edited on their own page
+     * @access public
+     * @return object
+     * @param int
+     */
+    public function getAdjustmentList($outlet_id) {
+        $this->db->select('*');
+        $this->db->from('tbl_inventory_adjustment');
+        $this->db->where('outlet_id', (int)$outlet_id);
+        $this->db->where('del_status', 'Live');
+        if ($this->db->field_exists('is_opening', 'tbl_inventory_adjustment')) {
+            $this->db->where('is_opening', 0);
+        }
+        $this->db->order_by('id', 'DESC');
+        return $this->db->get()->result();
+    }
+    /**
      * get Inventory Adjustment Ingredients
      * @access public
      * @return object

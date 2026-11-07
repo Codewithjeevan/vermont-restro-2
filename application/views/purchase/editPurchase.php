@@ -189,7 +189,7 @@
                             <div class="form-group">
                                 <label><?php echo lang('paid'); ?> <span class="required_star">*</span></label>
                                 <input tabindex="3" class="form-control integerchk" type="text" name="paid"
-                                       id="paid" onfocus="this.select();" onkeyup="return calculateAll()"
+                                       id="paid" onfocus="this.select();" onkeyup="markPaidManual(); return calculateAll()"
                                        value="<?php echo escape_output($purchase_details->paid) ?>">
                             </div>
                             <?php if (form_error('paid')) { ?>

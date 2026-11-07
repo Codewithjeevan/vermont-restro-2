@@ -218,34 +218,7 @@ class Waste extends Cl_Controller {
      * @param no
      */
     public function food_menus_ingredients() {
-        $outlet_id = $this->session->userdata('outlet_id');
-        $company_id = $this->session->userdata('company_id');
-        $id = $_GET['id'];
-        if ($id) {
-            $sql = "select * from tbl_food_menus_ingredients left join tbl_ingredients on tbl_food_menus_ingredients.ingredient_id=tbl_ingredients.id left join tbl_units on tbl_ingredients.unit_id=tbl_units.id where tbl_food_menus_ingredients.company_id=" . $company_id . " and tbl_food_menus_ingredients.food_menu_id=" . $id;
-            $results = $this->Common_model->customeQuery($sql);
-            foreach ($results as $key => $result) {
-                $g_unit_price = $this->Common_model->get_row_array("tbl_purchase_ingredients", array('outlet_id' => $outlet_id, 'ingredient_id' => $result['ingredient_id']), '*', '', '1', 'id', 'DESC');
-                if (!empty($g_unit_price)) {
-                    $results[$key]['unit_price'] = $g_unit_price[0]['unit_price'];
-                } else {
-                    $results[$key]['unit_price'] = 0;
-                }
-            }
-        } else {
-            $sql = "select * from tbl_food_menus_ingredients left join tbl_ingredients on tbl_food_menus_ingredients.ingredient_id=tbl_ingredients.id left join tbl_units on tbl_ingredients.unit_id=tbl_units.id where tbl_food_menus_ingredients.company_id=" . $company_id . " and tbl_food_menus_ingredients.food_menu_id=" . $id;
-            $results = $this->Common_model->customeQuery($sql);
-            foreach ($results as $key => $result) {
-                $g_unit_price = $this->Common_model->get_row_array("tbl_purchase_ingredients", array('outlet_id' => $outlet_id, 'ingredient_id' => $result['ingredient_id']), '*', '', '', 'id', 'DESC');
-                if (!empty($g_unit_price)) {
-                    $results[$key]['unit_price'] = $g_unit_price[0]['unit_price'];
-                } else {
-                    $results[$key]['unit_price'] = 0;
-                }
-            }
-        }
-
-        echo json_encode($results);
+        echo json_encode($this->Waste_model->getFoodMenuIngredients($this->input->get('id')));
     }
 
 }

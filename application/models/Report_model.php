@@ -453,6 +453,183 @@ class Report_model extends CI_Model {
         }
     }
     /**
+     * Monthly Inventory report: the stock page formula split by date. Quantities are in purchase
+     * units, the same way the client's sheet counts them. Physical Count is the system stock at
+     * the period end, so next month's Opening is always this month's Physical Count.
+     * @access public
+     * @return array rows and totals
+     * @param string Y-m-d
+     * @param string Y-m-d
+     * @param int
+     */
+    public function monthlyInventoryReport($start_date, $end_date, $outlet_id) {
+        $company_id = (int)$this->session->userdata('company_id');
+        $outlet_id = (int)$outlet_id;
+        $ingredients = $this->db->query("SELECT i.id, i.name, i.code, i.conversion_rate, i.purchase_price,
+                u.unit_name AS consumption_unit, pu.unit_name AS purchase_unit
+            FROM tbl_ingredients i
+            LEFT JOIN tbl_ingredient_categories c ON c.id = i.category_id
+            LEFT JOIN tbl_units u ON u.id = i.unit_id
+            LEFT JOIN tbl_units pu ON pu.id = i.purchase_unit_id
+            WHERE i.company_id = $company_id AND i.del_status = 'Live'
+            ORDER BY c.category_name, i.name")->result();
+
+        $moves = $this->monthlyInventoryMovements($start_date, $end_date, $outlet_id);
+        $prices = getIngredientPricesAsOf($outlet_id, $end_date);
+
+        $name_count = array();
+        foreach ($ingredients as $ingredient) {
+            $name = strtolower(trim((string)$ingredient->name));
+            $name_count[$name] = isset($name_count[$name]) ? $name_count[$name] + 1 : 1;
+        }
+
+        $rows = array();
+        $totals = array('total_stock_value' => 0, 'physical_count_value' => 0, 'usage_value' => 0, 'flagged' => 0);
+        foreach ($ingredients as $ingredient) {
+            $id = $ingredient->id;
+            $has_rate = (float)$ingredient->conversion_rate > 0;
+            $rate = $has_rate ? (float)$ingredient->conversion_rate : 1;
+            $before = function ($source) use ($moves, $id) {
+                return isset($moves[$source][$id]) ? $moves[$source][$id]['before_start'] : 0;
+            };
+            $period = function ($source) use ($moves, $id) {
+                return isset($moves[$source][$id]) ? $moves[$source][$id]['in_period'] : 0;
+            };
+
+            //an Opening Stock row is always Opening, never Usage, even when dated inside the period
+            $stock_before = ($before('purchase') + $before('production') + $before('transfer_in') - $before('transfer_out')) * $rate
+                - $before('consumption') - $before('modifier') - $before('waste')
+                + $before('adjust_plus') - $before('adjust_minus')
+                + $before('opening') + $period('opening');
+            $used = $period('consumption') + $period('modifier') + $period('waste') + $period('adjust_minus') - $period('adjust_plus');
+
+            $opening_stock = round($stock_before / $rate, 6);
+            $receiving = round($period('purchase') + $period('production'), 6);
+            $transfer = round($period('transfer_in') - $period('transfer_out'), 6);
+            $total_stock = round($opening_stock + $receiving + $transfer, 6);
+            $usage = round($used / $rate, 6);
+            $physical_count = round($total_stock - $usage, 6);
+            $unit_price = isset($prices[$id]) ? $prices[$id] : (float)$ingredient->purchase_price;
+
+            $flags = array();
+            if ($total_stock > 0 && $unit_price == 0) {
+                $flags[] = 'no_unit_price';
+            }
+            if ($usage < -0.0001) {
+                $flags[] = 'count_higher';
+            }
+            if ($physical_count < -0.0001) {
+                $flags[] = 'negative_stock';
+            }
+            if (!$has_rate) {
+                $flags[] = 'no_conversion';
+            }
+            if ($name_count[strtolower(trim((string)$ingredient->name))] > 1) {
+                $flags[] = 'listed_twice';
+            }
+
+            $row = (object)array(
+                'name' => $ingredient->name,
+                'code' => $ingredient->code,
+                'purchase_unit' => $ingredient->purchase_unit,
+                'consumption_unit' => $ingredient->consumption_unit,
+                'conversion_rate' => $has_rate ? $rate : 0,
+                'opening_stock' => $opening_stock,
+                'receiving' => $receiving,
+                'transfer' => $transfer,
+                'total_stock' => $total_stock,
+                'unit_price' => $unit_price,
+                'total_stock_value' => $total_stock * $unit_price,
+                'physical_count' => $physical_count,
+                'physical_count_value' => $physical_count * $unit_price,
+                'usage' => $usage,
+                'usage_value' => $usage * $unit_price,
+                'flags' => $flags,
+            );
+            $rows[] = $row;
+            $totals['total_stock_value'] += $row->total_stock_value;
+            $totals['physical_count_value'] += $row->physical_count_value;
+            $totals['usage_value'] += $row->usage_value;
+            $totals['flagged'] += $flags ? 1 : 0;
+        }
+        return array('rows' => $rows, 'totals' => $totals);
+    }
+    /**
+     * every stock movement of an outlet, per ingredient, before the period and inside it. Same
+     * tables and filters as the stock page; only the date comes from the parent record, because
+     * consumption rows have none. A row without any date counts as before the period, so the
+     * stock at the end still tallies with the stock page.
+     * @access private
+     * @return array source => ingredient_id => before_start, in_period
+     * @param string
+     * @param string
+     * @param int
+     */
+    private function monthlyInventoryMovements($start_date, $end_date, $outlet_id) {
+        $live = "t.del_status = 'Live'";
+        $transfer_date = "IF(x.received_date IS NULL OR x.received_date < '2000-01-01', x.date, x.received_date)";
+        $transfer_join = "LEFT JOIN tbl_transfer x ON x.id = t.transfer_id";
+        $sale_join = "LEFT JOIN tbl_sales s ON s.id = t.sales_id
+            LEFT JOIN tbl_sale_consumptions sc ON sc.id = t.sale_consumption_id
+            LEFT JOIN tbl_sales s2 ON s2.id = sc.sale_id";
+        $adjust_join = "LEFT JOIN tbl_inventory_adjustment p ON p.id = t.inventory_adjustment_id";
+
+        $menu_join = $sale_join . " LEFT JOIN tbl_production pr ON pr.id = t.production_id";
+        $menu_date = "COALESCE(s.sale_date, pr.date, s2.sale_date)";
+        if ($this->db->field_exists('mess_close_id', 'tbl_sale_consumptions_of_menus')) {
+            $menu_join .= " LEFT JOIN tbl_mess_day_close m ON m.id = t.mess_close_id";
+            $menu_date = "COALESCE(s.sale_date, m.close_date, pr.date, s2.sale_date)";
+        }
+
+        $has_opening = $this->db->field_exists('is_opening', 'tbl_inventory_adjustment');
+        $not_opening = $has_opening ? " AND IFNULL(p.is_opening, 0) = 0" : "";
+
+        $sources = array(
+            'purchase' => array(array("tbl_purchase_ingredients t LEFT JOIN tbl_purchase p ON p.id = t.purchase_id", "t.quantity_amount", "p.date", "t.outlet_id = $outlet_id AND $live")),
+            'production' => array(array("tbl_production_ingredients t LEFT JOIN tbl_production p ON p.id = t.production_id", "t.quantity_amount", "p.date", "t.outlet_id = $outlet_id AND $live AND t.status = 1")),
+            'transfer_in' => array(
+                array("tbl_transfer_ingredients t $transfer_join", "t.quantity_amount", $transfer_date, "t.to_outlet_id = $outlet_id AND $live AND t.status = 1 AND t.transfer_type = 1"),
+                array("tbl_transfer_received_ingredients t $transfer_join", "t.quantity_amount", $transfer_date, "t.to_outlet_id = $outlet_id AND $live AND t.status = 1"),
+            ),
+            'transfer_out' => array(
+                array("tbl_transfer_ingredients t $transfer_join", "t.quantity_amount", $transfer_date, "t.from_outlet_id = $outlet_id AND $live AND t.status = 1 AND t.transfer_type = 1"),
+                array("tbl_transfer_received_ingredients t $transfer_join", "t.quantity_amount", $transfer_date, "t.from_outlet_id = $outlet_id AND $live AND t.status = 1"),
+            ),
+            'consumption' => array(array("tbl_sale_consumptions_of_menus t $menu_join", "t.consumption", $menu_date, "t.outlet_id = $outlet_id AND $live")),
+            'modifier' => array(array("tbl_sale_consumptions_of_modifiers_of_menus t $sale_join", "t.consumption", "COALESCE(s.sale_date, s2.sale_date)", "t.outlet_id = $outlet_id AND $live")),
+            'waste' => array(array("tbl_waste_ingredients t LEFT JOIN tbl_wastes p ON p.id = t.waste_id", "t.waste_amount", "p.date", "t.outlet_id = $outlet_id AND $live")),
+            'adjust_plus' => array(array("tbl_inventory_adjustment_ingredients t $adjust_join", "t.consumption_amount", "p.date", "t.outlet_id = $outlet_id AND $live AND t.consumption_status = 'Plus'$not_opening")),
+            'adjust_minus' => array(array("tbl_inventory_adjustment_ingredients t $adjust_join", "t.consumption_amount", "p.date", "t.outlet_id = $outlet_id AND $live AND t.consumption_status = 'Minus'$not_opening")),
+        );
+        if ($has_opening) {
+            $sources['opening'] = array(array("tbl_inventory_adjustment_ingredients t $adjust_join", "t.consumption_amount", "p.date", "t.outlet_id = $outlet_id AND $live AND t.consumption_status = 'Plus' AND p.is_opening = 1"));
+        }
+
+        $start = $this->db->escape($start_date);
+        $end = $this->db->escape($end_date);
+        $moves = array();
+        foreach ($sources as $source => $queries) {
+            $moves[$source] = array();
+            foreach ($queries as $query) {
+                list($from, $amount, $date, $where) = $query;
+                $result = $this->db->query("SELECT t.ingredient_id,
+                        SUM(CASE WHEN $date IS NULL OR $date < $start THEN $amount ELSE 0 END) AS before_start,
+                        SUM(CASE WHEN $date >= $start AND $date <= $end THEN $amount ELSE 0 END) AS in_period
+                    FROM $from
+                    WHERE $where
+                    GROUP BY t.ingredient_id")->result();
+                foreach ($result as $row) {
+                    if (!isset($moves[$source][$row->ingredient_id])) {
+                        $moves[$source][$row->ingredient_id] = array('before_start' => 0, 'in_period' => 0);
+                    }
+                    $moves[$source][$row->ingredient_id]['before_start'] += (float)$row->before_start;
+                    $moves[$source][$row->ingredient_id]['in_period'] += (float)$row->in_period;
+                }
+            }
+        }
+        return $moves;
+    }
+    /**
      * get Inventory Alert List
      * @access public
      * @return object

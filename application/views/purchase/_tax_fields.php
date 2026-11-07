@@ -40,7 +40,7 @@ $tax_percent_value = set_value('tax_percent', $saved_tax ? $purchase_details->ta
     <div class="form-group">
         <label><?php echo lang('vat'); ?> (%) <span class="required_star">*</span></label>
         <input class="form-control integerchk" type="text" name="tax_percent" id="tax_percent"
-               onfocus="this.select();" value="<?php echo escape_output($tax_percent_value); ?>">
+               onfocus="this.select();" value="<?php echo html_escape($tax_percent_value); ?>">
     </div>
     <?php if (form_error('tax_percent')) { ?>
     <div class="callout callout-danger my-2">

@@ -2671,9 +2671,16 @@ function ds($s,$t){
         $food_menu_id = $_POST['food_menu_id'];
         $sale_no = $_POST['sale_no'];
         $qty = $_POST['qty'];
+        $reason = mb_substr(trim((string)$this->input->post('reason')), 0, 255);
+        $item_name = getFoodMenuNameById($food_menu_id);
         $event_txt = "<b>Item remove from Sale No: ".$sale_no."</b><br>";
-        $event_txt .= getFoodMenuNameById($food_menu_id)."(".getFoodMenuNameById($food_menu_id).") - ".$qty."qty";
-        putAuditLog($this->session->userdata('user_id'),$event_txt,"Remove Item",date('Y-m-d H:i:s'));
+        $event_txt .= $item_name."(".$item_name.") - ".$qty."qty";
+        putAuditLog($this->session->userdata('user_id'),$event_txt,"Remove Item",date('Y-m-d H:i:s'),array(
+            'sale_no' => $sale_no,
+            'item_name' => $item_name,
+            'qty' => $qty,
+            'reason' => $reason,
+        ));
         echo json_encode("success");
     }
     /**

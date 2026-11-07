@@ -6274,18 +6274,43 @@
        * Admin-password gate shared by "clear cart" and "remove item from a running
        * order". Opens #admin_password_verify_modal with the given message and runs
        * on_success once Sale/verify_admin_password_by_ajax accepts the password.
+       * options.require_reason also asks for a reason and passes it to on_success;
+       * options.skip_password leaves the password out (Admin/Manager).
        */
       let admin_verify_pending_action = null;
-      function requestAdminPassword(message, on_success) {
+      let admin_verify_needs_reason = false;
+      let admin_verify_skip_password = false;
+      function requestAdminPassword(message, on_success, options) {
+        options = options || {};
         admin_verify_pending_action = on_success;
+        admin_verify_needs_reason = !!options.require_reason;
+        admin_verify_skip_password = !!options.skip_password;
         $("#admin_verify_password_msg").text(message);
         $("#admin_verify_password_input").val("").css("border", "1px solid #B5D6F6");
+        $("#admin_verify_reason_input").val("").css("border", "1px solid #B5D6F6");
         $(".admin_verify_password_error").hide();
+        $(".admin_verify_reason_error").hide();
+        $(".admin_verify_reason_row").toggle(admin_verify_needs_reason);
+        $(".admin_verify_password_row").toggle(!admin_verify_skip_password);
         $("#admin_password_verify_modal").addClass("active");
         $(".pos__modal__overlay").fadeIn(200);
         setTimeout(function () {
-          $("#admin_verify_password_input").focus();
+          $(admin_verify_needs_reason ? "#admin_verify_reason_input" : "#admin_verify_password_input").focus();
         }, 200);
+      }
+      function runAdminVerifiedAction(reason) {
+        $("#admin_password_verify_modal")
+          .removeClass("active")
+          .addClass("inActive");
+        setTimeout(function () {
+          $(".modal").removeClass("inActive");
+        }, 1000);
+        $(".pos__modal__overlay").fadeOut(300);
+        let action = admin_verify_pending_action;
+        admin_verify_pending_action = null;
+        if (typeof action === "function") {
+          action(reason);
+        }
       }
       $(document).on("click", "#admin_password_verify_modal .cancel, #admin_password_verify_modal .alertCloseIcon", function () {
         admin_verify_pending_action = null;
@@ -6296,8 +6321,30 @@
           $("#submit_admin_verify_password").trigger("click");
         }
       });
+      $(document).on("keypress", "#admin_verify_reason_input", function (e) {
+        if (e.which == 13) {
+          e.preventDefault();
+          if (admin_verify_skip_password) {
+            $("#submit_admin_verify_password").trigger("click");
+          } else {
+            $("#admin_verify_password_input").focus();
+          }
+        }
+      });
       $(document).on("click", "#submit_admin_verify_password", function (e) {
         $(".admin_verify_password_error").hide();
+        $(".admin_verify_reason_error").hide();
+        $("#admin_verify_reason_input").css("border", "1px solid #B5D6F6");
+        let admin_verify_reason_val = $.trim($("#admin_verify_reason_input").val());
+        if (admin_verify_needs_reason && admin_verify_reason_val == "") {
+          $("#admin_verify_reason_input").css("border", "1px solid red").focus();
+          $(".admin_verify_reason_error").show();
+          return false;
+        }
+        if (admin_verify_skip_password) {
+          runAdminVerifiedAction(admin_verify_reason_val);
+          return false;
+        }
         let admin_verify_password_val = $("#admin_verify_password_input").val();
         $("#admin_verify_password_input").css("border", "1px solid #B5D6F6");
         if (admin_verify_password_val == "") {
@@ -6313,18 +6360,7 @@
           },
           success: function (response) {
             if (response.status == true) {
-              $("#admin_password_verify_modal")
-                .removeClass("active")
-                .addClass("inActive");
-              setTimeout(function () {
-                $(".modal").removeClass("inActive");
-              }, 1000);
-              $(".pos__modal__overlay").fadeOut(300);
-              let action = admin_verify_pending_action;
-              admin_verify_pending_action = null;
-              if (typeof action === "function") {
-                action();
-              }
+              runAdminVerifiedAction(admin_verify_reason_val);
             } else {
               $(".admin_verify_password_error").show();
               $("#admin_verify_password_input").css("border", "1px solid red");
@@ -16669,21 +16705,27 @@
             return false;
         } else {
           //Item belongs to a running order (loaded from Running Orders, or already sent to the kitchen):
-          //non Admin/Manager users must enter the admin password, same gate as clearing the cart
+          //everyone gives a reason for the audit log, and non Admin/Manager users must also enter
+          //the admin password, same gate as clearing the cart
           let is_running_order_item = $(this).hasClass("update_kitchen_status") ||
               ($("#p_qty_" + id).length && Number($("#p_qty_" + id).val()) > 0);
-          if (is_running_order_item && Number($("#can_clear_cart_without_pass").val()) != 1) {
+          if (is_running_order_item) {
               let remove_icon = $(this);
-              requestAdminPassword($("#admin_password_required_to_remove_item").val(), function () {
-                  removeCartItemConfirmed(remove_icon, sale_no, waiter_app_status);
-              });
+              let can_remove_without_pass = Number($("#can_clear_cart_without_pass").val()) == 1;
+              requestAdminPassword(
+                  $(can_remove_without_pass ? "#reason_required_to_remove_item" : "#admin_password_required_to_remove_item").val(),
+                  function (reason) {
+                      removeCartItemConfirmed(remove_icon, sale_no, waiter_app_status, reason);
+                  },
+                  { require_reason: true, skip_password: can_remove_without_pass }
+              );
               return false;
           }
           removeCartItemConfirmed($(this), sale_no, waiter_app_status);
         }
     });
     //actual removal of a cart row (remove_icon = the clicked .removeCartItem element)
-    function removeCartItemConfirmed(remove_icon, sale_no, waiter_app_status) {
+    function removeCartItemConfirmed(remove_icon, sale_no, waiter_app_status, reason) {
           let pos_7 = Number($("#pos_7").val());
           if(waiter_app_status=="Yes"){
               pos_7 = 1;
@@ -16701,7 +16743,7 @@
                           url: base_url + "authentication/remove_item_checking",
                           method: "POST",
                           dataType:'json',
-                          data:{food_menu_id:food_menu_id,qty:qty,sale_no:sale_no},
+                          data:{food_menu_id:food_menu_id,qty:qty,sale_no:sale_no,reason:reason||""},
                           success: function (response) {
 
                           },

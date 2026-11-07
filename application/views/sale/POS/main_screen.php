@@ -1750,9 +1750,15 @@ foreach ($notifications as $single_notification){
         <div class="main-content-wrapper">
             <p id="admin_verify_password_msg" data-default_msg="<?php echo lang('admin_password_required_to_clear'); ?>"><?php echo lang('admin_password_required_to_clear'); ?></p>
             <p class="admin_verify_password_error display_none ir_color_red"><?php echo lang('incorrect_admin_password'); ?></p>
-            <div>
-                <label for="admin_verify_password_input"><?php echo lang('password'); ?></label>
-                <input type="password" class="special_textbox" placeholder="<?php echo lang('password'); ?>"
+            <div class="admin_verify_reason_row" style="display:none">
+                <label for="admin_verify_reason_input"><?php echo lang('reason'); ?> <span class="ir_color_red">*</span></label>
+                <input type="text" maxlength="255" autocomplete="off" class="special_textbox" placeholder="<?php echo lang('reason'); ?>"
+                       id="admin_verify_reason_input" />
+                <p class="admin_verify_reason_error ir_color_red" style="display:none"><?php echo lang('reason_required'); ?></p>
+            </div>
+            <div class="admin_verify_password_row">
+                <label for="admin_verify_password_input"><?php echo lang('password'); ?> / <?php echo lang('login_pin'); ?></label>
+                <input type="password" class="special_textbox" placeholder="<?php echo lang('password'); ?> / <?php echo lang('login_pin'); ?>"
                        id="admin_verify_password_input" />
             </div>
         </div>
@@ -4132,6 +4138,8 @@ foreach ($notifications as $single_notification){
                              <i class="fa fa-angle-double-right"></i> <?php echo lang('ingredients_alert'); ?></a></li>
                     <li data-access="veiw-346" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory/inventoryFoodMenu">
                             <i class="fa fa-angle-double-right"></i> <?php echo lang('inventory_food_menu'); ?></a></li>
+                    <li data-access="add-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory/openingStock">
+                             <i class="fa fa-angle-double-right"></i> <?php echo lang('opening_stock'); ?></a></li>
                     <li data-access="add-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory_adjustment/addEditInventoryAdjustment">
                              <i class="fa fa-angle-double-right"></i> <?php echo lang('Add'); ?> <?php echo lang('inventory_adjustment'); ?></a></li>
                     <li data-access="view-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory_adjustment/inventoryAdjustments">
@@ -4284,6 +4292,7 @@ foreach ($notifications as $single_notification){
                     <li data-access="view-167" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/detailedSaleReport"><i class="fa fa-angle-double-right"></i> <?php echo lang('detailed_sale_report'); ?></a></li>
                     <li data-access="view-169" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/consumptionReport"><i class="fa fa-angle-double-right"></i> <?php echo lang('consumption_report'); ?></a></li>
                     <li data-access="view-171" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/inventoryReport"><i class="fa fa-angle-double-right"></i> <?php echo lang('inventory_report'); ?></a></li>
+                    <li data-access="view-171" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/monthlyInventoryReport"><i class="fa fa-angle-double-right"></i> <?php echo lang('monthly_inventory_report'); ?></a></li>
                     <li data-access="view-173" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/getInventoryAlertList"><i class="fa fa-angle-double-right"></i> <?php echo lang('low_inventory_report'); ?></a></li>
                     <li data-access="view-175" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/profitLossReport"><i class="fa fa-angle-double-right"></i> <?php echo lang('profit_loss_report'); ?></a></li>
                     <li data-access="view-179" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/attendanceReport"><i class="fa fa-angle-double-right"></i> <?php echo lang('attendance_report'); ?></a></li>

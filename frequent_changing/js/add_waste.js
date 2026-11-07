@@ -12,54 +12,84 @@ let at_least_ingredient = $("#at_least_ingredient").val();
 let note_field_cannot = $("#note_field_cannot").val();
 let wast_amt = $("#wast_amt").val();
 let loss_amt = $("#loss_amt").val();
-let ingredient_id_container = [];
+//the edit page fills this with the ingredients already on the waste
+let ingredient_id_container = window.waste_ingredient_ids || [];
+
+//recipe x quantity without float noise like 0.30000000000000004
+function roundWasteQty(qty) {
+    return parseFloat(qty.toFixed(4));
+}
 
 $(function() {
 
     //Initialize Select2 Elements
     $('.select2').select2();
-    let suffix =0;
+    let suffix = parseInt($('#suffix_hidden_field').val(), 10) || 0;
+
+    //a waste is either one food menu or hand picked ingredients, so one picker locks the other
+    if ($('#food_menu_id').val()) {
+        $('#ingredient_id').prop('disabled', true);
+    } else if ($('#waste_cart tbody tr').length) {
+        $('#food_menu_id').prop('disabled', true);
+    }
+
+    function resetWasteCart() {
+        $('#waste_cart tbody tr').remove();
+        $('#waste_quantity').val('');
+        $('#total_loss').val('');
+        $('#suffix_hidden_field').val('');
+        ingredient_id_container = [];
+        suffix = 0;
+    }
+    function leaveFoodMenuWaste() {
+        resetWasteCart();
+        //this namespace only refreshes select2, the change handler below stays out of it
+        $('#food_menu_id').val('').trigger('change.select2').prop('disabled', false);
+        $('#ingredient_id').prop('disabled', false);
+        $('#food_menu_waste_quantity_row').addClass('ir_display_none');
+    }
 
     $(document).on('change', '#food_menu_id', function() {
         let f_menu_id = $('#food_menu_id').val();
         $('#food_menu_waste_quantity').val('');
+        resetWasteCart();
         if (f_menu_id != '') {
-            $('#waste_quantity').val('');
-            $('#waste_cart tbody tr').remove();
             $('#ingredient_id').prop('disabled', true);
+            $(".food_menu_waste_quantity_err_msg_contnr").hide();
+            $('#food_menu_waste_quantity_row').removeClass('ir_display_none');
             $('#food_menu_waste').modal('show');
         } else {
-            $('#waste_quantity').val('');
-            $('#waste_cart tbody tr').remove();
-            $('#ingredient_id').prop('disabled', false);
+            leaveFoodMenuWaste();
         }
-        $('#food_menu_waste_quantity_row').css('display', 'block');
-        //     alert(f_menu_id);
-
-
+    });
+    //popup closed without a quantity: nothing was picked
+    $('#food_menu_waste').on('hidden.bs.modal', function() {
+        if ($('#waste_quantity').val() == '') {
+            leaveFoodMenuWaste();
+        }
     });
     $(document).on('click', '#delete_all_ingredient_list', function() {
-        $('#waste_cart').find('tbody').empty();
-        $('#total_loss').val('');
-        $('#food_menu_waste_quantity_row').hide();
+        leaveFoodMenuWaste();
+    });
+    //Enter inside the popup must not post its form and reload the page
+    $(document).on('submit', '#loan_form', function(e) {
+        e.preventDefault();
+        $('#food_menu_waste_button').trigger('click');
     });
 
-        $(document).on('click', '#food_menu_waste_button', function() {
-        let id = $('#food_menu_id').val();
+    $(document).on('click', '#food_menu_waste_button', function() {
         let f_menu_id = $('#food_menu_id').val();
-        let quantity = $('#food_menu_waste_quantity').val();
-        if (quantity == "") {
-
-            $("#food_menu_waste_quantity_err_msg").text("The Quantity field is required.");
+        let quantity = parseFloat($('#food_menu_waste_quantity').val());
+        if (isNaN(quantity) || quantity <= 0) {
+            $("#food_menu_waste_quantity_err_msg").text($("#waste_quantity_invalid").val());
             $(".food_menu_waste_quantity_err_msg_contnr").show(200);
-            let error = true;
-            return error;
+            return false;
         }
+        $(".food_menu_waste_quantity_err_msg_contnr").hide();
         let currency = $("#currency").val();
 
-        if (id != '') {
+        if (f_menu_id != '') {
             $('#waste_quantity').val(quantity);
-            //    alert(f_menu_id);
             $('#food_menu_waste').modal('hide');
             let csrf_name_= $("#csrf_name_").val();
             let csrf_value_= $("#csrf_value_").val();
@@ -74,15 +104,23 @@ $(function() {
                 dataType: "json",
                 success: function(data) {
                     $('#food_menu_waste_quantity').val('');
+                    if (!data.length) {
+                        leaveFoodMenuWaste();
+                        swal({
+                            title: warning+"!",
+                            text: $("#food_menu_no_recipe").val(),
+                            confirmButtonText: ok,
+                            confirmButtonColor: '#3c8dbc'
+                        });
+                        return;
+                    }
                     let j = 0;
                     let total_loss = 0;
 
                     $.each(data, function(i, v) {
-                        let qty = 0;
-                        let los_amount = 0;
-                        qty = quantity * v.consumption;
-                        los_amount = quantity * v.consumption * v.consumption_unit_cost;
-                        total_loss = total_loss + los_amount;
+                        let qty = roundWasteQty(quantity * v.consumption);
+                        let los_amount = (qty * v.consumption_unit_cost).toFixed(2);
+                        total_loss = total_loss + parseFloat(los_amount);
                         j++;
                         i++;
                         options += '<tr class="rowCount" data-id="' + i +
@@ -97,66 +135,63 @@ $(function() {
                             "(" + v.code + ")" + '</span></td>' +
                             '<td class="ir_w_15"><input readonly  type="text" data-countID="' +
                             i + '" id="waste_amount_' + i +
-                            '" name="waste_amount[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="Waste Amt" value=" ' +
-                            qty + ' " /><span class="label_aligning"> ' + v
+                            '" name="waste_amount[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="Waste Amt" value="' +
+                            qty + '" /><span class="label_aligning"> ' + v
                                 .unit_name +
                             '</span><span id="unit_consumption_ingredient_' + i +
                             '" class="unit_consumption_ingredient ir_display_none">' +
                             v.consumption + '</span></td>' +
                             '<input type="hidden" id="last_purchase_price_' + i +
-                            '" name="last_purchase_price[]" value="' + i + '"/>' +
+                            '" name="last_purchase_price[]" value="' + v.consumption_unit_cost + '"/>' +
                             '<td><input type="text" id="loss_amount_' + i +
-                            '" name="loss_amount[]" onfocus="this.select();" class="form-control aligning" placeholder="Loss Amt" value=" ' +
+                            '" name="loss_amount[]" onfocus="this.select();" class="form-control aligning" placeholder="Loss Amt" value="' +
                             los_amount +
-                            ' " readonly /><span class="label_aligning">' +
+                            '" readonly /><span class="label_aligning">' +
                             currency + '</span><span id="unit_price_ingredient_' +
                             i + '" class="unit_price_ingredient ir_display_none">' +
                             v.consumption_unit_cost + '</span></td>' +
+                            '<td></td>' +
                             '</tr>';
 
                     });
+                    suffix = data.length;
+                    $('#suffix_hidden_field').val(suffix);
                     $('#waste_cart tbody').append(options);
-                    $("#total_loss").val(total_loss);
+                    $("#total_loss").val(total_loss.toFixed(2));
                 }
             });
 
         }
     });
-    $(document).on('keyup', '#waste_quantity', function() {
-        //if the letter is not digit then display error and don't type anything
-        if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
-            $(this).val('');
-        }
-
-        let given_amount = ($(this).val() != "") ? $(this).val() : 0;
-
+    //changing the food menu quantity recalculates every ingredient row from its recipe
+    $(document).on('input', '#waste_quantity', function() {
         //check wether value is valid or not
-        remove_last_two_digit_without_percentage(given_amount, $(this));
+        remove_last_two_digit_without_percentage($(this).val(), $(this));
 
-        given_amount = ($(this).val() != "") ? $(this).val() : 0;
+        let given_amount = parseFloat($(this).val());
+        if (isNaN(given_amount) || given_amount < 0) {
+            given_amount = 0;
+        }
 
         let total_loss = 0;
         $('.rowCount').each(function(i, obj) {
             let row_id = $(this).attr('id').substr(4);
-            let unit_price = $(this).find('.unit_price_ingredient').html();
-            let unit_consumption = $(this).find('.unit_consumption_ingredient').html();
-            let updated_consumption = parseFloat(unit_consumption) * parseFloat(given_amount);
-            let updated_price = (parseFloat(unit_price) * parseFloat(updated_consumption))
-                .toFixed(2);
+            let unit_price = parseFloat($(this).find('.unit_price_ingredient').html());
+            let unit_consumption = parseFloat($(this).find('.unit_consumption_ingredient').html());
+            let updated_consumption = roundWasteQty(unit_consumption * given_amount);
+            let updated_price = (unit_price * updated_consumption).toFixed(2);
             $('#waste_amount_' + row_id).val(updated_consumption);
             $('#loss_amount_' + row_id).val(updated_price);
-            total_loss = (parseFloat(total_loss) + parseFloat(updated_price)).toFixed(2);
-            // console.log('updated price: '+updated_price+', updated consumption: '+updated_consumption);
+            total_loss += parseFloat(updated_price);
         });
-        $('#total_loss').val(total_loss);
+        $('#total_loss').val(total_loss.toFixed(2));
 
     });
     $(document).on('change', '#ingredient_id', function() {
-        $('#food_menu_id').prop('disabled', true);
-
         let ingredient_details = $('#ingredient_id').val();
 
         if (ingredient_details != '') {
+            $('#food_menu_id').prop('disabled', true);
 
             let ingredient_details_array = ingredient_details.split('|');
 
@@ -242,7 +277,14 @@ $(function() {
             error = true;
         }
 
-        $(".integerchk").each(function() {
+        if ($("#food_menu_id").val() && !(parseFloat($("#waste_quantity").val()) > 0)) {
+            $("#waste_quantity_err_msg").text($("#waste_quantity_invalid").val());
+            $(".waste_quantity_err_msg_contnr").show(200);
+            error = true;
+        }
+
+        //only the cart rows: the popup's quantity box has this class too but no row
+        $("#waste_cart .integerchk").each(function() {
             let n = $(this).attr("data-countID");
             let waste_amount = $.trim($("#waste_amount_" + n).val());
             if (waste_amount == '' || isNaN(waste_amount)) {
@@ -257,8 +299,9 @@ $(function() {
             }
         });
 
+        //returning true here would let the form post anyway
         if (error == true) {
-            return error;
+            return false;
         }
 
     });
@@ -293,7 +336,7 @@ function calculateAll() {
         }
     });
 
-    $("#total_loss").val(total_loss);
+    $("#total_loss").val(total_loss.toFixed(2));
 
 }
 
@@ -318,6 +361,9 @@ function deleter(suffix, ingredient_id) {
 
         updateRowNo();
         calculateAll();
+        if ($("#waste_cart tbody tr").length == 0) {
+            $('#food_menu_id').prop('disabled', false);
+        }
     });
 }
 

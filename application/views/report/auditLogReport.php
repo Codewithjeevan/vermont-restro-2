@@ -111,7 +111,10 @@
                         <th scope="col"><?php echo lang('done_by'); ?></th>
                         <th scope="col"><?php echo lang('event_title'); ?></th>
                         <th scope="col"><?php echo lang('date_time'); ?></th>
-                        <th scope="col"><?php echo lang('details'); ?></th>
+                        <th scope="col"><?php echo lang('invoice_no'); ?></th>
+                        <th scope="col"><?php echo lang('item_name'); ?></th>
+                        <th scope="col"><?php echo lang('qty'); ?></th>
+                        <th scope="col"><?php echo lang('reason'); ?></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -119,14 +122,18 @@
                     if (isset($auditLogReport)):
                         foreach ($auditLogReport as $key => $value) {
                             $key++;
+                            $columns = auditLogColumns($value);
                             ?>
                             <tr>
                                 <th class="txt-uh-41" scope="row"><?php echo escape_output($key)?></th>
                                 <td class="txt-uh-41"><?php echo escape_output(($value->outlet_name)); ?></td>
                                 <td class="txt-uh-41"><?php echo escape_output(userName($value->user_id)); ?></td>
                                 <td class="txt-uh-41"><?php echo escape_output($value->event_title); ?></td>
-                                <td class="txt-uh-41"><?php echo date("d/m/Y h:m A",strtotime($value->date_time))?></td>
-                                <td class="txt-uh-41"><?php echo ($value->details); ?></td>
+                                <td class="txt-uh-41"><?php echo date("d/m/Y h:i A",strtotime($value->date_time))?></td>
+                                <td class="txt-uh-41"><?php echo escape_output($columns['sale_no']); ?></td>
+                                <td class="txt-uh-41"><?php echo nl2br(escape_output($columns['item_name'])); ?></td>
+                                <td class="txt-uh-41"><?php echo nl2br(escape_output($columns['qty'])); ?></td>
+                                <td class="txt-uh-41"><?php echo escape_output($columns['reason']); ?></td>
                             </tr>
                             <?php
                         }

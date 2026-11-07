@@ -83,8 +83,113 @@ class Inventory extends Cl_Controller {
 
         $data['foodMenus'] = $this->Sale_model->getAllFoodMenus();
         $data['inventory'] = $this->Inventory_model->getInventory($category_id, $ingredient_id, $food_id);
+        $data['ingredient_prices'] = getIngredientPricesAsOf($this->session->userdata('outlet_id'));
         $data['main_content'] = $this->load->view('inventory/inventory', $data, TRUE);
         $this->load->view('userHome', $data);
+    }
+    /**
+     * Opening Stock of the current outlet. Saved as an Inventory Adjustment (Plus) row, so every
+     * stock formula already counts it; is_opening keeps it out of Usage on the monthly report.
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function openingStock() {
+        if(!checkAccess("131","add")){
+            $this->session->set_flashdata('exception_er', lang('menu_not_permit_access'));
+            redirect('Authentication/userProfile');
+        }
+
+        $outlet_id = $this->session->userdata('outlet_id');
+        $opening_enabled = $this->Inventory_model->openingEnabled();
+        $inventory = $this->Inventory_model->getInventory();
+
+        if ($opening_enabled && htmlspecialcharscustom($this->input->post('submit'))) {
+            $this->saveOpeningStockForm($inventory, $outlet_id);
+            redirect('Inventory/openingStock');
+        }
+
+        $opening_rows = $opening_enabled ? $this->Inventory_model->getOpeningStockRows($outlet_id) : array();
+        $rows = array();
+        $categories = array();
+        foreach ($inventory as $value) {
+            if (!$value->id) {
+                continue;
+            }
+            $conversion_rate = (float)$value->conversion_rate;
+            $divide_by = $conversion_rate > 0 ? $conversion_rate : 1;
+            $opening = isset($opening_rows[$value->id]) ? $opening_rows[$value->id] : null;
+            $rows[] = (object)array(
+                'id' => $value->id,
+                'name' => $value->name,
+                'code' => $value->code,
+                'category_name' => $value->category_name,
+                'purchase_unit' => $value->unit_name2,
+                'conversion_rate' => $conversion_rate,
+                'current_stock' => round($this->Inventory_model->stockInConsumptionUnits($value) / $divide_by, 3),
+                'opening_qty' => $opening ? round($opening->consumption_amount / $divide_by, 3) : '',
+                'opening_date' => $opening ? $opening->date : '',
+            );
+            $categories[$value->category_name] = $value->category_name;
+        }
+        ksort($categories);
+
+        $data = array();
+        $data['opening_enabled'] = $opening_enabled;
+        $data['rows'] = $rows;
+        $data['categories'] = $categories;
+        $data['main_content'] = $this->load->view('inventory/opening_stock', $data, TRUE);
+        $this->load->view('userHome', $data);
+    }
+    /**
+     * check and save the opening stock form; the browser posts only the rows that changed
+     * @access private
+     * @return void
+     * @param array getInventory() rows
+     * @param int
+     */
+    private function saveOpeningStockForm($inventory, $outlet_id) {
+        $date_time = strtotime((string)$this->input->post('opening_date'));
+        if (!$date_time) {
+            $this->session->set_flashdata('exception_er', lang('opening_stock_invalid'));
+            return;
+        }
+
+        $ingredients = array();
+        foreach ($inventory as $value) {
+            if ($value->id) {
+                $ingredients[$value->id] = $value;
+            }
+        }
+
+        $rows = array();
+        foreach ((array)json_decode((string)$this->input->post('opening_rows'), true) as $row) {
+            $ingredient_id = isset($row['id']) ? (int)$row['id'] : 0;
+            $qty = isset($row['qty']) ? $row['qty'] : '';
+            if (!isset($ingredients[$ingredient_id]) || !is_numeric($qty) || $qty < 0 || (float)$ingredients[$ingredient_id]->conversion_rate <= 0) {
+                $this->session->set_flashdata('exception_er', lang('opening_stock_invalid'));
+                return;
+            }
+            $rows[$ingredient_id] = (float)$qty * (float)$ingredients[$ingredient_id]->conversion_rate;
+        }
+        if (!$rows) {
+            $this->session->set_flashdata('exception_er', lang('opening_stock_no_changes'));
+            return;
+        }
+
+        $this->load->model('Inventory_adjustment_model');
+        $saved = $this->Inventory_model->saveOpeningStock(
+            $rows,
+            date('Y-m-d', $date_time),
+            $outlet_id,
+            $this->session->userdata('user_id'),
+            $this->Inventory_adjustment_model->generateReferenceNo($outlet_id)
+        );
+        if ($saved) {
+            $this->session->set_flashdata('exception', lang('opening_stock_saved'));
+        } else {
+            $this->session->set_flashdata('exception_er', lang('opening_stock_invalid'));
+        }
     }
     /**
      * inventory info

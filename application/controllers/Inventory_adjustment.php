@@ -80,7 +80,7 @@ class Inventory_adjustment extends Cl_Controller {
         $outlet_id = $this->session->userdata('outlet_id');
 
         $data = array();
-        $data['inventory_adjustments'] = $this->Common_model->getAllByOutletId($outlet_id, "tbl_inventory_adjustment");
+        $data['inventory_adjustments'] = $this->Inventory_adjustment_model->getAdjustmentList($outlet_id);
         $data['main_content'] = $this->load->view('inventoryAdjustment/inventoryAdjustments', $data, TRUE);
         $this->load->view('userHome', $data);
     }

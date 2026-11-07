@@ -1,0 +1,40 @@
+/*
+monthly inventory report
+*/
+.mir_note {
+  color: rgba(47, 43, 61, 0.78);
+  margin-bottom: 12px;
+}
+.table-box table.mir_table th,
+.table-box table.mir_table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.table-box table.mir_table tr.mir_group_row th {
+  text-align: center;
+  background-color: #f3f2f7;
+  border-left: 1px solid #dbdade;
+  border-right: 1px solid #dbdade;
+  font-weight: 600;
+}
+.table-box table.mir_table td.mir_item {
+  font-weight: 600;
+}
+.table-box table.mir_table td.mir_remarks {
+  white-space: normal;
+  min-width: 260px;
+  font-size: 12px;
+}
+.table-box table.mir_table td.mir_negative {
+  color: #ea5455;
+}
+.table-box table.mir_table tr.mir_flagged td.mir_check,
+.table-box table.mir_table tr.mir_flagged td.mir_remarks {
+  background-color: #fff1e0;
+}
+.table-box table.mir_table tr.mir_flagged td.mir_check {
+  color: #b35900;
+  font-weight: 600;
+  white-space: normal;
+  min-width: 150px;
+}

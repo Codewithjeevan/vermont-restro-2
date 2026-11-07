@@ -1,5 +1,21 @@
+//Paid follows the grand total until the user types something else (a part payment, 0 on credit)
+let paid_is_manual = false;
+function markPaidManual() {
+    let paid = $.trim($("#paid").val());
+    paid_is_manual = paid === "" || Number(paid) !== Number($("#grand_total").val());
+}
+
 $(function() {
     "use strict";
+    //a saved part payment stays as it is; a fully paid purchase keeps following the total
+    markPaidManual();
+    //a Paid box left empty goes back to following the grand total
+    $(document).on('blur', '#paid', function() {
+        if ($.trim($(this).val()) === "") {
+            paid_is_manual = false;
+            calculateAll();
+        }
+    });
     let ingredient_already_remain = $("#ingredient_already_remain").val();
     let supplier_field_required = $("#supplier_field_required").val();
     let date_field_required = $("#date_field_required").val();
@@ -220,6 +236,10 @@ function calculateAll() {
 
     $("#grand_total").val(grand_total);
 
+    if (!paid_is_manual) {
+        $("#paid").val(grand_total);
+    }
+
     let paid = $("#paid").val();
 
     if ($.trim(paid) == "" || $.isNumeric(paid) == false) {
@@ -246,7 +266,7 @@ function deleter(suffix, ingredient_id) {
         showCancelButton: true
     }, function() {
         $("#row_" + suffix).remove();
-        $("#paid").val('');
+        paid_is_manual = false;
         calculateAll();
     });
 }

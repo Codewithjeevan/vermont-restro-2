@@ -30,6 +30,8 @@
                         <th class="title" class="ir_w_20"><?php echo lang('category'); ?></th>
                         <th class="title" class="ir_w_20"><?php echo lang('stock_qty_amount'); ?></th>
                         <th class="title" class="ir_w_20"><?php echo lang('alert_qty_amount'); ?></th>
+                        <th class="title" class="ir_w_20"><?php echo lang('purchase_unit_amount'); ?></th>
+                        <th class="title" class="ir_w_20"><?php echo lang('total_amount'); ?></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -43,17 +45,15 @@
                             $conversion_rate = (int)$value->conversion_rate?$value->conversion_rate:1;
                             if($value->id):
                                 $totalStock = ($value->total_purchase*$value->conversion_rate)  - $value->total_consumption - $value->total_modifiers_consumption - $value->total_waste + $value->total_consumption_plus - $value->total_consumption_minus + ($value->total_transfer_plus*$value->conversion_rate) - ($value->total_transfer_minus*$value->conversion_rate)  +  ($value->total_transfer_plus_2*$value->conversion_rate) -  ($value->total_transfer_minus_2*$value->conversion_rate)+ ($value->total_production*$value->conversion_rate);
-                                $last_purchase_price = getLastPurchaseAmount($value->id);
+                                //real quantity in purchase units x price: "3 Pkt 5 Pcs" is 3 + 5/14 Pkt, not 3.5
+                                $unit_price = isset($ingredient_prices[$value->id]) ? $ingredient_prices[$value->id] : (float)$value->purchase_price;
+                                $total_amount = ($totalStock / $conversion_rate) * $unit_price;
+                                $grandTotal += $total_amount;
 
                                 if($value->conversion_rate==0 || $value->conversion_rate==''){
                                     $total_sale_unit = isset($value->conversion_rate) && (int)$value->conversion_rate?(int)($totalStock/1):'0';
                                 }else{
                                     $total_sale_unit = isset($value->conversion_rate) && (int)$value->conversion_rate?(int)($totalStock/$value->conversion_rate):'0';
-                                }
-
-                                $total_stock_in_float = ((float)(((int)$total_sale_unit).".".((int)$totalStock%$conversion_rate)));
-                                if ($totalStock >= 0) {
-                                    $grandTotal += ($total_stock_in_float*$last_purchase_price);
                                 }
 
                                 $key++;
@@ -82,6 +82,8 @@
                                         endif
                                         ?>
                                     </td>
+                                    <td><?= escape_output(getAmtP($unit_price)) ?></td>
+                                    <td style="<?= ($total_amount < 0) ? 'color:red' : '' ?>"><?= escape_output(getAmtP($total_amount)) ?></td>
                                 </tr>
                                 <?php
                             endif;

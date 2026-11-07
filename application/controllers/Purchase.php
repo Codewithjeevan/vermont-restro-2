@@ -202,7 +202,8 @@ class Purchase extends Cl_Controller {
                     $purchase_info['tax_amount'] = $totals['tax_amount'];
                 }
                 $purchase_info['grand_total'] = $totals['grand_total'];
-                $purchase_info['paid'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('paid')));
+                //not htmlspecialcharscustom(): it turns a paid of 0 into '' and the due below then crashes on PHP 8
+                $purchase_info['paid'] = (float)$this->input->post('paid');
                 $purchase_info['due'] = round($totals['grand_total'] - $purchase_info['paid'], 2);
                 $purchase_info['payment_id'] =htmlspecialcharscustom($this->input->post($this->security->xss_clean('payment_id')));
                 $purchase_info['counter_id'] = $this->session->userdata('counter_id');
@@ -355,10 +356,13 @@ class Purchase extends Cl_Controller {
         if ($latest_purchase_id != $purchase_id) {
             return;
         }
+        //before where(): getAmtP() runs its own query builder query, which uses up a pending where
+        //and left this update with no condition, so every ingredient got this price
+        $consumption_unit_cost = getAmtP($unit_price / $conversion_rate);
         $this->db->where('id', $ingredient_id);
         $this->db->update('tbl_ingredients', array(
             'purchase_price' => $unit_price,
-            'consumption_unit_cost' => getAmtP($unit_price / $conversion_rate),
+            'consumption_unit_cost' => $consumption_unit_cost,
         ));
     }
      /**

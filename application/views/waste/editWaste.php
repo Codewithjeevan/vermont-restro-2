@@ -5,22 +5,22 @@
 <input type="hidden" id="note_field_cannot" value="<?php echo lang('note_field_cannot'); ?>">
 <input type="hidden" id="wast_amt" value="<?php echo lang('wast_amt'); ?>">
 <input type="hidden" id="loss_amt" value="<?php echo lang('loss_amt'); ?>">
+<input type="hidden" id="food_menu_no_recipe" value="<?php echo lang('food_menu_no_recipe'); ?>">
+<input type="hidden" id="waste_quantity_invalid" value="<?php echo lang('waste_quantity_invalid'); ?>">
 
-<script>
 <?php
-$ingredient_id_container = "[";
+$waste_ingredient_ids = array();
 if ($waste_ingredients && !empty($waste_ingredients)) {
     foreach ($waste_ingredients as $wi) {
-        $ingredient_id_container .= '"' . $wi->ingredient_id . '",';
+        $waste_ingredient_ids[] = (string)$wi->ingredient_id;
     }
 }
-$ingredient_id_container = substr($ingredient_id_container, 0, -1);
-$ingredient_id_container .= "]";
 ?>
-
-let ingredient_id_container = <?php echo escape_output($ingredient_id_container); ?>;
+<script>
+//add_waste.js declares ingredient_id_container itself; declaring it here too stopped that whole file from loading
+window.waste_ingredient_ids = <?php echo json_encode($waste_ingredient_ids); ?>;
 </script>
-<script src="<?php echo base_url(); ?>frequent_changing/js/add_waste.js"></script>
+<script src="<?php echo base_url(); ?>frequent_changing/js/add_waste.js?v=<?php echo @filemtime(FCPATH . 'frequent_changing/js/add_waste.js'); ?>"></script>
 
 <link rel="stylesheet" href="<?php echo base_url(); ?>assets/dist/css/custom/editWaste.css">
 
@@ -184,7 +184,7 @@ let ingredient_id_container = <?php echo escape_output($ingredient_id_container)
                     </div>
 
 
-                    <div class="row">
+                    <div class="row <?php echo $waste_details->food_menu_id ? '' : 'ir_display_none'; ?>" id="food_menu_waste_quantity_row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label><?php echo lang('food_menu_waste_quantity'); ?></label>
@@ -201,7 +201,10 @@ let ingredient_id_container = <?php echo escape_output($ingredient_id_container)
                                 <p id="waste_quantity_err_msg"></p>
                             </div>
                         </div>
-
+                        <div class="col-md-4">
+                            <div class="hidden-xs hidden-sm mt-2">&nbsp;</div>
+                            <button type="button" class="btn bg-red-btn" id="delete_all_ingredient_list"><?php echo lang('delete'); ?></button>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -225,15 +228,19 @@ let ingredient_id_container = <?php echo escape_output($ingredient_id_container)
                                         if ($waste_ingredients && !empty($waste_ingredients)) {
                                             foreach ($waste_ingredients as $wi) {
                                                 $i++;
-                                                $unit_price = $wi->loss_amount/$waste_details->food_menu_waste_qty;
+                                                //a waste without a food menu has no quantity to divide by
+                                                $food_menu_qty = (float)$waste_details->food_menu_waste_qty;
+                                                $is_food_menu_row = $waste_details->food_menu_id && $food_menu_qty > 0;
+                                                $unit_consumption = $is_food_menu_row ? $wi->waste_amount / $food_menu_qty : $wi->waste_amount;
+                                                $unit_price = $wi->waste_amount != 0 ? $wi->loss_amount / $wi->waste_amount : $wi->last_purchase_price;
                                                 echo '<tr class="rowCount" data-id="' . $i . '" id="row_' . $i . '">' .
-                                                'class="txt_19"<p id="sl_' . $i . '">' . $i . '</p></td>' .
+                                                '<td class="txt_19"><p id="sl_' . $i . '">' . $i . '</p></td>' .
                                                 '<input type="hidden" id="ingredient_id_' . $i . '" name="ingredient_id[]" value="' . $wi->ingredient_id . '"/>' .
                                                 '<td class="txt_18">' . getIngredientNameById($wi->ingredient_id) . ' (' . getIngredientCodeById($wi->ingredient_id) . ')</span></td>' .
-                                                '<td><input type="text" data-countID="' . $i . '" id="waste_amount_' . $i . '" name="waste_amount[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="Waste Amt" value="' . $wi->waste_amount . '" onkeyup="return calculateAll();"/> <span class="label_aligning"> ' . unitName(getUnitIdByIgId($wi->ingredient_id)) . '</span><span id="unit_consumption_ingredient_'.$i.'" class="unit_consumption_ingredient ir_display_none">'.($wi->waste_amount/$waste_details->food_menu_waste_qty).'</span></td>' .
-                                                '<input type="hidden" id="last_purchase_price_' . $i . '" name="last_purchase_price[]" value="' . $wi->last_purchase_price . '"/>' .
+                                                '<td><input type="text" data-countID="' . $i . '" id="waste_amount_' . $i . '" name="waste_amount[]" onfocus="this.select();" class="form-control integerchk aligning" placeholder="Waste Amt" value="' . $wi->waste_amount . '" ' . ($is_food_menu_row ? 'readonly' : 'onkeyup="return calculateAll();"') . '/> <span class="label_aligning"> ' . unitName(getUnitIdByIgId($wi->ingredient_id)) . '</span><span id="unit_consumption_ingredient_'.$i.'" class="unit_consumption_ingredient ir_display_none">'.$unit_consumption.'</span></td>' .
+                                                '<input type="hidden" id="last_purchase_price_' . $i . '" name="last_purchase_price[]" value="' . $unit_price . '"/>' .
                                                 '<td><input type="text" id="loss_amount_' . $i . '" name="loss_amount[]" class="form-control aligning" placeholder="Loss Amt" value="' . $wi->loss_amount . '" readonly /><span id="unit_price_ingredient_'.$i.'" class="unit_price_ingredient ir_display_none">'.$unit_price.'</span></td>' .
-                                                '<td><a class="btn btn-danger btn-xs txt_20"> onclick="return deleter(' . $i . ',' . $wi->ingredient_id . ');" ><i class="fa fa-trash"></i> </a></td>' .
+                                                '<td>' . ($is_food_menu_row ? '' : '<a class="btn btn-danger btn-xs txt_20" onclick="return deleter(' . $i . ',' . $wi->ingredient_id . ');" ><i class="fa fa-trash"></i> </a>') . '</td>' .
                                                 '</tr>';
                                             }
                                         }

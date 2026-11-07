@@ -583,6 +583,8 @@ $user_id = $this->session->userdata('user_id');
                                 <li data-access="veiw-346" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory/inventoryFoodMenu">
                                        <?php echo lang('inventory_food_menu'); ?></a></li>
 
+                                <li data-access="add-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory/openingStock">
+                                        <?php echo lang('opening_stock'); ?></a></li>
                                 <li data-access="add-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory_adjustment/addEditInventoryAdjustment">
                                         <?php echo lang('Add'); ?> <?php echo lang('inventory_adjustment'); ?></a></li>
                                 <li data-access="view-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory_adjustment/inventoryAdjustments">
@@ -756,6 +758,7 @@ $user_id = $this->session->userdata('user_id');
                                 <li data-access="view-167" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/invoiceDetailReport"><?php echo lang('invoice_detail_report'); ?></a></li>
                                 <li data-access="view-169" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/consumptionReport"><?php echo lang('consumption_report'); ?></a></li>
                                 <li data-access="view-171" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/inventoryReport"><?php echo lang('inventory_report'); ?></a></li>
+                                <li data-access="view-171" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/monthlyInventoryReport"><?php echo lang('monthly_inventory_report'); ?></a></li>
                                 <li data-access="view-173" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/getInventoryAlertList"><?php echo lang('low_inventory_report'); ?></a></li>
                                 <li data-access="view-175" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/profitLossReport"><?php echo lang('profit_loss_report'); ?></a></li>
                                 <li data-access="view-179" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/attendanceReport"><?php echo lang('attendance_report'); ?></a></li>
@@ -1135,6 +1138,8 @@ $user_id = $this->session->userdata('user_id');
                                         <?php echo lang('ingredients_alert'); ?></a></li>
                                 <li data-access="veiw-346" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory/inventoryFoodMenu">
                                         <?php echo lang('inventory_food_menu'); ?></a></li>
+                                <li data-access="add-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory/openingStock">
+                                        <?php echo lang('opening_stock'); ?></a></li>
                                 <li data-access="add-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory_adjustment/addEditInventoryAdjustment">
                                         <?php echo lang('Add'); ?> <?php echo lang('inventory_adjustment'); ?></a></li>
                                 <li data-access="view-131" class="menu_assign_class" data-menu__cid="irp_9"><a href="<?php echo base_url()?>Inventory_adjustment/inventoryAdjustments">
@@ -1308,6 +1313,7 @@ $user_id = $this->session->userdata('user_id');
                                 <li data-access="view-167" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/invoiceDetailReport"><?php echo lang('invoice_detail_report'); ?></a></li>
                                 <li data-access="view-169" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/consumptionReport"><?php echo lang('consumption_report'); ?></a></li>
                                 <li data-access="view-171" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/inventoryReport"><?php echo lang('inventory_report'); ?></a></li>
+                                <li data-access="view-171" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/monthlyInventoryReport"><?php echo lang('monthly_inventory_report'); ?></a></li>
                                 <li data-access="view-173" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/getInventoryAlertList"><?php echo lang('low_inventory_report'); ?></a></li>
                                 <li data-access="view-175" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/profitLossReport"><?php echo lang('profit_loss_report'); ?></a></li>
                                 <li data-access="view-179" class="menu_assign_class" data-menu__cid="irp_15"><a href="<?php echo base_url()?>Report/attendanceReport"><?php echo lang('attendance_report'); ?></a></li>

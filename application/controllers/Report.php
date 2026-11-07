@@ -56,7 +56,7 @@ class Report extends Cl_Controller {
             }elseif($segment_2=="consumptionReport"){
                 $controller = "169";
                 $function = "view";
-            }elseif($segment_2=="inventoryReport"){
+            }elseif($segment_2=="inventoryReport" || $segment_2=="monthlyInventoryReport"){
                 $controller = "171";
                 $function = "view";
             }elseif($segment_2=="getInventoryAlertList"){
@@ -305,6 +305,38 @@ class Report extends Cl_Controller {
      */
     public function todayReportCashStatus() {
         echo json_encode('');
+    }
+      /**
+     * monthly Inventory Report, opens on the current month so far
+     * @access public
+     * @return void
+     * @param no
+     */
+    public function monthlyInventoryReport() {
+        $outlet_id = $this->session->userdata('outlet_id');
+        $posted_outlet = $this->input->post('outlet_id');
+        if ($posted_outlet) {
+            foreach (getAllOutlestByAssign() as $outlet) {
+                if ($outlet->id == $posted_outlet) {
+                    $outlet_id = $outlet->id;
+                }
+            }
+        }
+        $start_time = strtotime((string)$this->input->post('startDate'));
+        $end_time = strtotime((string)$this->input->post('endDate'));
+        $start_date = $start_time ? date('Y-m-d', $start_time) : date('Y-m-01');
+        $end_date = $end_time ? date('Y-m-d', $end_time) : date('Y-m-d');
+        if ($start_date > $end_date) {
+            list($start_date, $end_date) = array($end_date, $start_date);
+        }
+
+        $data = array();
+        $data['outlet_id'] = $outlet_id;
+        $data['start_date'] = $start_date;
+        $data['end_date'] = $end_date;
+        $data['report'] = $this->Report_model->monthlyInventoryReport($start_date, $end_date, $outlet_id);
+        $data['main_content'] = $this->load->view('report/monthlyInventoryReport', $data, TRUE);
+        $this->load->view('userHome', $data);
     }
       /**
      * inventory Report
