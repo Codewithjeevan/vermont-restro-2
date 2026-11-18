@@ -1,4 +1,15 @@
-RewriteEngine On 
+# Never serve secret/dot files such as .env (application/.env holds the AI API key)
+<FilesMatch "^\.(env|git)">
+    <IfModule authz_core_module>
+        Require all denied
+    </IfModule>
+    <IfModule !authz_core_module>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f 
 RewriteCond %{REQUEST_FILENAME} !-d 
 RewriteRule ^(.*)$ index.php?/$1 [L]

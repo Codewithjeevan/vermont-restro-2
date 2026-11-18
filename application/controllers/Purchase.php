@@ -357,12 +357,15 @@ class Purchase extends Cl_Controller {
             return;
         }
         //before where(): getAmtP() runs its own query builder query, which uses up a pending where
-        //and left this update with no condition, so every ingredient got this price
+        //and left this update with no condition, so every ingredient got this price.
+        //average_consumption_per_unit is what the Profit & Loss report costs food with,
+        //so it moves together with consumption_unit_cost (docs/ai_insight_plan.md F1)
         $consumption_unit_cost = getAmtP($unit_price / $conversion_rate);
         $this->db->where('id', $ingredient_id);
         $this->db->update('tbl_ingredients', array(
             'purchase_price' => $unit_price,
             'consumption_unit_cost' => $consumption_unit_cost,
+            'average_consumption_per_unit' => $consumption_unit_cost,
         ));
     }
      /**
