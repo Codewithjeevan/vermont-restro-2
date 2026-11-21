@@ -2523,6 +2523,31 @@ We hope to see you again!";
             }
             echo escape_output($sale_id_offline);
             $this->db->trans_commit();
+            //"Email bill" ticked on the POS: only queue it here, Email_invoice/process sends it
+            $this->queueBillEmail($sales_id, $order_details);
+        }
+    }
+    /**
+     * Queue the bill email asked for on the POS payment screen.
+     * Runs after the sale is committed and never stops or changes the push_online answer.
+     * @access private
+     * @param int $sales_id
+     * @param object $order_details
+     */
+    private function queueBillEmail($sales_id, $order_details) {
+        try {
+            if (!isset($order_details->send_email_status) || (string)$order_details->send_email_status !== '1') {
+                return;
+            }
+            $email = isset($order_details->email_bill_to) ? trim((string)$order_details->email_bill_to) : '';
+            $this->load->library('Invoice_mailer');
+            $result = $this->invoice_mailer->queueFromPos($sales_id, $this->session->userdata('company_id'),
+                isset($order_details->customer_id) ? $order_details->customer_id : 0, $email, $this->session->userdata('user_id'));
+            if (!$result['ok']) {
+                log_message('error', 'Bill email not queued for sale '.$sales_id.': '.$result['msg']);
+            }
+        } catch (Throwable $e) {
+            log_message('error', 'Bill email not queued for sale '.$sales_id.': '.$e->getMessage());
         }
     }
      /**
@@ -4258,6 +4283,9 @@ We hope to see you again!";
         $user_id = $this->session->userdata('user_id');
         $sales = $this->Sale_model->make_datatables($outlet_id);
         $data = array();
+        //"Email Invoice" action: email switched on and permission 443 send
+        $this->load->library('Invoice_mailer');
+        $email_invoice_on = checkAccess(443, 'send') && $this->invoice_mailer->isEnabled($this->session->userdata('company_id'));
 
         if ($sales && !empty($sales)) {
             $i = count($sales);
@@ -4285,6 +4313,11 @@ We hope to see you again!";
                if($order_type=="Delivery"):
                 $html .= '<li data-access="change_delivery_address-123" class="menu_assign_class"><a class="ir_mouse_pointer change_delivery_details" data-status="'.escape_output($value->status).'" data-id="'.escape_output($value->id).'"><i
                             class="fa fa-truck tiny-icon"></i>'.lang('change_delivery_address').'</a>
+                        </li>';
+               endif;
+               if($email_invoice_on):
+                $html .= '<li><a class="ir_mouse_pointer ei_email_invoice" data-id="'.escape_output($value->id).'"><i
+                            class="fa fa-envelope tiny-icon"></i>'.lang('ei_email_invoice').'</a>
                         </li>';
                endif;
                $html .= '<li data-access="view_invoice-123" class="menu_assign_class"><a href="'.base_url().'Sale/POS/'.$user_id.'/'.$outlet_id.'/'.$value->id.'" class="ir_mouse_pointer" ><i

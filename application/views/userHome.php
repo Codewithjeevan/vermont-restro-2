@@ -379,6 +379,10 @@ $user_id = $this->session->userdata('user_id');
                                        
                                 <li data-access="update_tax-52" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>setting/tax">
                                         <?php echo lang('Tax_Setting'); ?></a></li>
+                                <li data-access="update-443" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Email_invoice/settings">
+                                        <?php echo lang('ei_email_settings'); ?></a></li>
+                                <li data-access="view-443" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Email_invoice/log">
+                                        <?php echo lang('ei_email_log'); ?></a></li>
                                 <li data-access="add-55" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>MultipleCurrency/addEditMultipleCurrency">
                                         <?php echo lang('Add'); ?> <?php echo lang('Multiple_Currency'); ?></a></li>
                                 <li data-access="view-55" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>MultipleCurrency/MultipleCurrencies">
@@ -958,6 +962,10 @@ $user_id = $this->session->userdata('user_id');
                                         <?php echo lang('List'); ?> <?php echo lang('counter'); ?></a></li>
                                 <li data-access="update_tax-52" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>setting/tax">
                                         <?php echo lang('Tax_Setting'); ?></a></li>
+                                <li data-access="update-443" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Email_invoice/settings">
+                                        <?php echo lang('ei_email_settings'); ?></a></li>
+                                <li data-access="view-443" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>Email_invoice/log">
+                                        <?php echo lang('ei_email_log'); ?></a></li>
                                 <li data-access="add-55" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>MultipleCurrency/addEditMultipleCurrency">
                                         <?php echo lang('Add'); ?> <?php echo lang('Multiple_Currency'); ?></a></li>
                                 <li data-access="view-55" class="menu_assign_class" data-menu__cid="irp_32"><a href="<?php echo base_url()?>MultipleCurrency/MultipleCurrencies">

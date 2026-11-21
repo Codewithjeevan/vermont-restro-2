@@ -3430,6 +3430,28 @@ foreach ($notifications as $single_notification){
                                             </ul>
 
                                             <input type="text" placeholder="<?php echo lang('token_number') ?>" onfocus="select();"  id="token_number" class="custom_field custom_field_token">
+                                            <?php
+                                            //Email bill (docs/email_invoice.md): shown only when Settings > Email Settings is on
+                                            //a view's $this is the loader: a library loaded here lives on the controller
+                                            $ei_CI = &get_instance();
+                                            $ei_CI->load->library('Invoice_mailer');
+                                            $ei_company_id = $this->session->userdata('company_id');
+                                            if ($ei_CI->invoice_mailer->isEnabled($ei_company_id)):
+                                                $ei_settings = $ei_CI->invoice_mailer->getSettings($ei_company_id);
+                                            ?>
+                                            <style>
+                                                .email_bill_box { display:flex; align-items:center; gap:8px; width:95.5%; margin-top:6px; }
+                                                .email_bill_box .email_bill_label { display:flex; align-items:center; gap:6px; margin:0; white-space:nowrap; cursor:pointer; font-weight:600; }
+                                                .email_bill_box .email_bill_label input { width:18px; height:18px; }
+                                                .email_bill_box .email_bill_input { flex:1; min-width:0; height:44px; padding:0 10px; border:1px solid #ced4da; border-radius:4px; }
+                                                .email_bill_box .email_bill_invalid { border-color:#e53935 !important; background:#fff5f5; }
+                                            </style>
+                                            <div class="email_bill_box" id="email_bill_box" data-auto_tick="<?php echo (int) $ei_settings->pos_auto_tick; ?>">
+                                                <label for="check_send_email" class="email_bill_label"><input id="check_send_email" type="checkbox"> <?php echo lang('ei_email_bill') ?></label>
+                                                <input type="email" id="email_bill_to" class="custom_field email_bill_input" maxlength="150" autocomplete="off" placeholder="<?php echo lang('ei_email_placeholder') ?>">
+                                            </div>
+                                            <input type="hidden" id="ei_pos_invalid" value="<?php echo escape_output(lang('ei_pos_invalid')); ?>">
+                                            <?php endif; ?>
 
                                         </div>
 
@@ -4377,6 +4399,7 @@ foreach ($notifications as $single_notification){
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/POS/js/howler.min.js"></script>
     <script src="<?php echo base_url(); ?>assets/dist/js/feather.min.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_script_v7.3.js?v=<?php echo filemtime(FCPATH.'frequent_changing/js/pos_script_v7.3.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo base_url(); ?>frequent_changing/js/pos_email_bill.js?v=<?php echo filemtime(FCPATH.'frequent_changing/js/pos_email_bill.js'); ?>"></script>
     <script src="<?php echo base_url(); ?>assets/POS/js/media.js"></script>
     <script type="text/javascript" src="<?php echo base_url(); ?>assets/plugins/notify/jquery.notifyBar.js"></script>
 

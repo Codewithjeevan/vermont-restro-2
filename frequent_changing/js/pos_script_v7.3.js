@@ -281,6 +281,10 @@
           }
       }
       function checkSMSDisabled(customer_id){
+          //called every time the payment screen opens: also reset + prefill the Email bill box (pos_email_bill.js)
+          if(window.posEmailBill){
+              window.posEmailBill.prepare(customer_id);
+          }
           if(customer_id==1){
               $("#check_send_sms").prop('checked',false);
               $("#check_send_sms").prop('disabled',true);
@@ -1098,6 +1102,10 @@
        * Added Date: 25/9/2021
        *****/
       function add_to_recent_sale_by_ajax(order_object, sale_id,is_ignore='') {
+          //Email bill ticked: send_email_status + email_bill_to ride along to Sale/push_online (pos_email_bill.js)
+          if(window.posEmailBill){
+              order_object = window.posEmailBill.attach(order_object);
+          }
           let sale = JSON.parse(order_object);
           let outlet_id = $("#outlet_id_indexdb").val();
           let order_info = {
@@ -2102,6 +2110,10 @@
                                   notify_online(sale_no);
                               }
                               update_online_push(response);
+                              //the server queued this bill's email: ask it to send now (pos_email_bill.js)
+                              if(window.posEmailBill && Number(rowData.send_email_status)===1){
+                                  window.posEmailBill.kick();
+                              }
                           },
                           error:function(){
   
@@ -2138,6 +2150,10 @@
                           success:function(response) {
                               notify_online(sale_no);
                               update_online_push(response);
+                              //the server queued this bill's email: ask it to send now (pos_email_bill.js)
+                              if(window.posEmailBill && Number(rowData.send_email_status)===1){
+                                  window.posEmailBill.kick();
+                              }
                           },
                           error:function(){
   
@@ -10008,6 +10024,10 @@
         }
       );
       $(document).on("click", "#finalize_order_button", function (e) {
+        //Email bill ticked with a bad address: keep the payment screen open (pos_email_bill.js)
+        if(window.posEmailBill && !window.posEmailBill.validate()){
+            return false;
+        }
         let due_amount_invoice_input = Number($("#finalize_total_due").html());
         let customer_id = $("#selected_invoice_sale_customer").val();
         let status = true;

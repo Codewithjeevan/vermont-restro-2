@@ -215,6 +215,84 @@ if ($this->session->flashdata('exception_1')) {
 </div>
 
 
+<!-- Email Invoice: send / resend one bill (Email_invoice/send, permission 443 send) -->
+<div class="modal fade" id="ei_send_modal" aria-labelledby="ei_send_title" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ei_send_title"><?php echo lang('ei_email_invoice'); ?> <span id="ei_sale_no"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <i data-feather="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="ei_sale_id" value="">
+                <input type="hidden" id="ei_csrf" value="<?php echo escape_output(ai_csrf_token()); ?>">
+                <label for="ei_email"><?php echo lang('ei_customer_email'); ?></label>
+                <input type="email" id="ei_email" class="form-control" maxlength="150" placeholder="<?php echo lang('ei_email_placeholder'); ?>">
+                <div id="ei_last" class="mt-2" style="font-size:13px;color:#666;"></div>
+                <div id="ei_send_result" class="mt-2" style="font-size:14px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn bg-blue-btn" id="ei_send_btn"><?php echo lang('ei_send'); ?></button>
+                <button type="button" class="btn bg-red-btn" data-bs-dismiss="modal"><?php echo lang('close'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function ($) {
+    var base = $("#base_url_").val();
+    var txt = {
+        sending: <?php echo json_encode(lang('ei_sending'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        network: <?php echo json_encode(lang('ei_network_error'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        invalid: <?php echo json_encode(lang('ei_invalid_email'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        last: <?php echo json_encode(lang('ei_last_email'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
+    };
+    function show(el, text, ok) {
+        $(el).text(text || '').css('color', ok === false ? '#991b1b' : (ok ? '#166534' : '#666'));
+    }
+    $(document).on("click", ".ei_email_invoice", function () {
+        var id = $(this).attr("data-id");
+        $("#ei_sale_id").val(id);
+        $("#ei_email").val("");
+        $("#ei_sale_no").text("");
+        show("#ei_last", "");
+        show("#ei_send_result", "");
+        $("#ei_send_btn").prop("disabled", false);
+        $("#ei_send_modal").modal("show");
+        $.ajax({ url: base + "Email_invoice/saleInfo", data: { sale_id: id }, dataType: "json" })
+            .done(function (res) {
+                if (!res.ok) { show("#ei_send_result", res.error, false); return; }
+                $("#ei_sale_no").text(res.sale_no);
+                if (res.email) { $("#ei_email").val(res.email); }
+                if (res.last) {
+                    show("#ei_last", txt.last + ": " + res.last.to_email + " - " + res.last.status_text + " (" + res.last.at + ")" + (res.last.error && res.last.status !== "sent" ? " - " + res.last.error : ""));
+                }
+            })
+            .fail(function () { show("#ei_send_result", txt.network, false); });
+    });
+    $(document).on("click", "#ei_send_btn", function () {
+        var email = $.trim($("#ei_email").val());
+        if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email)) {
+            show("#ei_send_result", txt.invalid, false);
+            return;
+        }
+        var btn = $(this).prop("disabled", true);
+        show("#ei_send_result", txt.sending);
+        $.ajax({
+            url: base + "Email_invoice/send", method: "POST", dataType: "json",
+            data: { sale_id: $("#ei_sale_id").val(), email: email, ai_csrf: $("#ei_csrf").val() }
+        }).done(function (res) {
+            show("#ei_send_result", res.ok ? res.msg : res.error, !!res.ok);
+        }).fail(function (xhr) {
+            var res = xhr.responseJSON;
+            show("#ei_send_result", res && res.error ? res.error : txt.network, false);
+        }).always(function () { btn.prop("disabled", false); });
+    });
+})(jQuery);
+</script>
+
 <!-- <script src="<?php echo base_url(); ?>assets/datatable_custom/jquery-3.3.1.js"></script> -->
 <script src="<?php echo base_url(); ?>frequent_changing/js/dataTable/jquery.dataTables.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js">
